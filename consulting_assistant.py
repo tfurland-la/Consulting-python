@@ -5,7 +5,7 @@ load_dotenv()
 
 client = Anthropic()
 
-SYSTEM_PROMPT = """You are an AI assistant for LiminalArc, a management consulting firm.
+SYSTEM_PROMPT = """You are an AI assistant for [Your Firm], a management consulting firm.
 
 Your role is to help consultants think through client problems with rigor and clarity.
 You apply systems thinking and domain-driven approaches to analysis.
