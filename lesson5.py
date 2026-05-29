@@ -5,6 +5,12 @@ load_dotenv()
 
 client = Anthropic()
 
+SYSTEM_PROMPT = """You are an AI assistant for LiminalArc, a management consulting firm.
+
+Your role is to help consultants think through client problems with rigor and clarity.
+You apply systems thinking and domain-driven approaches to analysis.
+Keep responses concise and structured. Avoid generic advice — be specific and actionable."""
+
 messages = []
 
 def chat(user_message):
@@ -12,8 +18,8 @@ def chat(user_message):
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1024,
-        system="You are a helpful Python tutor for a management consultant learning to build with the Claude API. Keep responses concise.",
+        max_tokens=4096,
+        system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
         messages=messages,
     )
 
@@ -21,6 +27,4 @@ def chat(user_message):
     messages.append({"role": "assistant", "content": assistant_message})
     return assistant_message
 
-print(chat("What is a Python list?"))
-print(chat("How is it different from a tuple?"))
-print(chat("Which one would I use for a Claude API messages history?"))
+print(chat("A client's order fulfillment process has a 3-day cycle time. Their competitor is at 1 day. Where do I start?"))
