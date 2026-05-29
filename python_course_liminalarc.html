@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python for AI Consultants — LiminalArc</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --ink-light: #4a4a6a;
+    --ink-faint: #8888aa;
+    --paper: #f7f6f1;
+    --paper-warm: #eeeade;
+    --accent: #2E4057;
+    --teal: #048A81;
+    --amber: #c17f24;
+    --coral: #c94f3a;
+    --code-bg: #1a1a2e;
+    --code-fg: #e8e6f0;
+    --code-accent: #7ec8a0;
+    --code-string: #f0c484;
+    --code-comment: #6666aa;
+    --sidebar-w: 280px;
+    --transition: 0.2s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ───────────────────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: var(--accent);
+    position: fixed;
+    top: 0; left: 0;
+    overflow-y: auto;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 32px 24px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .sidebar-header .brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 8px;
+  }
+
+  .sidebar-header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: #fff;
+    line-height: 1.3;
+    font-weight: 400;
+  }
+
+  .sidebar-header .subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 6px;
+    font-weight: 300;
+  }
+
+  .nav-section {
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    padding: 0 24px 8px;
+    font-weight: 500;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 24px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 400;
+    transition: all var(--transition);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-item:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border-left-color: var(--teal);
+  }
+
+  .nav-item.active {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-left-color: var(--teal);
+  }
+
+  .nav-item .num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    min-width: 20px;
+  }
+
+  .nav-sub {
+    padding: 4px 24px 4px 54px;
+    color: rgba(255,255,255,0.45);
+    font-size: 12px;
+    text-decoration: none;
+    display: block;
+    transition: color var(--transition);
+  }
+
+  .nav-sub:hover { color: rgba(255,255,255,0.8); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    font-style: italic;
+  }
+
+  /* ── MAIN ───────────────────────────────────────────────── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 0;
+  }
+
+  /* ── HERO ───────────────────────────────────────────────── */
+  .hero {
+    background: var(--accent);
+    padding: 64px 64px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(4,138,129,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 48px;
+    color: #fff;
+    line-height: 1.15;
+    font-weight: 400;
+    max-width: 600px;
+    margin-bottom: 16px;
+  }
+
+  .hero p {
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
+    max-width: 560px;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .hero-meta {
+    margin-top: 32px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hero-stat .val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: #fff;
+  }
+
+  .hero-stat .label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── CONTENT AREA ───────────────────────────────────────── */
+  .content {
+    max-width: 860px;
+    padding: 64px;
+  }
+
+  /* ── MODULE SECTIONS ────────────────────────────────────── */
+  .module {
+    margin-bottom: 80px;
+    scroll-margin-top: 32px;
+  }
+
+  .module-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--paper-warm);
+    position: relative;
+  }
+
+  .module-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 60px; height: 2px;
+    background: var(--teal);
+  }
+
+  .module-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 56px;
+    color: var(--paper-warm);
+    line-height: 1;
+    min-width: 70px;
+    font-weight: 400;
+    user-select: none;
+  }
+
+  .module-title-block h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px;
+    color: var(--ink);
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .module-title-block .module-desc {
+    font-size: 14px;
+    color: var(--ink-faint);
+    font-weight: 300;
+  }
+
+  /* ── LESSON SECTIONS ────────────────────────────────────── */
+  .lesson {
+    margin-bottom: 56px;
+    scroll-margin-top: 32px;
+  }
+
+  .lesson h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--accent);
+    font-weight: 400;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lesson h3::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 20px;
+    background: var(--teal);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .lesson p {
+    font-size: 15px;
+    color: var(--ink-light);
+    margin-bottom: 14px;
+    line-height: 1.75;
+    font-weight: 300;
+  }
+
+  .lesson p strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ── CODE BLOCKS ────────────────────────────────────────── */
+  .code-block {
+    background: var(--code-bg);
+    border-radius: 8px;
+    margin: 20px 0;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(26,26,46,0.15);
+  }
+
+  .code-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .code-label span {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.3);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all var(--transition);
+    letter-spacing: 0.05em;
+  }
+
+  .copy-btn:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  pre {
+    padding: 20px 20px;
+    overflow-x: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--code-fg);
+  }
+
+  .cm { color: var(--code-comment); font-style: italic; }
+  .cs { color: var(--code-string); }
+  .ck { color: #7eb8f0; }
+  .cf { color: var(--code-accent); }
+  .cn { color: #e8a87c; }
+
+  /* ── INLINE CODE ────────────────────────────────────────── */
+  code {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--paper-warm);
+    color: var(--coral);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ── CALLOUTS ───────────────────────────────────────────── */
+  .callout {
+    border-left: 3px solid var(--teal);
+    background: rgba(4,138,129,0.05);
+    padding: 14px 18px;
+    margin: 20px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+    color: var(--ink-light);
+    font-style: italic;
+    line-height: 1.65;
+  }
+
+  .callout.warning {
+    border-left-color: var(--coral);
+    background: rgba(201,79,58,0.05);
+    color: #8b3a2a;
+    font-style: normal;
+  }
+
+  .callout strong {
+    color: var(--ink);
+    font-style: normal;
+  }
+
+  /* ── EXERCISE BOX ───────────────────────────────────────── */
+  .exercise {
+    background: linear-gradient(135deg, rgba(46,64,87,0.04) 0%, rgba(4,138,129,0.04) 100%);
+    border: 1px solid rgba(4,138,129,0.2);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .exercise-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  .exercise p {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--ink-light);
+  }
+
+  .exercise p:last-child { margin-bottom: 0; }
+
+  /* ── EXPECTED OUTPUT ────────────────────────────────────── */
+  .output-block {
+    background: #0d1117;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: #58a6ff;
+    border-left: 3px solid #238636;
+    line-height: 1.6;
+  }
+
+  .output-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #238636;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  /* ── TABLES ─────────────────────────────────────────────── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+
+  .ref-table th {
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .ref-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--paper-warm);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .ref-table tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
+
+  .ref-table td:first-child {
+    font-family: 'DM Mono', monospace;
+    font-size: 12.5px;
+    color: var(--coral);
+    white-space: nowrap;
+  }
+
+  /* ── LISTS ──────────────────────────────────────────────── */
+  .lesson ul, .lesson ol {
+    margin: 12px 0 12px 20px;
+    font-size: 15px;
+    color: var(--ink-light);
+    font-weight: 300;
+  }
+
+  .lesson li {
+    margin-bottom: 6px;
+    line-height: 1.65;
+    padding-left: 4px;
+  }
+
+  .lesson li strong { color: var(--ink); font-weight: 500; }
+
+  /* ── DIVIDER ────────────────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--teal), transparent);
+    margin: 48px 0;
+    opacity: 0.3;
+  }
+
+  /* ── PROGRESS BAR ───────────────────────────────────────── */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: var(--sidebar-w); right: 0;
+    height: 2px;
+    background: rgba(4,138,129,0.15);
+    z-index: 200;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--teal);
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* ── SCROLL TO TOP ──────────────────────────────────────── */
+  .scroll-top {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 40px; height: 40px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition);
+    box-shadow: 0 4px 12px rgba(26,26,46,0.2);
+  }
+
+  .scroll-top.visible { opacity: 1; }
+
+  /* ── RESPONSIVE ─────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .sidebar { width: 100%; min-height: auto; position: relative; }
+    .main { margin-left: 0; }
+    .content { padding: 32px; }
+    .hero { padding: 40px 32px 32px; }
+    .hero h1 { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">LiminalArc</div>
+    <h1>Python for AI Consultants</h1>
+    <div class="subtitle">CCA-F Certification Prep</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Modules</div>
+    <a class="nav-item" href="#module1"><span class="num">01</span>Python Syntax</a>
+    <a class="nav-sub" href="#classes">Classes &amp; Instances</a>
+    <a class="nav-sub" href="#fstrings">f-strings</a>
+    <a class="nav-sub" href="#controlflow">Control Flow</a>
+
+    <a class="nav-item" href="#module2"><span class="num">02</span>Data Types &amp; Loops</a>
+    <a class="nav-sub" href="#lists">Lists</a>
+    <a class="nav-sub" href="#dicts">Dicts</a>
+    <a class="nav-sub" href="#nested">Nested Structures</a>
+    <a class="nav-sub" href="#functions">Functions</a>
+    <a class="nav-sub" href="#kwargs">Keyword Arguments</a>
+    <a class="nav-sub" href="#loops">for Loops</a>
+
+    <a class="nav-item" href="#module3"><span class="num">03</span>JSON in Python</a>
+    <a class="nav-sub" href="#json-functions">The Four Functions</a>
+    <a class="nav-sub" href="#json-types">Type Mapping</a>
+
+    <a class="nav-item" href="#pytest"><span class="num">—</span>Testing with pytest</a>
+
+    <a class="nav-item" href="#git"><span class="num">—</span>Git &amp; Secrets</a>
+    <a class="nav-sub" href="#gitignore">.gitignore</a>
+    <a class="nav-sub" href="#dotenv">.env Pattern</a>
+
+    <a class="nav-item" href="#gotchas"><span class="num">—</span>Common Gotchas</a>
+
+    <a class="nav-item" href="#module4"><span class="num">04</span>Anthropic SDK</a>
+    <a class="nav-sub" href="#first-call">First API Call</a>
+    <a class="nav-sub" href="#response-obj">Response Object</a>
+    <a class="nav-sub" href="#system-prompt">System Prompt</a>
+    <a class="nav-sub" href="#multiturn">Multi-Turn</a>
+    <a class="nav-sub" href="#caching">Prompt Caching</a>
+
+    <a class="nav-item" href="#claudecode"><span class="num">—</span>Claude Code CLI</a>
+    <a class="nav-sub" href="#pflag">-p Flag</a>
+    <a class="nav-sub" href="#cicd">CI/CD Patterns</a>
+  </div>
+
+  <div class="sidebar-footer">
+    Modules 1–4 complete · 11 passing tests
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">Claude Solution Architect · CCA-F Prep</div>
+    <h1>Python for AI Consultants</h1>
+    <p>A complete on-ramp from zero Python to your first live Claude API call. Every lesson is buildable, testable, and directly mapped to the certification curriculum.</p>
+    <div class="hero-meta">
+      <div class="hero-stat"><span class="val">4</span><span class="label">Modules</span></div>
+      <div class="hero-stat"><span class="val">11</span><span class="label">Passing Tests</span></div>
+      <div class="hero-stat"><span class="val">720</span><span class="label">Points to Pass</span></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ MODULE 1 ══════════════════════════════════════════ -->
+    <div class="module" id="module1">
+      <div class="module-header">
+        <div class="module-num">01</div>
+        <div class="module-title-block">
+          <h2>Python Syntax Fundamentals</h2>
+          <div class="module-desc">Classes, instances, f-strings, and control flow — the foundation everything else builds on.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="classes">
+        <h3>Classes and Instances</h3>
+        <p>Python's philosophy is that developers are trusted adults. The language gets out of your way. The tradeoff: it won't protect you from yourself.</p>
+        <p>Seven things that will feel wrong at first:</p>
+        <ul>
+          <li><strong>No type declarations</strong> — Python infers type at runtime.</li>
+          <li><strong>No access modifiers</strong> — no public/private. Convention (<code>_prefix</code>) signals intent but the language doesn't enforce it.</li>
+          <li><strong>No curly braces</strong> — indentation IS structure. A misplaced space can silently change your code.</li>
+          <li><strong>No semicolons</strong> — newline ends a statement.</li>
+          <li><strong>def for all methods</strong> — every function uses <code>def</code> regardless of return type.</li>
+          <li><strong>self is explicit</strong> — every instance method declares <code>self</code> as its first parameter.</li>
+          <li><strong>__init__ instead of a constructor</strong> — runs automatically when you create a new instance.</li>
+        </ul>
+
+        <p style="margin-top:20px"><strong>The class</strong> is the blueprint. <strong>The instance</strong> is a specific object built from that blueprint. <strong>Methods</strong> are functions that belong to the class and operate on a specific instance's data via <code>self</code>.</p>
+
+        <div class="callout">Why this matters: When you call the Claude API, the SDK gives you objects — instances of classes the SDK defines. Understanding that an object has properties you can access and methods you can call is what lets you navigate those objects confidently.</div>
+
+        <div class="exercise">
+          <div class="exercise-label">Exercise — Create lesson1.py</div>
+          <p>Type the following into <code>lesson1.py</code>. Do not paste — typing builds muscle memory.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson1.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">class</span> <span class="cf">EngagementAnalyzer</span>:
+    <span class="ck">def</span> <span class="cf">__init__</span>(self, client_name, team_size):
+        self.client_name = client_name   <span class="cm"># attaches to the object</span>
+        self.team_size = team_size
+
+    <span class="ck">def</span> <span class="cf">get_summary</span>(self):
+        <span class="ck">if</span> self.team_size > <span class="cn">10</span>:
+            <span class="ck">return</span> <span class="cs">f"{self.client_name} is a large engagement ({self.team_size} people)"</span>
+        <span class="ck">else</span>:
+            <span class="ck">return</span> <span class="cs">f"{self.client_name} is a small engagement ({self.team_size} people)"</span>
+
+
+<span class="cm"># Creating instances</span>
+analyzer_1 = <span class="cf">EngagementAnalyzer</span>(<span class="cs">"Acme Corp"</span>, <span class="cn">15</span>)
+analyzer_2 = <span class="cf">EngagementAnalyzer</span>(<span class="cs">"Wayne Enterprises"</span>, <span class="cn">4</span>)
+
+<span class="cf">print</span>(analyzer_1.<span class="cf">get_summary</span>())
+<span class="cf">print</span>(analyzer_2.<span class="cf">get_summary</span>())
+<span class="cf">print</span>(analyzer_1.client_name)   <span class="cm"># access property directly</span></pre>
+        </div>
+
+        <p>Run it with the play button (▷) in VSCode or <code>python3 lesson1.py</code> in the terminal.</p>
+
+        <div class="output-block">
+          <div class="output-label">Expected output</div>
+Acme Corp is a large engagement (15 people)
+Wayne Enterprises is a small engagement (4 people)
+Acme Corp</div>
+      </div>
+
+      <div class="lesson" id="fstrings">
+        <h3>f-strings</h3>
+        <p>The <code>f</code> prefix tells Python to evaluate anything inside curly braces as code and insert the result into the string.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>name = <span class="cs">"Acme Corp"</span>
+team = <span class="cn">15</span>
+<span class="cf">print</span>(<span class="cs">f"{name} has {team} people"</span>)   <span class="cm"># "Acme Corp has 15 people"</span>
+<span class="cf">print</span>(<span class="cs">f"{utilization:.1f}%"</span>)          <span class="cm"># :.1f rounds float to 1 decimal place</span></pre>
+        </div>
+      </div>
+
+      <div class="lesson" id="controlflow">
+        <h3>Control Flow</h3>
+        <p>Standard conditional logic. Indentation defines the block — there are no curly braces.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">if</span> team_size > <span class="cn">10</span>:
+    <span class="ck">return</span> <span class="cs">'large'</span>
+<span class="ck">elif</span> team_size > <span class="cn">5</span>:
+    <span class="ck">return</span> <span class="cs">'medium'</span>
+<span class="ck">else</span>:
+    <span class="ck">return</span> <span class="cs">'small'</span></pre>
+        </div>
+
+        <div class="exercise">
+          <div class="exercise-label">Exercise — Write tests first</div>
+          <p>Install pytest: <code>pip install pytest</code></p>
+          <p>Create <code>test_lesson1.py</code> and write tests covering large engagement, small engagement, and the boundary condition (exactly 10 people). Run with <code>pytest test_lesson1.py -v</code>.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label"><span>test_lesson1.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">from</span> lesson1 <span class="ck">import</span> EngagementAnalyzer
+
+<span class="ck">def</span> <span class="cf">test_large_engagement</span>():
+    analyzer = <span class="cf">EngagementAnalyzer</span>(<span class="cs">"Acme Corp"</span>, <span class="cn">15</span>)
+    <span class="ck">assert</span> analyzer.<span class="cf">get_summary</span>() == <span class="cs">"Acme Corp is a large engagement (15 people)"</span>
+
+<span class="ck">def</span> <span class="cf">test_small_engagement</span>():
+    analyzer = <span class="cf">EngagementAnalyzer</span>(<span class="cs">"Wayne Enterprises"</span>, <span class="cn">4</span>)
+    <span class="ck">assert</span> analyzer.<span class="cf">get_summary</span>() == <span class="cs">"Wayne Enterprises is a small engagement (4 people)"</span>
+
+<span class="ck">def</span> <span class="cf">test_boundary</span>():
+    analyzer = <span class="cf">EngagementAnalyzer</span>(<span class="cs">"Boundary Co"</span>, <span class="cn">10</span>)
+    <span class="ck">assert</span> analyzer.<span class="cf">get_summary</span>() == <span class="cs">"Boundary Co is a small engagement (10 people)"</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ MODULE 2 ══════════════════════════════════════════ -->
+    <div class="module" id="module2">
+      <div class="module-header">
+        <div class="module-num">02</div>
+        <div class="module-title-block">
+          <h2>Data Types, Functions, and Loops</h2>
+          <div class="module-desc">Lists, dicts, nested structures, and the patterns you'll use every time you call the API.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="lists">
+        <h3>Lists</h3>
+        <p>An ordered collection. Accessed by index starting at 0. Use <code>-1</code> to get the last item without knowing the list length.</p>
+        <div class="callout">Claude API responses contain a list of content blocks. Knowing how to access items by index is how you extract text from a real API response.</div>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson2.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># --- list ---</span>
+practice_areas = [<span class="cs">"Management Consulting"</span>, <span class="cs">"Software Engineering"</span>, <span class="cs">"Product &amp; Strategy"</span>]
+
+<span class="cf">print</span>(practice_areas[<span class="cn">0</span>])       <span class="cm"># 'Management Consulting'</span>
+<span class="cf">print</span>(practice_areas[-<span class="cn">1</span>])      <span class="cm"># 'Product &amp; Strategy' (last item)</span>
+<span class="cf">print</span>(<span class="cf">len</span>(practice_areas))     <span class="cm"># 3</span>
+practice_areas.<span class="cf">append</span>(<span class="cs">'Security'</span>)
+<span class="cf">print</span>(<span class="cf">len</span>(practice_areas))     <span class="cm"># 4</span></pre>
+        </div>
+      </div>
+
+      <div class="lesson" id="dicts">
+        <h3>Dicts</h3>
+        <p>Key-value pairs. Each key must be unique within the dict. Values can be any type — strings, numbers, booleans, lists, or other dicts.</p>
+        <div class="callout">Dicts are the native shape of JSON data. Everything the Claude API sends and receives is structured as nested dicts and lists.</div>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson2.py (continued)</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># --- dict ---</span>
+engagement = {
+    <span class="cs">"client"</span>: <span class="cs">"Acme Corp"</span>,
+    <span class="cs">"team_size"</span>: <span class="cn">15</span>,
+    <span class="cs">"active"</span>: <span class="ck">True</span>
+}
+
+<span class="cf">print</span>(engagement[<span class="cs">"client"</span>])             <span class="cm"># "Acme Corp"</span>
+engagement[<span class="cs">"industry"</span>] = <span class="cs">"Mfg"</span>          <span class="cm"># add new key</span>
+engagement[<span class="cs">"team_size"</span>] = <span class="cn">18</span>            <span class="cm"># overwrite existing key</span>
+<span class="cf">print</span>(engagement.<span class="cf">get</span>(<span class="cs">"email"</span>))          <span class="cm"># None — safe, no crash</span>
+<span class="cf">print</span>(engagement.<span class="cf">get</span>(<span class="cs">"email"</span>, <span class="cs">"n/a"</span>))  <span class="cm"># "n/a" — with fallback</span></pre>
+        </div>
+      </div>
+
+      <div class="lesson" id="nested">
+        <h3>Nested Structures</h3>
+        <p>Dicts and lists can contain each other. Each <code>[]</code> takes you one level deeper. Think of it as a path — each bracket is one step further in.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson2.py (continued)</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>response = {
+    <span class="cs">"content"</span>: [
+        {<span class="cs">"type"</span>: <span class="cs">"text"</span>, <span class="cs">"text"</span>: <span class="cs">"Hello from Claude"</span>}
+    ]
+}
+
+<span class="cf">print</span>(response[<span class="cs">"content"</span>])              <span class="cm"># the list</span>
+<span class="cf">print</span>(response[<span class="cs">"content"</span>][<span class="cn">0</span>])           <span class="cm"># first dict in the list</span>
+<span class="cf">print</span>(response[<span class="cs">"content"</span>][<span class="cn">0</span>][<span class="cs">"text"</span>])  <span class="cm"># "Hello from Claude"</span></pre>
+        </div>
+
+        <div class="callout">This exact pattern — <code>response["content"][0]["text"]</code> — is how you extract text from a plain dict representation of a Claude API response. On a real SDK response object, the equivalent is <code>response.content[0].text</code> using dot notation.</div>
+
+        <div class="exercise">
+          <div class="exercise-label">Exercise — navigate a nested structure</div>
+          <p>Add the following to <code>lesson2.py</code> and write the line that prints only <strong>"Legacy ERP creating bottlenecks"</strong>.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label"><span>exercise</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>engagement_report = {
+    <span class="cs">"client"</span>: <span class="cs">"Acme Corp"</span>,
+    <span class="cs">"findings"</span>: [
+        {<span class="cs">"area"</span>: <span class="cs">"Operations"</span>, <span class="cs">"priority"</span>: <span class="cs">"High"</span>, <span class="cs">"note"</span>: <span class="cs">"Process gaps in order fulfillment"</span>},
+        {<span class="cs">"area"</span>: <span class="cs">"Technology"</span>, <span class="cs">"priority"</span>: <span class="cs">"Medium"</span>, <span class="cs">"note"</span>: <span class="cs">"Legacy ERP creating bottlenecks"</span>}
+    ]
+}
+
+<span class="cm"># Write the line that prints "Legacy ERP creating bottlenecks"</span></pre>
+        </div>
+
+        <div class="output-block">
+          <div class="output-label">Answer</div>
+print(engagement_report["findings"][-1]["note"])</div>
+      </div>
+
+      <div class="lesson" id="functions">
+        <h3>Standalone Functions</h3>
+        <p>Functions do not have to belong to a class. Any reusable logic can be defined with <code>def</code> and called by name.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson3.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">def</span> <span class="cf">calculate_utilization</span>(billable_hours, total_hours):
+    <span class="ck">return</span> billable_hours / total_hours * <span class="cn">100</span>
+
+<span class="cf">print</span>(<span class="cf">calculate_utilization</span>(<span class="cn">32</span>, <span class="cn">40</span>))   <span class="cm"># 80.0</span>
+<span class="cf">print</span>(<span class="cf">calculate_utilization</span>(<span class="cn">25</span>, <span class="cn">40</span>))   <span class="cm"># 62.5</span></pre>
+        </div>
+
+        <div class="exercise">
+          <div class="exercise-label">TDD Exercise — Write failing tests first</div>
+          <p>Create <code>test_lesson3.py</code>. Write three separate test functions covering: partial utilization (32/40 = 80.0), full utilization (40/40 = 100.0), and zero utilization (0/40 = 0.0). Run tests, confirm they pass.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label"><span>test_lesson3.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">from</span> lesson3 <span class="ck">import</span> calculate_utilization
+
+<span class="ck">def</span> <span class="cf">test_calculate_utilization_partial</span>():
+    <span class="ck">assert</span> <span class="cf">calculate_utilization</span>(<span class="cn">32</span>, <span class="cn">40</span>) == <span class="cn">80.0</span>
+
+<span class="ck">def</span> <span class="cf">test_calculate_utilization_full</span>():
+    <span class="ck">assert</span> <span class="cf">calculate_utilization</span>(<span class="cn">40</span>, <span class="cn">40</span>) == <span class="cn">100.0</span>
+
+<span class="ck">def</span> <span class="cf">test_calculate_utilization_zero</span>():
+    <span class="ck">assert</span> <span class="cf">calculate_utilization</span>(<span class="cn">0</span>, <span class="cn">40</span>) == <span class="cn">0.0</span></pre>
+        </div>
+      </div>
+
+      <div class="lesson" id="kwargs">
+        <h3>Keyword Arguments</h3>
+        <p>Functions can be called positionally (order matters) or by keyword (names matter, order doesn't).</p>
+        <div class="callout">Every Anthropic SDK call uses keyword arguments: <code>client.messages.create(model=..., max_tokens=..., messages=...)</code>. The parameter names matter, not the order.</div>
+
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">def</span> <span class="cf">greet</span>(name, greeting=<span class="cs">'Hello'</span>):
+    <span class="ck">return</span> <span class="cs">f"{greeting}, {name}!"</span>
+
+<span class="cf">greet</span>(<span class="cs">"Tom"</span>, <span class="cs">"Howdy"</span>)             <span class="cm"># positional — order matters</span>
+<span class="cf">greet</span>(<span class="cs">"Tom"</span>, greeting=<span class="cs">"Howdy"</span>)    <span class="cm"># keyword — same result</span></pre>
+        </div>
+      </div>
+
+      <div class="lesson" id="loops">
+        <h3>for Loops</h3>
+        <p>Iterates over every item in a list. On each pass, the loop variable becomes one item. Python handles the iteration.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson3.py (continued)</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>consultants = [
+    {<span class="cs">"name"</span>: <span class="cs">"Tom"</span>, <span class="cs">"billable_hours"</span>: <span class="cn">32</span>, <span class="cs">"total_hours"</span>: <span class="cn">40</span>},
+    {<span class="cs">"name"</span>: <span class="cs">"Sarah"</span>, <span class="cs">"billable_hours"</span>: <span class="cn">38</span>, <span class="cs">"total_hours"</span>: <span class="cn">40</span>},
+    {<span class="cs">"name"</span>: <span class="cs">"Marcus"</span>, <span class="cs">"billable_hours"</span>: <span class="cn">28</span>, <span class="cs">"total_hours"</span>: <span class="cn">40</span>}
+]
+
+<span class="ck">for</span> consultant <span class="ck">in</span> consultants:
+    util = <span class="cf">calculate_utilization</span>(consultant[<span class="cs">"billable_hours"</span>], consultant[<span class="cs">"total_hours"</span>])
+    <span class="cf">print</span>(<span class="cs">f'{consultant["name"]}: {util:.1f}%'</span>)</pre>
+        </div>
+
+        <div class="output-block">
+          <div class="output-label">Expected output</div>
+Tom: 80.0%
+Sarah: 95.0%
+Marcus: 70.0%</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ MODULE 3 ══════════════════════════════════════════ -->
+    <div class="module" id="module3">
+      <div class="module-header">
+        <div class="module-num">03</div>
+        <div class="module-title-block">
+          <h2>JSON in Python</h2>
+          <div class="module-desc">The explicit certification prerequisite. Everything the Claude API sends and receives travels as JSON.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="json-functions">
+        <h3>The Four Functions</h3>
+        <p>The <code>s</code> suffix means string. No <code>s</code> means file. That's the only distinction to memorize.</p>
+
+        <table class="ref-table">
+          <tr><th>Function</th><th>What it does</th></tr>
+          <tr><td>json.dumps(obj)</td><td>Python dict → JSON string</td></tr>
+          <tr><td>json.loads(str)</td><td>JSON string → Python dict</td></tr>
+          <tr><td>json.dump(obj, f)</td><td>Python dict → JSON file</td></tr>
+          <tr><td>json.load(f)</td><td>JSON file → Python dict</td></tr>
+        </table>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson4.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">import</span> json
+
+engagement = {<span class="cs">'client'</span>: <span class="cs">'Acme Corp'</span>, <span class="cs">'active'</span>: <span class="ck">True</span>, <span class="cs">'findings'</span>: [<span class="cs">"Process gaps"</span>, <span class="cs">"Legacy tech"</span>]}
+
+<span class="cm"># Dict → string</span>
+json_string = json.<span class="cf">dumps</span>(engagement)
+<span class="cf">print</span>(<span class="cf">type</span>(json_string))    <span class="cm"># &lt;class 'str'&gt;</span>
+
+<span class="cm"># String → dict</span>
+parsed = json.<span class="cf">loads</span>(json_string)
+<span class="cf">print</span>(<span class="cf">type</span>(parsed))         <span class="cm"># &lt;class 'dict'&gt;</span>
+<span class="cf">print</span>(parsed[<span class="cs">"client"</span>])     <span class="cm"># Acme Corp</span>
+
+<span class="cm"># Human-readable formatting</span>
+<span class="cf">print</span>(json.<span class="cf">dumps</span>(engagement, indent=<span class="cn">2</span>))
+
+<span class="cm"># Dict → file</span>
+<span class="ck">with</span> <span class="cf">open</span>(<span class="cs">"engagement.json"</span>, <span class="cs">"w"</span>) <span class="ck">as</span> f:
+    json.<span class="cf">dump</span>(engagement, f, indent=<span class="cn">2</span>)
+
+<span class="cm"># File → dict</span>
+<span class="ck">with</span> <span class="cf">open</span>(<span class="cs">"engagement.json"</span>, <span class="cs">"r"</span>) <span class="ck">as</span> f:
+    loaded = json.<span class="cf">load</span>(f)
+<span class="cf">print</span>(loaded[<span class="cs">"findings"</span>])</pre>
+        </div>
+
+        <div class="callout"><strong>First debugging move:</strong> when a Claude API response looks wrong, always run <code>print(json.dumps(response, indent=2))</code> to see its full structure.</div>
+      </div>
+
+      <div class="lesson" id="json-types">
+        <h3>Python vs JSON Type Mapping</h3>
+        <p><code>json.dumps()</code> and <code>json.loads()</code> handle all translations automatically.</p>
+
+        <table class="ref-table">
+          <tr><th>Python</th><th>JSON</th></tr>
+          <tr><td>True / False</td><td>true / false — lowercase in JSON</td></tr>
+          <tr><td>None</td><td>null</td></tr>
+          <tr><td>str</td><td>string — always double quotes in JSON</td></tr>
+          <tr><td>list</td><td>array [ ]</td></tr>
+          <tr><td>dict</td><td>object { }</td></tr>
+        </table>
+
+        <div class="exercise">
+          <div class="exercise-label">TDD Exercise — Round trip test</div>
+          <p>Create <code>test_lesson4.py</code> with three tests: (1) <code>json.dumps()</code> produces a string, (2) <code>json.loads()</code> produces a dict, (3) a dict survives a full round trip unchanged.</p>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label"><span>test_lesson4.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">import</span> json
+<span class="ck">from</span> lesson4 <span class="ck">import</span> engagement
+
+<span class="ck">def</span> <span class="cf">test_dump_dict_to_string</span>():
+    json_string = json.<span class="cf">dumps</span>(engagement)
+    <span class="ck">assert</span> <span class="cf">isinstance</span>(json_string, <span class="cf">str</span>)
+
+<span class="ck">def</span> <span class="cf">test_load_string_to_dict</span>():
+    json_string = json.<span class="cf">dumps</span>(engagement)
+    parsed = json.<span class="cf">loads</span>(json_string)
+    <span class="ck">assert</span> <span class="cf">isinstance</span>(parsed, <span class="cf">dict</span>)
+
+<span class="ck">def</span> <span class="cf">test_round_trip_dict</span>():
+    json_string = json.<span class="cf">dumps</span>(engagement)
+    parsed = json.<span class="cf">loads</span>(json_string)
+    <span class="ck">assert</span> parsed == engagement</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ PYTEST ════════════════════════════════════════════ -->
+    <div class="module" id="pytest">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>Testing with pytest</h2>
+          <div class="module-desc">TDD discipline that lets you move fast without breaking things.</div>
+        </div>
+      </div>
+
+      <div class="lesson">
+        <h3>The Pattern</h3>
+        <ol>
+          <li><strong>Write a failing test</strong> that reflects a feature requirement. A test that cannot fail cannot prove anything.</li>
+          <li><strong>Write enough code to pass the test.</strong> No more.</li>
+          <li><strong>Refactor</strong> with your tests as a safety net.</li>
+        </ol>
+
+        <h3 style="margin-top:32px">Conventions pytest Relies On</h3>
+        <ul>
+          <li><strong>File naming:</strong> <code>test_*.py</code> — pytest won't find files that don't match this pattern</li>
+          <li><strong>Function naming:</strong> starts with <code>test_</code></li>
+          <li><strong>Assertions:</strong> use <code>assert</code> — if it fails, the test fails</li>
+          <li><strong>One thing per test:</strong> if the first assert fails, the rest don't run</li>
+        </ul>
+
+        <table class="ref-table" style="margin-top:24px">
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td>pytest</td><td>Run all tests in the project — auto-discovers test_*.py files</td></tr>
+          <tr><td>pytest -v</td><td>Verbose — shows each test by name with PASSED or FAILED</td></tr>
+          <tr><td>pytest test_lesson3.py</td><td>Run one specific file</td></tr>
+          <tr><td>pytest test_lesson3.py -v</td><td>Specific file, verbose</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ GIT ═══════════════════════════════════════════════ -->
+    <div class="module" id="git">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>Project Hygiene — Git and Secrets</h2>
+          <div class="module-desc">Non-negotiable habits before handling API keys.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="gitignore">
+        <h3>Core Git Commands</h3>
+        <div class="code-block">
+          <div class="code-label"><span>terminal</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>git init                           <span class="cm"># initialize repo</span>
+git add .                          <span class="cm"># stage all changes</span>
+git commit -m <span class="cs">"message"</span>            <span class="cm"># commit with description</span>
+git status                         <span class="cm"># what has changed</span>
+git log --oneline                  <span class="cm"># compact commit history</span>
+git diff                           <span class="cm"># changes since last commit</span>
+git checkout &lt;hash&gt; -- file.py     <span class="cm"># restore a specific file from a commit</span>
+git pull                           <span class="cm"># fetch and merge remote changes</span>
+git push                           <span class="cm"># push local commits to remote</span></pre>
+        </div>
+
+        <p><strong>What belongs in Git:</strong> source code, test files, .gitignore itself.</p>
+        <p><strong>Never commit:</strong> <code>.env</code> files, API keys, <code>.venv/</code>, generated output files that can be reproduced by running your code.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>.gitignore</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>.venv/           <span class="cm"># virtual environment — machine-specific</span>
+__pycache__/
+*.pyc
+.env             <span class="cm"># API keys — NEVER commit</span>
+*.json           <span class="cm"># generated output</span>
+
+<span class="cm"># Exception syntax — exclude all JSON except one specific file:</span>
+*.json
+!fixtures/data.json</pre>
+        </div>
+
+        <div class="callout warning"><strong>Git merge strategies:</strong> <code>git config pull.rebase false</code> sets merge as default. Merge creates an explicit merge commit. Rebase rewrites history to appear linear. Fast-forward only refuses if branches have diverged. Merge is the safe default for solo and learning projects.</div>
+      </div>
+
+      <div class="lesson" id="dotenv">
+        <h3>The .env Pattern for API Keys</h3>
+        <p>Store secrets in a <code>.env</code> file that is never committed. Load at runtime in Python.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>.env (never committed)</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>ANTHROPIC_API_KEY=sk-ant-your-key-here</pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">from</span> dotenv <span class="ck">import</span> load_dotenv
+<span class="ck">import</span> os
+
+<span class="cf">load_dotenv</span>()
+api_key = os.<span class="cf">getenv</span>(<span class="cs">"ANTHROPIC_API_KEY"</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ GOTCHAS ═══════════════════════════════════════════ -->
+    <div class="module" id="gotchas">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>Common Gotchas — Know Before Module 4</h2>
+          <div class="module-desc">Seven patterns that trip up developers working with the Anthropic API.</div>
+        </div>
+      </div>
+
+      <div class="lesson">
+        <h3>1. dict["key"] Crashes — dict.get() Does Not</h3>
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>user[<span class="cs">"email"</span>]                    <span class="cm"># KeyError if key missing — crashes</span>
+user.<span class="cf">get</span>(<span class="cs">"email"</span>)                <span class="cm"># None — safe</span>
+user.<span class="cf">get</span>(<span class="cs">"email"</span>, <span class="cs">"no email"</span>)   <span class="cm"># "no email" — with fallback</span></pre>
+        </div>
+        <div class="callout warning">API responses often have optional fields. Always use <code>.get()</code> when you are not certain a key exists.</div>
+
+        <h3 style="margin-top:32px">2. SDK Objects Use Dot Notation, Not Brackets</h3>
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>response[<span class="cs">"content"</span>][<span class="cn">0</span>][<span class="cs">"text"</span>]   <span class="cm"># plain dict — bracket notation</span>
+response.content[<span class="cn">0</span>].text         <span class="cm"># SDK object — dot notation</span>
+
+<span class="cm"># Convert SDK object to plain dict if needed:</span>
+response_dict = response.<span class="cf">model_dump</span>()</pre>
+        </div>
+
+        <h3 style="margin-top:32px">3. Always Check stop_reason</h3>
+        <table class="ref-table">
+          <tr><th>Value</th><th>Meaning</th></tr>
+          <tr><td>"end_turn"</td><td>Claude finished naturally. Most common.</td></tr>
+          <tr><td>"max_tokens"</td><td>Response was cut off. Increase max_tokens and retry.</td></tr>
+          <tr><td>"tool_use"</td><td>Claude wants to call a tool. Handle in the tool-use loop.</td></tr>
+          <tr><td>"stop_sequence"</td><td>Hit a custom stop sequence. Uncommon.</td></tr>
+        </table>
+        <div class="callout warning">Never assume a response is complete just because <code>content[0].text</code> has a value. If <code>stop_reason</code> is <code>"max_tokens"</code>, the response was cut off mid-sentence.</div>
+
+        <h3 style="margin-top:32px">4. Token Usage — How Billing Works</h3>
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>response.usage.input_tokens    <span class="cm"># tokens in your request</span>
+response.usage.output_tokens   <span class="cm"># tokens in Claude's response</span></pre>
+        </div>
+        <p>Output tokens are billed at a higher rate than input tokens. The system prompt counts as input tokens on every single call.</p>
+
+        <h3 style="margin-top:32px">5. content Is Always a List</h3>
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>response.content              <span class="cm"># list of content blocks — never use directly</span>
+response.content[<span class="cn">0</span>]           <span class="cm"># first block</span>
+response.content[<span class="cn">0</span>].text      <span class="cm"># the text string</span></pre>
+        </div>
+        <div class="callout warning">Even when Claude returns a single sentence, <code>content</code> is a list. You always need <code>[0]</code>.</div>
+
+        <h3 style="margin-top:32px">6. = vs ==</h3>
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>stop_reason = <span class="cs">'end_turn'</span>        <span class="cm"># assigns — sets the variable</span>
+stop_reason == <span class="cs">'end_turn'</span>       <span class="cm"># compares — returns True or False</span>
+<span class="ck">if</span> stop_reason == <span class="cs">'end_turn'</span>:   <span class="cm"># correct conditional check</span></pre>
+        </div>
+
+        <h3 style="margin-top:32px">7. Model Strings Change Over Time</h3>
+        <p>Never memorize a snapshot. Verify against current documentation. Current models:</p>
+        <table class="ref-table">
+          <tr><th>Model</th><th>Use case</th></tr>
+          <tr><td>claude-opus-4-6</td><td>Highest capability, highest cost</td></tr>
+          <tr><td>claude-sonnet-4-6</td><td>Default workhorse — strong quality, mid cost</td></tr>
+          <tr><td>claude-haiku-4-5-20251001</td><td>Fastest, cheapest, lightest tasks</td></tr>
+        </table>
+        <div class="callout">Start with Sonnet. Escalate to Opus if quality is insufficient. Drop to Haiku if speed or cost is the constraint.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ MODULE 4 ══════════════════════════════════════════ -->
+    <div class="module" id="module4">
+      <div class="module-header">
+        <div class="module-num">04</div>
+        <div class="module-title-block">
+          <h2>The Anthropic SDK</h2>
+          <div class="module-desc">Your first real API call, the response object, system prompts, multi-turn conversations, and prompt caching.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="first-call">
+        <h3>Setup and First API Call</h3>
+        <div class="code-block">
+          <div class="code-label"><span>terminal</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>pip install anthropic python-dotenv</pre>
+        </div>
+
+        <p>Create <code>lesson5.py</code>. This is the complete minimal pattern — everything you need to call Claude and read the response:</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson5.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">from</span> anthropic <span class="ck">import</span> Anthropic
+<span class="ck">from</span> dotenv <span class="ck">import</span> load_dotenv
+
+<span class="cf">load_dotenv</span>()
+client = <span class="cf">Anthropic</span>()
+
+response = client.messages.<span class="cf">create</span>(
+    model=<span class="cs">"claude-sonnet-4-6"</span>,
+    max_tokens=<span class="cn">1024</span>,
+    messages=[{<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: <span class="cs">"What is a Python list? Answer in one sentence."</span>}]
+)
+
+<span class="cf">print</span>(response.content[<span class="cn">0</span>].text)
+<span class="cf">print</span>(<span class="cs">f"\nstop_reason: {response.stop_reason}"</span>)
+<span class="cf">print</span>(<span class="cs">f"input_tokens: {response.usage.input_tokens}"</span>)
+<span class="cf">print</span>(<span class="cs">f"output_tokens: {response.usage.output_tokens}"</span>)</pre>
+        </div>
+      </div>
+
+      <div class="lesson" id="response-obj">
+        <h3>The Response Object</h3>
+        <table class="ref-table">
+          <tr><th>Field</th><th>What it contains</th></tr>
+          <tr><td>response.content[0].text</td><td>The text Claude returned</td></tr>
+          <tr><td>response.stop_reason</td><td>Why Claude stopped: end_turn, max_tokens, tool_use</td></tr>
+          <tr><td>response.usage.input_tokens</td><td>Tokens in your request — billed at input rate</td></tr>
+          <tr><td>response.usage.output_tokens</td><td>Tokens in Claude's response — billed at output rate</td></tr>
+          <tr><td>response.model</td><td>Which model actually ran</td></tr>
+          <tr><td>response.id</td><td>Unique ID for this response — useful for logging</td></tr>
+          <tr><td>response.role</td><td>Always 'assistant'</td></tr>
+        </table>
+      </div>
+
+      <div class="lesson" id="system-prompt">
+        <h3>The System Prompt</h3>
+        <p>Sets Claude's persistent role, behavior, and constraints for the entire session. It is a <strong>separate parameter from messages</strong> — not a turn in the conversation. Sent with every API call and counts as input tokens each time.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>SYSTEM_PROMPT = <span class="cs">"""You are an AI assistant for LiminalArc.
+Apply systems thinking to client problems.
+Keep responses concise and actionable."""</span>
+
+response = client.messages.<span class="cf">create</span>(
+    model=<span class="cs">"claude-sonnet-4-6"</span>,
+    max_tokens=<span class="cn">1024</span>,
+    system=SYSTEM_PROMPT,
+    messages=messages
+)</pre>
+        </div>
+
+        <div class="callout">The system prompt is where your firm's IP lives — your frameworks, methodology, and approach. A well-crafted system prompt is what makes a generic AI model behave like a LiminalArc analyst.</div>
+      </div>
+
+      <div class="lesson" id="multiturn">
+        <h3>Multi-Turn Conversations</h3>
+        <p>Claude has no memory between API calls. Every call is stateless. To maintain a conversation, pass the full message history on every call — appending both your messages and Claude's responses to the same list.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>lesson5.py — multi-turn pattern</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>messages = []
+
+<span class="ck">def</span> <span class="cf">chat</span>(user_message):
+    messages.<span class="cf">append</span>({<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: user_message})
+
+    response = client.messages.<span class="cf">create</span>(
+        model=<span class="cs">"claude-sonnet-4-6"</span>,
+        max_tokens=<span class="cn">1024</span>,
+        system=SYSTEM_PROMPT,
+        messages=messages
+    )
+
+    assistant_message = response.content[<span class="cn">0</span>].text
+    messages.<span class="cf">append</span>({<span class="cs">"role"</span>: <span class="cs">"assistant"</span>, <span class="cs">"content"</span>: assistant_message})
+    <span class="ck">return</span> assistant_message</pre>
+        </div>
+
+        <p>The conversation shape — roles must alternate user → assistant → user → assistant:</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>messages = [
+    {<span class="cs">"role"</span>: <span class="cs">"user"</span>,      <span class="cs">"content"</span>: <span class="cs">"What is a Python list?"</span>},
+    {<span class="cs">"role"</span>: <span class="cs">"assistant"</span>, <span class="cs">"content"</span>: <span class="cs">"A Python list is..."</span>},
+    {<span class="cs">"role"</span>: <span class="cs">"user"</span>,      <span class="cs">"content"</span>: <span class="cs">"How is it different from a tuple?"</span>},
+]</pre>
+        </div>
+
+        <div class="callout warning">Roles must alternate. You cannot send two user messages in a row. Claude cannot send two assistant messages in a row. Violating this causes a <code>BadRequestError</code>.</div>
+      </div>
+
+      <div class="lesson" id="caching">
+        <h3>Prompt Caching</h3>
+        <p>Without caching, the system prompt is billed as full input tokens on every single call. Adding <code>cache_control</code> marks the system prompt as cacheable — subsequent calls that send the same content pay a reduced rate.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>consulting_assistant.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">from</span> anthropic <span class="ck">import</span> Anthropic
+<span class="ck">from</span> dotenv <span class="ck">import</span> load_dotenv
+
+<span class="cf">load_dotenv</span>()
+client = <span class="cf">Anthropic</span>()
+
+SYSTEM_PROMPT = <span class="cs">"""You are an AI assistant for LiminalArc, a management consulting firm.
+
+Your role is to help consultants think through client problems with rigor and clarity.
+You apply systems thinking and domain-driven approaches to analysis.
+Keep responses concise and structured. Avoid generic advice — be specific and actionable."""</span>
+
+messages = []
+
+<span class="ck">def</span> <span class="cf">chat</span>(user_message):
+    messages.<span class="cf">append</span>({<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: user_message})
+
+    response = client.messages.<span class="cf">create</span>(
+        model=<span class="cs">"claude-sonnet-4-6"</span>,
+        max_tokens=<span class="cn">4096</span>,
+        system=[{<span class="cs">"type"</span>: <span class="cs">"text"</span>, <span class="cs">"text"</span>: SYSTEM_PROMPT, <span class="cs">"cache_control"</span>: {<span class="cs">"type"</span>: <span class="cs">"ephemeral"</span>}}],
+        messages=messages,
+    )
+
+    assistant_message = response.content[<span class="cn">0</span>].text
+    messages.<span class="cf">append</span>({<span class="cs">"role"</span>: <span class="cs">"assistant"</span>, <span class="cs">"content"</span>: assistant_message})
+    <span class="ck">return</span> assistant_message
+
+<span class="ck">if</span> __name__ == <span class="cs">"__main__"</span>:
+    <span class="cf">print</span>(<span class="cf">chat</span>(<span class="cs">"A client's order fulfillment process has a 3-day cycle time. Their competitor is at 1 day. Where do I start?"</span>))</pre>
+        </div>
+
+        <div class="callout"><strong>if __name__ == "__main__":</strong> This guard means the <code>print(chat(...))</code> line only runs when the file is executed directly (<code>python consulting_assistant.py</code>), not when it is imported by pytest. Without it, every test run triggers a live API call at import time.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ CLAUDE CODE ════════════════════════════════════════ -->
+    <div class="module" id="claudecode">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>Claude Code CLI</h2>
+          <div class="module-desc">Non-interactive mode and CI/CD pipeline patterns — a specific scenario on the CCA-F exam.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="pflag">
+        <h3>The -p Flag</h3>
+        <p><code>claude -p "query"</code> runs Claude Code in non-interactive mode. It processes the prompt, outputs the result to stdout, and exits. A pipeline without <code>-p</code> hangs waiting for input.</p>
+
+        <div class="callout warning"><strong>Exam trap:</strong> one question gives four options for fixing a hanging pipeline job — <code>CLAUDE_HEADLESS=true</code> (not a real flag), stdin redirect from <code>/dev/null</code> (a hack, not the answer), <code>--batch</code> (not a valid flag), and <code>-p</code> (correct).</div>
+
+        <div class="code-block">
+          <div class="code-label"><span>terminal</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># One-shot query — runs and exits</span>
+claude -p <span class="cs">"What does this function do?"</span>
+
+<span class="cm"># Pipe file contents as context</span>
+cat lesson5.py | claude -p <span class="cs">"Review this file for issues"</span>
+
+<span class="cm"># Pipe git diff for code review</span>
+git diff | claude -p <span class="cs">"Summarize what changed in plain English"</span>
+
+<span class="cm"># Get structured JSON output</span>
+cat lesson5.py | claude -p <span class="cs">"Review for issues"</span> --output-format json
+
+<span class="cm"># Prevent runaway agentic loops</span>
+claude -p <span class="cs">"Fix the failing tests"</span> --max-turns <span class="cn">5</span></pre>
+        </div>
+
+        <h3 style="margin-top:32px">JSON Output Structure</h3>
+        <p>When using <code>--output-format json</code>, the response contains:</p>
+        <table class="ref-table">
+          <tr><th>Field</th><th>What it contains</th></tr>
+          <tr><td>result</td><td>The actual output text</td></tr>
+          <tr><td>stop_reason</td><td>end_turn, tool_use, max_tokens</td></tr>
+          <tr><td>total_cost_usd</td><td>Billing for this run</td></tr>
+          <tr><td>num_turns</td><td>How many back-and-forth iterations Claude took</td></tr>
+          <tr><td>duration_ms</td><td>Wall clock time</td></tr>
+          <tr><td>session_id</td><td>Use with -r to resume this session</td></tr>
+          <tr><td>permission_denials</td><td>What Claude tried but couldn't do</td></tr>
+          <tr><td>modelUsage</td><td>Which models ran and at what cost</td></tr>
+        </table>
+      </div>
+
+      <div class="lesson" id="cicd">
+        <h3>CI/CD Pipeline Patterns</h3>
+
+        <div class="code-block">
+          <div class="code-label"><span>permission modes</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># Default — safest, prompts for confirmation on file edits</span>
+claude -p <span class="cs">"query"</span>
+
+<span class="cm"># Auto-accept edits — semi-automated</span>
+claude -p <span class="cs">"query"</span> --permission-mode acceptEdits
+
+<span class="cm"># Bypass all permissions — sandboxed CI only</span>
+claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</pre>
+        </div>
+
+        <div class="callout warning">Use <code>bypassPermissions</code> only in sandboxed CI environments. It drops all safety instructions — you take full responsibility for what Claude can do.</div>
+
+        <div class="code-block">
+          <div class="code-label"><span>GitHub Actions example</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># In a GitHub Actions workflow YAML:</span>
+- name: Claude code review
+  run: |
+    git diff origin/main | claude -p <span class="cs">"Review for bugs and security issues"</span> \
+      --output-format json \
+      --max-turns <span class="cn">3</span></pre>
+        </div>
+
+        <h3 style="margin-top:32px">Coordinator-Subagent Model Selection</h3>
+        <p>Claude Code automatically uses multiple models. Haiku handles lightweight orchestration decisions (routing, planning, "what tool next?"). Sonnet does the substantive work. You don't configure this — Claude Code selects based on task complexity. You'll see both in <code>modelUsage</code> in JSON output.</p>
+
+        <div class="callout"><strong>Session context isolation (exam topic):</strong> the same Claude instance that generated code will rationalize its own decisions during review. An independent instance without generation context catches more bugs. In CI/CD, always use a fresh session for review steps — don't reuse the generation session.</div>
+
+        <h3 style="margin-top:32px">Useful bash Commands for Pipelines</h3>
+        <table class="ref-table">
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td>cat file.py</td><td>Print file contents to stdout</td></tr>
+          <tr><td>cat file.py | command</td><td>Feed file contents as input to another command</td></tr>
+          <tr><td>git --no-pager diff</td><td>Git diff without opening the pager (less)</td></tr>
+          <tr><td>command > output.txt</td><td>Save output to file</td></tr>
+          <tr><td>command >> output.txt</td><td>Append output to file</td></tr>
+          <tr><td>cmd1 && cmd2</td><td>Run cmd2 only if cmd1 succeeds</td></tr>
+          <tr><td>q</td><td>Exit less / vim pager</td></tr>
+          <tr><td>:wq</td><td>Write and quit vim (e.g. git merge commit message)</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+  // Progress bar
+  window.addEventListener('scroll', () => {
+    const doc = document.documentElement;
+    const scrolled = doc.scrollTop / (doc.scrollHeight - doc.clientHeight) * 100;
+    document.getElementById('progress').style.width = scrolled + '%';
+    document.getElementById('scrollTop').classList.toggle('visible', doc.scrollTop > 400);
+  });
+
+  // Active nav highlighting
+  const sections = document.querySelectorAll('[id]');
+  const navItems = document.querySelectorAll('.nav-item, .nav-sub');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 100) current = s.id;
+    });
+    navItems.forEach(n => {
+      n.classList.remove('active');
+      if (n.getAttribute('href') === '#' + current) n.classList.add('active');
+    });
+  });
+
+  // Copy buttons
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => btn.textContent = 'copy', 1500);
+    });
+  }
+</script>
+</body>
+</html>
