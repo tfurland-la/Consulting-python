@@ -1488,6 +1488,10 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
 
         <p>The course exercise that <em>does</em> still work is stop sequences — <code>stop_sequences=["5", "3, 4"]</code> is valid on all current models and needs no changes.</p>
 
+        <h3 style="margin-top:32px">Why Prefill Was a Workaround</h3>
+        <p>The problem prefill solved: when asked to extract data as JSON, Claude responds conversationally — preamble, the JSON, postamble. Prefill exploited the messages array by ending with a fake assistant turn containing '{', causing Claude to continue from that point and produce only the JSON body. It worked, but it was fragile (Claude might still add text after the closing brace), semantically wrong (injecting a fake conversation turn), and caused subtle issues in multi-turn conversations where the fake turn became part of Claude's reasoning history.</p>
+        <div class="callout">The exam meta-principle: programmatic enforcement is almost always preferred over prompt-based guidance. Prefill was prompt manipulation — nudging behavior. output_config is programmatic enforcement — constraining the sampling process at the model level. When the exam asks how to guarantee structured output, the correct answer is always schema-constrained output. Prefill may appear as a distractor in answer choices.</div>
+
         <h3 style="margin-top:32px">The Modern Replacement: output_config</h3>
         <p>Anthropic's replacement for prefill-based structured output is <code>output_config</code> with a JSON schema. This constrains Claude at the model level to return only valid JSON matching your schema — no preamble, no markdown fences, no explanation.</p>
 
@@ -1530,6 +1534,25 @@ data = json.loads(response.content[<span class="cn">0</span>].text)</pre>
           <tr><td>additionalProperties must be explicitly set to false</td><td>Missing <code>additionalProperties</code> on an object</td><td>Add <code>"additionalProperties": False</code> to every object schema, including nested ones</td></tr>
           <tr><td>required field names don't match properties</td><td>Case mismatch or typo in required list</td><td>Ensure required list exactly matches property key names</td></tr>
         </table>
+
+        <h3 style="margin-top:32px">Arrays of Objects — Nested Schema Pattern</h3>
+        <p>When a field contains a list of structured items — each with multiple properties — use an array of objects. Each item in the array is itself an object with its own properties and required fields.</p>
+        <div class="code-block">
+          <div class="code-label"><span>python — nested array schema</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cs">"kpis"</span>: {
+    <span class="cs">"type"</span>: <span class="cs">"array"</span>,
+    <span class="cs">"items"</span>: {
+        <span class="cs">"type"</span>: <span class="cs">"object"</span>,
+        <span class="cs">"properties"</span>: {
+            <span class="cs">"current"</span>: {<span class="cs">"type"</span>: <span class="cs">"string"</span>},
+            <span class="cs">"target"</span>:  {<span class="cs">"type"</span>: <span class="cs">"string"</span>}
+        },
+        <span class="cs">"required"</span>: [<span class="cs">"current"</span>, <span class="cs">"target"</span>],
+        <span class="cs">"additionalProperties"</span>: <span class="ck">False</span>
+    }
+}</pre>
+        </div>
+        <div class="callout"><strong>additionalProperties: False</strong> applies to every object in the schema — including nested objects inside array items. Omitting it on a nested object causes a 400 error even if the top-level object has it set correctly.</div>
 
         <p style="margin-top:24px">A full working example using this pattern is in <code>consulting_notes_extractor.py</code>. It extracts structured findings (client, priority, actions, problems, KPIs) from unstructured meeting notes and includes six tests in <code>test_consulting_notes_extractor.py</code>. The original course notebook is preserved as <code>004_structured_output.ipynb</code>.</p>
       </div>
