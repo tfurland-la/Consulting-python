@@ -626,6 +626,9 @@
     <a class="nav-item" href="#claudecode"><span class="num">—</span>Claude Code CLI</a>
     <a class="nav-sub" href="#pflag">-p Flag</a>
     <a class="nav-sub" href="#cicd">CI/CD Patterns</a>
+
+    <a class="nav-item" href="#api-deprecations"><span class="num">—</span>API Deprecations</a>
+    <a class="nav-sub" href="#prefill-deprecation">Prefill → output_config</a>
   </div>
 
   <div class="sidebar-footer">
@@ -1464,6 +1467,73 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
           <tr><td>:wq</td><td>Write and quit vim (e.g. git merge commit message)</td></tr>
         </table>
       </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ API DEPRECATIONS ══════════════════════════════════════ -->
+    <div class="module" id="api-deprecations">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>API Deprecations</h2>
+          <div class="module-desc">Corrected patterns for Skilljar content that uses retired API features.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="prefill-deprecation">
+        <h3>Structured Output — Prefill → output_config</h3>
+
+        <div class="callout warning"><strong>Breaking change in Claude 4.6+:</strong> The Skilljar course "Building with the Claude API" teaches assistant message prefill as a structured output technique. This no longer works on any current model. Any request with a trailing assistant message returns:<br><br><code>BadRequestError: 400 — This model does not support assistant message prefill. The conversation must end with a user message.</code></div>
+
+        <p>The course exercise that <em>does</em> still work is stop sequences — <code>stop_sequences=["5", "3, 4"]</code> is valid on all current models and needs no changes.</p>
+
+        <h3 style="margin-top:32px">The Modern Replacement: output_config</h3>
+        <p>Anthropic's replacement for prefill-based structured output is <code>output_config</code> with a JSON schema. This constrains Claude at the model level to return only valid JSON matching your schema — no preamble, no markdown fences, no explanation.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">import</span> json
+<span class="ck">from</span> anthropic <span class="ck">import</span> Anthropic
+
+client = Anthropic()
+
+response = client.messages.create(
+    model=<span class="cs">"claude-sonnet-4-6"</span>,
+    max_tokens=<span class="cn">1000</span>,
+    messages=[{<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: <span class="cs">"Your prompt here"</span>}],
+    output_config={
+        <span class="cs">"format"</span>: {
+            <span class="cs">"type"</span>: <span class="cs">"json_schema"</span>,          <span class="cm"># required — specifies format type</span>
+            <span class="cs">"schema"</span>: {                     <span class="cm"># sits directly inside "format", not wrapped</span>
+                <span class="cs">"type"</span>: <span class="cs">"object"</span>,
+                <span class="cs">"properties"</span>: {
+                    <span class="cs">"field_name"</span>: {<span class="cs">"type"</span>: <span class="cs">"string"</span>},
+                    <span class="cs">"count"</span>:      {<span class="cs">"type"</span>: <span class="cs">"integer"</span>},
+                    <span class="cs">"items"</span>:      {<span class="cs">"type"</span>: <span class="cs">"array"</span>, <span class="cs">"items"</span>: {<span class="cs">"type"</span>: <span class="cs">"string"</span>}}
+                },
+                <span class="cs">"required"</span>: [<span class="cs">"field_name"</span>, <span class="cs">"count"</span>, <span class="cs">"items"</span>],  <span class="cm"># names must match exactly</span>
+                <span class="cs">"additionalProperties"</span>: <span class="ck">False</span>  <span class="cm"># required by the API on all object types</span>
+            }
+        }
+    }
+)
+
+data = json.loads(response.content[<span class="cn">0</span>].text)</pre>
+        </div>
+
+        <h3 style="margin-top:32px">Common Schema Errors</h3>
+        <table class="ref-table">
+          <tr><th>Error</th><th>Cause</th><th>Fix</th></tr>
+          <tr><td>Unexpected key 'json_schema'</td><td>Schema wrapped in extra <code>json_schema</code> key</td><td>Move <code>schema</code> directly inside <code>format</code></td></tr>
+          <tr><td>Extra inputs are not permitted</td><td><code>name</code> key present inside <code>format</code></td><td>Remove <code>name</code> entirely</td></tr>
+          <tr><td>additionalProperties must be explicitly set to false</td><td>Missing <code>additionalProperties</code> on an object</td><td>Add <code>"additionalProperties": False</code> to every object schema, including nested ones</td></tr>
+          <tr><td>required field names don't match properties</td><td>Case mismatch or typo in required list</td><td>Ensure required list exactly matches property key names</td></tr>
+        </table>
+
+        <p style="margin-top:24px">A full working example using this pattern is in <code>consulting_notes_extractor.py</code>. It extracts structured findings (client, priority, actions, problems, KPIs) from unstructured meeting notes and includes six tests in <code>test_consulting_notes_extractor.py</code>. The original course notebook is preserved as <code>004_structured_output.ipynb</code>.</p>
+      </div>
+
     </div>
 
   </div><!-- /content -->
