@@ -628,6 +628,7 @@
 
     <a class="nav-item" href="#api-deprecations"><span class="num">—</span>API Deprecations</a>
     <a class="nav-sub" href="#prefill-deprecation">Prefill → output_config</a>
+    <a class="nav-sub" href="#prompt-eval-deprecation">Prompt Eval → output_config</a>
   </div>
 
   <div class="sidebar-footer">
@@ -1567,6 +1568,86 @@ data = json.loads(response.content[<span class="cn">0</span>].text)</pre>
 
         <p style="margin-top:24px">A full working example using this pattern is in <code>consulting_notes_extractor.py</code>. It extracts structured findings (client, priority, actions, problems, KPIs) from unstructured meeting notes and includes six tests in <code>test_consulting_notes_extractor.py</code>. The original course notebook is preserved as <code>004_structured_output.ipynb</code>.</p>
       </div>
+
+      <div class="lesson" id="prompt-eval-deprecation">
+  <h3>Prompt Evaluation — generate_dataset Prefill → output_config</h3>
+
+  <div class="callout warning"><strong>Second instance of this pattern:</strong>
+  The Skilljar "Building with the Claude API" course notebook
+  <code>001_prompt_evals.ipynb</code> uses the same deprecated prefill technique
+  in its <code>generate_dataset</code> function: wrapping a response in a
+  <code>```json</code> code fence and cutting it off with a stop sequence.
+  This fails on Claude 4.6+ for the same reason: the API no longer accepts a
+  trailing assistant message.</div>
+
+  <p>The deprecated pattern from the course:</p>
+
+  <div class="code-block">
+    <div class="code-label"><span>deprecated — do not use</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Broken on Claude 4.6+ — prefill hack</span>
+messages = []
+add_user_message(messages, prompt)
+add_assistant_message(messages, <span class="cs">"```json"</span>)   <span class="cm"># fake assistant turn</span>
+text = chat(messages, stop_sequences=[<span class="cs">"```"</span>])    <span class="cm"># cut before closing fence</span>
+<span class="ck">return</span> json.loads(text)</pre>
+  </div>
+
+  <h3 style="margin-top:32px">The output_config Replacement</h3>
+  <p>The corrected <code>generate_dataset</code> function uses
+  <code>output_config</code> directly in the
+  <code>client.messages.create()</code> call. Note that the schema
+  top-level type is <code>"array"</code>, not <code>"object"</code> — the
+  API returns a list of task objects rather than a single object. Arrays
+  can be the top-level schema type when your output is inherently a
+  collection.</p>
+
+  <div class="code-block">
+    <div class="code-label"><span>generate_dataset — corrected</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="ck">import</span> json
+
+<span class="ck">def</span> <span class="cf">generate_dataset</span>():
+    prompt = <span class="cs">"""
+Generate 3 evaluation tasks for prompts that produce Python, JSON, or Regex
+for AWS-related use cases. Each task should be solvable with a single function,
+object, or expression.
+"""</span>
+    response = client.messages.<span class="cf">create</span>(
+        model=<span class="cs">"claude-haiku-4-5"</span>,
+        max_tokens=<span class="cn">1000</span>,
+        messages=[{<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: prompt}],
+        output_config={
+            <span class="cs">"format"</span>: {
+                <span class="cs">"type"</span>: <span class="cs">"json_schema"</span>,
+                <span class="cs">"schema"</span>: {
+                    <span class="cs">"type"</span>: <span class="cs">"array"</span>,           <span class="cm"># top-level is a list, not an object</span>
+                    <span class="cs">"items"</span>: {
+                        <span class="cs">"type"</span>: <span class="cs">"object"</span>,
+                        <span class="cs">"properties"</span>: {
+                            <span class="cs">"task"</span>: {<span class="cs">"type"</span>: <span class="cs">"string"</span>}
+                        },
+                        <span class="cs">"required"</span>: [<span class="cs">"task"</span>],
+                        <span class="cs">"additionalProperties"</span>: <span class="ck">False</span>
+                    }
+                }
+            }
+        }
+    )
+    <span class="ck">return</span> json.loads(response.content[<span class="cn">0</span>].text)</pre>
+  </div>
+
+  <div class="callout"><strong>Where output_config belongs:</strong>
+  <code>output_config</code> goes in the specific
+  <code>client.messages.create()</code> call where structured JSON is needed —
+  not in a general-purpose <code>chat()</code> helper. The
+  <code>chat()</code> helper stays generic. Only the function that contracts
+  with the API for a particular shape carries <code>output_config</code>.
+  This is the same pattern used in <code>consulting_notes_extractor.py</code>.</div>
+
+  <p style="margin-top:24px">The repo preserves the corrected notebook as
+  <code>001_prompt_evals.ipynb</code>.</p>
+</div>
 
     </div>
 
