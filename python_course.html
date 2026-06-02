@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Python for AI Consultants — [Your Firm]</title>
+<title>Python for AI Consultants — CCA-F Prep</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -584,7 +584,6 @@
 <!-- SIDEBAR -->
 <nav class="sidebar">
   <div class="sidebar-header">
-    <div class="brand">[Your Firm]</div>
     <h1>Python for AI Consultants</h1>
     <div class="subtitle">CCA-F Certification Prep</div>
   </div>
@@ -653,13 +652,25 @@
 
   <div class="content">
 
+    <div class="callout" style="margin-bottom: 40px; font-style: normal;">
+      <strong>New here?</strong> Before you start the exercises, make sure your
+      environment is set up: Python, VS Code, Claude Code, and an Anthropic API
+      key. The
+      <a href="https://github.com/tfurland-la/Consulting-python/wiki/Environment-Setup"
+         style="color: var(--teal);">Environment Setup</a>
+      wiki page walks you through everything. Not sure what this repo is?
+      Start at the
+      <a href="https://github.com/tfurland-la/Consulting-python/wiki"
+         style="color: var(--teal);">wiki home</a>.
+    </div>
+
     <!-- ══ MODULE 1 ══════════════════════════════════════════ -->
     <div class="module" id="module1">
       <div class="module-header">
         <div class="module-num">01</div>
         <div class="module-title-block">
           <h2>Python Syntax Fundamentals</h2>
-          <div class="module-desc">Classes, instances, f-strings, and control flow — the foundation everything else builds on.</div>
+          <div class="module-desc">Classes, instances, f-strings, and control flow: the foundation everything else builds on.</div>
         </div>
       </div>
 
@@ -679,7 +690,7 @@
 
         <p style="margin-top:20px"><strong>The class</strong> is the blueprint. <strong>The instance</strong> is a specific object built from that blueprint. <strong>Methods</strong> are functions that belong to the class and operate on a specific instance's data via <code>self</code>.</p>
 
-        <div class="callout">Why this matters: When you call the Claude API, the SDK gives you objects — instances of classes the SDK defines. Understanding that an object has properties you can access and methods you can call is what lets you navigate those objects confidently.</div>
+        <div class="callout">Why this matters: When you call the Claude API, the SDK gives you objects, instances of classes the SDK defines. Understanding that an object has properties you can access and methods you can call is what lets you navigate those objects confidently.</div>
 
         <div class="exercise">
           <div class="exercise-label">Exercise — Create lesson1.py</div>
@@ -802,7 +813,7 @@ practice_areas.<span class="cf">append</span>(<span class="cs">'Security'</span>
 
       <div class="lesson" id="dicts">
         <h3>Dicts</h3>
-        <p>Key-value pairs. Each key must be unique within the dict. Values can be any type — strings, numbers, booleans, lists, or other dicts.</p>
+        <p>Key-value pairs. Each key must be unique within the dict. Values can be any type: strings, numbers, booleans, lists, or other dicts.</p>
         <div class="callout">Dicts are the native shape of JSON data. Everything the Claude API sends and receives is structured as nested dicts and lists.</div>
 
         <div class="code-block">
@@ -824,7 +835,7 @@ engagement[<span class="cs">"team_size"</span>] = <span class="cn">18</span>    
 
       <div class="lesson" id="nested">
         <h3>Nested Structures</h3>
-        <p>Dicts and lists can contain each other. Each <code>[]</code> takes you one level deeper. Think of it as a path — each bracket is one step further in.</p>
+        <p>Dicts and lists can contain each other. Each <code>[]</code> takes you one level deeper. Think of it as a path: each bracket is one step further in.</p>
 
         <div class="code-block">
           <div class="code-label"><span>lesson2.py (continued)</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
@@ -1143,7 +1154,7 @@ api_key = os.<span class="cf">getenv</span>(<span class="cs">"ANTHROPIC_API_KEY"
       <div class="module-header">
         <div class="module-num">—</div>
         <div class="module-title-block">
-          <h2>Common Gotchas — Know Before Module 4</h2>
+          <h2>Common Gotchas: Know Before Module 4</h2>
           <div class="module-desc">Seven patterns that trip up developers working with the Anthropic API.</div>
         </div>
       </div>
@@ -1289,12 +1300,12 @@ response = client.messages.<span class="cf">create</span>(
 )</pre>
         </div>
 
-        <div class="callout">The system prompt is where your firm's IP lives — your frameworks, methodology, and approach. A well-crafted system prompt is what makes a generic AI model behave like a [Your Firm] analyst.</div>
+        <div class="callout">The system prompt is where your firm's IP lives: your frameworks, methodology, and approach. A well-crafted system prompt is what makes a generic AI model behave like your firm's analyst.</div>
       </div>
 
       <div class="lesson" id="multiturn">
         <h3>Multi-Turn Conversations</h3>
-        <p>Claude has no memory between API calls. Every call is stateless. To maintain a conversation, pass the full message history on every call — appending both your messages and Claude's responses to the same list.</p>
+        <p>Claude has no memory between API calls. Every call is stateless. To maintain a conversation, pass the full message history on every call, appending both your messages and Claude's responses to the same list.</p>
 
         <div class="code-block">
           <div class="code-label"><span>lesson5.py — multi-turn pattern</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
@@ -1331,7 +1342,7 @@ response = client.messages.<span class="cf">create</span>(
 
       <div class="lesson" id="caching">
         <h3>Prompt Caching</h3>
-        <p>Without caching, the system prompt is billed as full input tokens on every single call. Adding <code>cache_control</code> marks the system prompt as cacheable — subsequent calls that send the same content pay a reduced rate.</p>
+        <p>Without caching, the system prompt is billed as full input tokens on every single call. Adding <code>cache_control</code> marks the system prompt as cacheable; subsequent calls that send the same content pay a reduced rate.</p>
 
         <div class="code-block">
           <div class="code-label"><span>consulting_assistant.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
@@ -1379,7 +1390,7 @@ messages = []
         <div class="module-num">—</div>
         <div class="module-title-block">
           <h2>Claude Code CLI</h2>
-          <div class="module-desc">Non-interactive mode and CI/CD pipeline patterns — a specific scenario on the CCA-F exam.</div>
+          <div class="module-desc">Non-interactive mode and CI/CD pipeline patterns: a specific scenario on the CCA-F exam.</div>
         </div>
       </div>
 
@@ -1437,7 +1448,7 @@ claude -p <span class="cs">"query"</span> --permission-mode acceptEdits
 claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</pre>
         </div>
 
-        <div class="callout warning">Use <code>bypassPermissions</code> only in sandboxed CI environments. It drops all safety instructions — you take full responsibility for what Claude can do.</div>
+        <div class="callout warning">Use <code>bypassPermissions</code> only in sandboxed CI environments. It drops all safety instructions; you take full responsibility for what Claude can do.</div>
 
         <div class="code-block">
           <div class="code-label"><span>GitHub Actions example</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
@@ -1450,7 +1461,7 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
         </div>
 
         <h3 style="margin-top:32px">Coordinator-Subagent Model Selection</h3>
-        <p>Claude Code automatically uses multiple models. Haiku handles lightweight orchestration decisions (routing, planning, "what tool next?"). Sonnet does the substantive work. You don't configure this — Claude Code selects based on task complexity. You'll see both in <code>modelUsage</code> in JSON output.</p>
+        <p>Claude Code automatically uses multiple models. Haiku handles lightweight orchestration decisions (routing, planning, "what tool next?"). Sonnet does the substantive work. You don't configure this; Claude Code selects based on task complexity. You'll see both in <code>modelUsage</code> in JSON output.</p>
 
         <div class="callout"><strong>Session context isolation (exam topic):</strong> the same Claude instance that generated code will rationalize its own decisions during review. An independent instance without generation context catches more bugs. In CI/CD, always use a fresh session for review steps — don't reuse the generation session.</div>
 
@@ -1482,7 +1493,7 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
       </div>
 
       <div class="lesson" id="prefill-deprecation">
-        <h3>Structured Output — Prefill → output_config</h3>
+        <h3>Structured Output: Prefill → output_config</h3>
 
         <div class="callout warning"><strong>Breaking change in Claude 4.6+:</strong> The Skilljar course "Building with the Claude API" teaches assistant message prefill as a structured output technique. This no longer works on any current model. Any request with a trailing assistant message returns:<br><br><code>BadRequestError: 400 — This model does not support assistant message prefill. The conversation must end with a user message.</code></div>
 
@@ -1493,7 +1504,7 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
         <div class="callout">The exam meta-principle: programmatic enforcement is almost always preferred over prompt-based guidance. Prefill was prompt manipulation — nudging behavior. output_config is programmatic enforcement — constraining the sampling process at the model level. When the exam asks how to guarantee structured output, the correct answer is always schema-constrained output. Prefill may appear as a distractor in answer choices.</div>
 
         <h3 style="margin-top:32px">The Modern Replacement: output_config</h3>
-        <p>Anthropic's replacement for prefill-based structured output is <code>output_config</code> with a JSON schema. This constrains Claude at the model level to return only valid JSON matching your schema — no preamble, no markdown fences, no explanation.</p>
+        <p>Anthropic's replacement for prefill-based structured output is <code>output_config</code> with a JSON schema. This constrains Claude at the model level to return only valid JSON matching your schema: no preamble, no markdown fences, no explanation.</p>
 
         <div class="code-block">
           <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
@@ -1535,7 +1546,7 @@ data = json.loads(response.content[<span class="cn">0</span>].text)</pre>
           <tr><td>required field names don't match properties</td><td>Case mismatch or typo in required list</td><td>Ensure required list exactly matches property key names</td></tr>
         </table>
 
-        <h3 style="margin-top:32px">Arrays of Objects — Nested Schema Pattern</h3>
+        <h3 style="margin-top:32px">Arrays of Objects: Nested Schema Pattern</h3>
         <p>When a field contains a list of structured items — each with multiple properties — use an array of objects. Each item in the array is itself an object with its own properties and required fields.</p>
         <div class="code-block">
           <div class="code-label"><span>python — nested array schema</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
@@ -1552,11 +1563,24 @@ data = json.loads(response.content[<span class="cn">0</span>].text)</pre>
     }
 }</pre>
         </div>
-        <div class="callout"><strong>additionalProperties: False</strong> applies to every object in the schema — including nested objects inside array items. Omitting it on a nested object causes a 400 error even if the top-level object has it set correctly.</div>
+        <div class="callout"><strong>additionalProperties: False</strong> applies to every object in the schema, including nested objects inside array items. Omitting it on a nested object causes a 400 error even if the top-level object has it set correctly.</div>
 
         <p style="margin-top:24px">A full working example using this pattern is in <code>consulting_notes_extractor.py</code>. It extracts structured findings (client, priority, actions, problems, KPIs) from unstructured meeting notes and includes six tests in <code>test_consulting_notes_extractor.py</code>. The original course notebook is preserved as <code>004_structured_output.ipynb</code>.</p>
       </div>
 
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="callout" style="font-style: normal; margin-bottom: 0;">
+      <strong>What's next?</strong> You've completed the course.
+      <a href="https://github.com/tfurland-la/Consulting-python/wiki/Known-Exam-Gotchas"
+         style="color: var(--teal);">Known Exam Gotchas</a>
+      consolidates every trap and exam pitfall from across all modules in one
+      ranked page. Ready to make this companion your own?
+      <a href="https://github.com/tfurland-la/Consulting-python/wiki/Build-Your-Own-Study-Companion"
+         style="color: var(--teal);">Build Your Own Study Companion</a>
+      walks you through forking and personalizing it.
     </div>
 
   </div><!-- /content -->
