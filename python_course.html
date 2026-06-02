@@ -1496,7 +1496,7 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
       <div class="lesson" id="prefill-deprecation">
         <h3>Structured Output: Prefill → output_config</h3>
 
-        <div class="callout warning"><strong>Breaking change in Claude 4.6+:</strong> The Skilljar course "Building with the Claude API" teaches assistant message prefill as a structured output technique. This no longer works on any current model. Any request with a trailing assistant message returns:<br><br><code>BadRequestError: 400 — This model does not support assistant message prefill. The conversation must end with a user message.</code></div>
+        <div class="callout warning"><strong>Breaking change in Claude 4.6+:</strong> The Skilljar course "Building with the Claude API" teaches assistant message prefill as a structured output technique. This no longer works on Sonnet or Opus. Haiku remains more permissive and may still accept trailing assistant messages, but this behavior is not guaranteed across API updates and should not be relied on in production. Any request with a trailing assistant message on Sonnet or Opus returns:<br><br><code>BadRequestError: 400 — This model does not support assistant message prefill. The conversation must end with a user message.</code></div>
 
         <p>The course exercise that <em>does</em> still work is stop sequences — <code>stop_sequences=["5", "3, 4"]</code> is valid on all current models and needs no changes.</p>
 
@@ -1570,22 +1570,22 @@ data = json.loads(response.content[<span class="cn">0</span>].text)</pre>
       </div>
 
       <div class="lesson" id="prompt-eval-deprecation">
-  <h3>Prompt Evaluation — generate_dataset Prefill → output_config</h3>
+  <h3>Prompt Evaluation — generate_dataset and grade_by_model Prefill → output_config</h3>
 
   <div class="callout warning"><strong>Second instance of this pattern:</strong>
   The Skilljar "Building with the Claude API" course notebook
   <code>001_prompt_evals.ipynb</code> uses the same deprecated prefill technique
-  in its <code>generate_dataset</code> function: wrapping a response in a
-  <code>```json</code> code fence and cutting it off with a stop sequence.
-  This fails on Claude 4.6+ for the same reason: the API no longer accepts a
-  trailing assistant message.</div>
+  in both <code>generate_dataset</code> and <code>grade_by_model</code>: wrapping
+  a response in a <code>```json</code> code fence and cutting it off with a stop
+  sequence. This fails on Sonnet and Opus for the same reason: the API no longer
+  accepts a trailing assistant message on those models.</div>
 
   <p>The deprecated pattern from the course:</p>
 
   <div class="code-block">
     <div class="code-label"><span>deprecated — do not use</span>
       <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
-    <pre><span class="cm"># Broken on Claude 4.6+ — prefill hack</span>
+    <pre><span class="cm"># Broken on Sonnet and Opus — prefill hack</span>
 messages = []
 add_user_message(messages, prompt)
 add_assistant_message(messages, <span class="cs">"```json"</span>)   <span class="cm"># fake assistant turn</span>
@@ -1644,6 +1644,14 @@ object, or expression.
   <code>chat()</code> helper stays generic. Only the function that contracts
   with the API for a particular shape carries <code>output_config</code>.
   This is the same pattern used in <code>consulting_notes_extractor.py</code>.</div>
+
+  <div class="callout"><strong>Why the grader notebook may still run:</strong>
+  The supplied <code>001_prompt_evals_grader.ipynb</code> uses
+  <code>claude-haiku-4-5</code>, which remains more permissive about trailing
+  assistant messages than Sonnet or Opus. The notebook may run successfully
+  as provided. This is not a reason to keep the pattern — Haiku's permissiveness
+  is not guaranteed across API updates. Use <code>output_config</code> for
+  any structured output that needs to be stable.</div>
 
   <p style="margin-top:24px">The repo preserves the corrected notebook as
   <code>001_prompt_evals.ipynb</code>.</p>
