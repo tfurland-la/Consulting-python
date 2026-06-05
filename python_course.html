@@ -601,6 +601,7 @@
     <a class="nav-sub" href="#nested">Nested Structures</a>
     <a class="nav-sub" href="#functions">Functions</a>
     <a class="nav-sub" href="#kwargs">Keyword Arguments</a>
+    <a class="nav-sub" href="#dict-unpacking">** Unpacking</a>
     <a class="nav-sub" href="#loops">for Loops</a>
 
     <a class="nav-item" href="#module3"><span class="num">03</span>JSON in Python</a>
@@ -923,6 +924,47 @@ print(engagement_report["findings"][-1]["note"])</div>
 <span class="cf">greet</span>(<span class="cs">"Tom"</span>, greeting=<span class="cs">"Howdy"</span>)    <span class="cm"># keyword — same result</span></pre>
         </div>
       </div>
+
+      <div class="lesson" id="dict-unpacking">
+  <h3>Dictionary Unpacking with **</h3>
+  <p>The <code>**</code> operator unpacks a dictionary into keyword arguments.
+  Instead of writing out every parameter in a function call, you build a dict,
+  conditionally add to it, then unpack it with <code>**</code>.</p>
+
+  <div class="code-block">
+    <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Without ** — every parameter written out every time</span>
+client.messages.<span class="cf">create</span>(
+    model=<span class="cs">"claude-sonnet-4-6"</span>,
+    max_tokens=<span class="cn">1000</span>,
+    messages=messages,
+    temperature=<span class="cn">1.0</span>
+)
+
+<span class="cm"># With ** — build the dict first, unpack it into the call</span>
+params = {
+    <span class="cs">"model"</span>: model,
+    <span class="cs">"max_tokens"</span>: <span class="cn">1000</span>,
+    <span class="cs">"messages"</span>: messages,
+    <span class="cs">"temperature"</span>: temperature
+}
+
+<span class="ck">if</span> system:
+    params[<span class="cs">"system"</span>] = system       <span class="cm"># only added when needed</span>
+
+<span class="ck">if</span> stop_sequences:
+    params[<span class="cs">"stop_sequences"</span>] = stop_sequences
+
+client.messages.<span class="cf">create</span>(**params)   <span class="cm"># unpacks dict as keyword arguments</span></pre>
+  </div>
+
+  <div class="callout">Why the <code>chat()</code> helper in the Skilljar course
+  uses this pattern: <code>system</code> and <code>stop_sequences</code> should
+  only be sent when they have values. Building the dict conditionally and
+  unpacking it is cleaner than writing multiple versions of the function call.
+  You will see <code>**params</code> any time a function call has optional
+  parameters that vary by context.</div>
+</div>
 
       <div class="lesson" id="loops">
         <h3>for Loops</h3>
