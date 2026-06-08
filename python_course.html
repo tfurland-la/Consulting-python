@@ -630,6 +630,7 @@
     <a class="nav-item" href="#api-deprecations"><span class="num">—</span>API Deprecations</a>
     <a class="nav-sub" href="#prefill-deprecation">Prefill → output_config</a>
     <a class="nav-sub" href="#prompt-eval-deprecation">Prompt Eval → output_config</a>
+    <a class="nav-sub" href="#text-editor-deprecation">Text Editor Tool Name</a>
   </div>
 
   <div class="sidebar-footer">
@@ -1697,6 +1698,61 @@ object, or expression.
 
   <p style="margin-top:24px">The repo preserves the corrected notebook as
   <code>001_prompt_evals.ipynb</code>.</p>
+</div>
+
+<div class="lesson" id="text-editor-deprecation">
+  <h3>Text Editor Tool — Tool Name Mismatch</h3>
+
+  <div class="callout warning"><strong>Course notebook bug — infinite loop:</strong>
+  The Skilljar "Tool Use with Claude" course notebook
+  <code>005_text_editor_tool.ipynb</code> dispatches tool calls using the
+  deprecated tool name <code>"str_replace_editor"</code> in <code>run_tool</code>,
+  but registers the tool with the current name
+  <code>"str_replace_based_edit_tool"</code> in <code>get_text_edit_schema</code>.
+  These names never match. Every tool call returns <code>is_error: True</code>,
+  Claude retries, and the <code>while True</code> loop never breaks — the kernel
+  appears stuck and the cell must be interrupted manually.</div>
+
+  <p>The mismatch in the original notebook:</p>
+
+  <div class="code-block">
+    <div class="code-label"><span>cell 3 — deprecated, do not use</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># run_tool dispatches on the old name — never matches</span>
+<span class="ck">if</span> tool_name == <span class="cs">"str_replace_editor"</span>:   <span class="cm"># ← wrong</span>
+
+<span class="cm"># cell 4 registers the tool with the current name</span>
+<span class="cs">"name"</span>: <span class="cs">"str_replace_based_edit_tool"</span>   <span class="cm"># ← what Claude actually calls</span></pre>
+  </div>
+
+  <h3 style="margin-top:32px">The Fix</h3>
+  <p>Update the <code>if</code> condition in <code>run_tool</code> to match
+  the name the API actually uses for <code>text_editor_20250728</code>.
+  The tool name is fixed by Anthropic and cannot be changed.</p>
+
+  <div class="code-block">
+    <div class="code-label"><span>cell 3 — corrected</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="ck">def</span> <span class="cf">run_tool</span>(tool_name, tool_input):
+    <span class="ck">if</span> tool_name == <span class="cs">"str_replace_based_edit_tool"</span>:   <span class="cm"># matches the registered name</span>
+        command = tool_input[<span class="cs">"command"</span>]
+        <span class="cm"># ... rest of dispatch unchanged</span></pre>
+  </div>
+
+  <div class="callout"><strong>Why the loop hangs:</strong> When
+  <code>run_tool</code> raises an exception, <code>run_tools</code> catches
+  it and returns a <code>tool_result</code> block with
+  <code>is_error: True</code>. Claude receives the error, says "let me try
+  again," and calls the same tool — which fails again. Because
+  <code>stop_reason</code> stays <code>"tool_use"</code>, the
+  <code>while True</code> loop never reaches its break condition. The fix
+  is the same principle as always: the name in your dispatch must exactly
+  match the name Claude uses when calling the tool.</div>
+
+  <p style="margin-top:24px">The notebook also used the deprecated model
+  string <code>claude-sonnet-4-5</code>. Update to
+  <code>claude-sonnet-4-6</code>. The corrected notebook is preserved as
+  <code>005_text_editor_tool.ipynb</code> in the repo.</p>
 </div>
 
     </div>
