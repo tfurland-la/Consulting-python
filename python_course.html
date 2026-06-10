@@ -632,6 +632,7 @@
     <a class="nav-sub" href="#prompt-eval-deprecation">Prompt Eval → output_config</a>
     <a class="nav-sub" href="#text-editor-deprecation">Text Editor Tool Name</a>
     <a class="nav-sub" href="#web-search-demo">Web Search Demo Question</a>
+    <a class="nav-sub" href="#thinking-deprecation">Extended Thinking → Adaptive</a>
   </div>
 
   <div class="sidebar-footer">
@@ -1805,6 +1806,74 @@ add_user_message(messages, <span class="cs">"""
   <code>claude-sonnet-4-5</code>. Update to <code>claude-sonnet-4-6</code>.
   The corrected notebook is preserved as
   <code>006_web_search_complete.ipynb</code> in the repo.</p>
+</div>
+
+<div class="lesson" id="thinking-deprecation">
+  <h3>Extended Thinking — budget_tokens → Adaptive Thinking</h3>
+
+  <div class="callout warning"><strong>Deprecated API pattern:</strong>
+  The Skilljar "Features of Claude" course notebook
+  <code>001_thinking_complete.ipynb</code> uses
+  <code>thinking={"type": "enabled", "budget_tokens": N}</code> — the fixed
+  token budget thinking API. This is deprecated on Sonnet 4.6 and Opus 4.6,
+  and removed entirely on Opus 4.7 and later. Requests using
+  <code>type: "enabled"</code> on Opus 4.7+ return a 400 error. The
+  <code>RedactedThinkingBlock</code> the notebook was designed to demonstrate
+  no longer exists as a discrete block type on current models.</div>
+
+  <p>The deprecated pattern from the course:</p>
+
+  <div class="code-block">
+    <div class="code-label"><span>deprecated — do not use on 4.6+</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Broken on Opus 4.7+ — returns 400 error</span>
+<span class="cm"># Deprecated on Sonnet/Opus 4.6</span>
+params[<span class="cs">"thinking"</span>] = {
+    <span class="cs">"type"</span>: <span class="cs">"enabled"</span>,
+    <span class="cs">"budget_tokens"</span>: thinking_budget,   <span class="cm"># fixed token budget — removed</span>
+}</pre>
+  </div>
+
+  <h3 style="margin-top:32px">The Adaptive Thinking Replacement</h3>
+  <p>Adaptive thinking replaces the fixed token budget with an effort level.
+  Claude decides if and when to think based on problem complexity — a simple
+  question may produce no thinking block at all. Use a genuinely complex
+  problem to reliably observe a <code>ThinkingBlock</code> in the response.</p>
+
+  <div class="code-block">
+    <div class="code-label"><span>corrected — adaptive thinking</span>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Adaptive thinking: Claude decides when to think based on complexity</span>
+<span class="cm"># effort: "low" | "medium" | "high" | "max"</span>
+params[<span class="cs">"thinking"</span>] = {
+    <span class="cs">"type"</span>: <span class="cs">"adaptive"</span>,
+    <span class="cs">"effort"</span>: <span class="cs">"high"</span>,
+}
+
+<span class="cm"># Extract thinking content from the response</span>
+<span class="ck">for</span> block <span class="ck">in</span> response.content:
+    <span class="ck">if</span> block.type == <span class="cs">"thinking"</span>:
+        <span class="cf">print</span>(block.thinking)   <span class="cm"># ThinkingBlock — not RedactedThinkingBlock</span></pre>
+  </div>
+
+  <div class="callout"><strong>Why RedactedThinkingBlock no longer appears:</strong>
+  <code>RedactedThinkingBlock</code> was produced by the old
+  <code>type: "enabled"</code> API when Claude's reasoning was withheld for
+  safety reasons. The adaptive thinking API replaced this entirely. With
+  <code>type: "adaptive"</code>, Claude either produces a
+  <code>ThinkingBlock</code> with summarized reasoning or produces no thinking
+  block at all. There is no equivalent to <code>RedactedThinkingBlock</code>
+  in the current API.</div>
+
+  <table class="ref-table" style="margin-top:24px">
+    <tr><th>Approach</th><th>Status</th><th>Models</th></tr>
+    <tr><td>thinking.type: "enabled" + budget_tokens</td><td>Deprecated</td><td>Still works on Sonnet/Opus 4.6; returns 400 on Opus 4.7+</td></tr>
+    <tr><td>thinking.type: "adaptive" + effort</td><td>Current</td><td>Required on Opus 4.7+; recommended on all 4.6 models</td></tr>
+  </table>
+
+  <p style="margin-top:24px">The corrected notebooks are preserved as
+  <code>001_thinking.ipynb</code> and <code>001_thinking_complete.ipynb</code>
+  in the repo.</p>
 </div>
 
     </div>
