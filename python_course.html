@@ -1124,6 +1124,31 @@ parsed = json.<span class="cf">loads</span>(json_string)
           <tr><td>pytest test_lesson3.py</td><td>Run one specific file</td></tr>
           <tr><td>pytest test_lesson3.py -v</td><td>Specific file, verbose</td></tr>
         </table>
+
+        <h3 style="margin-top:32px">Testing LLM Output — Assert Loosely</h3>
+        <p>Every assert you've seen so far tests a deterministic function: same input, same output, so exact-match assertions are correct. Claude's responses are <strong>nondeterministic</strong> — ask the same question twice and you get the same idea in different words. A test that asserts exact phrasing will pass one day and fail the next, even though nothing is broken.</p>
+
+        <p>This happened in this course's own test suite. The first assertion below originally checked for the literal phrase <code>"Python list"</code>. It passed for weeks — until Claude phrased its answer as "A <strong>list</strong> is an ordered, mutable collection…" without ever using those two words together. The code was fine; the test was brittle. The fix: assert on the topic keyword, case-insensitively.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>test_lesson5.py</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">from</span> lesson5 <span class="ck">import</span> chat
+
+<span class="ck">def</span> <span class="cf">test_chat</span>():
+    response1 = <span class="cf">chat</span>(<span class="cs">"What is a Python list?"</span>)
+    <span class="ck">assert</span> <span class="cs">"list"</span> <span class="ck">in</span> response1.<span class="cf">lower</span>()   <span class="cm"># topic keyword, not exact phrasing</span>
+
+    response2 = <span class="cf">chat</span>(<span class="cs">"How is it different from a tuple?"</span>)
+    <span class="ck">assert</span> <span class="cs">"tuple"</span> <span class="ck">in</span> response2</pre>
+        </div>
+
+        <ul style="margin-top:20px">
+          <li><strong>Assert on topic keywords, lowercased:</strong> <code>"list" in response.lower()</code> survives any phrasing of a correct answer</li>
+          <li><strong>Assert on structure when you control the format:</strong> if you asked for JSON, <code>json.loads()</code> the response and check the keys exist — not the values' wording</li>
+          <li><strong>Never assert exact sentences or phrases</strong> against an LLM response — you are testing the model's word choice, not your code</li>
+        </ul>
+
+        <div class="callout">Why this matters: a brittle test that fails on correct behavior trains you to ignore failures — the most expensive habit a test suite can teach. Tests on LLM output should ask "did the response cover the right thing?" (keywords, structure, type), never "did it say it the way I expected?"</div>
       </div>
     </div>
 
