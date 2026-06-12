@@ -6,4 +6,5 @@ engagement.json
 .DS_Store
 .vscode/
 .claude/
+CLAUDE.local.md
 pyproject.toml
