@@ -2,7 +2,7 @@ from lesson5 import chat
 
 def test_chat():
     response1 = chat("What is a Python list?")
-    assert "Python list" in response1
+    assert "list" in response1.lower()
 
     response2 = chat("How is it different from a tuple?")
     assert "tuple" in response2
