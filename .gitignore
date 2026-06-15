@@ -8,3 +8,4 @@ engagement.json
 .claude/
 CLAUDE.local.md
 pyproject.toml
+*.code-workspace
