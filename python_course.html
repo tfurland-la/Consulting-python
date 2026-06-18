@@ -1645,6 +1645,32 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
     }</pre>
         </div>
       </div>
+
+      <div class="lesson" id="multi-agent">
+        <h3>Multi-Agent Orchestration — Coordinator and Subagents</h3>
+        <p>A single agent loop works well for focused tasks. For complex workflows — research pipelines, multi-step analysis, parallel investigations — the right architecture is a coordinator agent that delegates work to specialized subagents.</p>
+
+        <p>The coordinator is responsible for task decomposition, delegation, aggregating results, and deciding when enough work has been done. Subagents are specialized: one searches the web, one analyzes documents, one synthesizes findings. Each subagent only gets the tools it needs for its role.</p>
+
+        <div class="callout"><strong>The critical rule:</strong> subagents do not automatically inherit the coordinator's conversation history or context. Every piece of information a subagent needs must be explicitly included in its prompt. If you pass web search results to a synthesis subagent, you must include those results directly in the subagent's prompt text — it cannot reach back to the coordinator's history.</div>
+
+        <h3 style="margin-top:32px">The Task Tool</h3>
+        <p>Subagents are spawned via the <code>Task</code> tool. For a coordinator to invoke subagents, <code>"Task"</code> must be included in the coordinator's <code>allowedTools</code> configuration.</p>
+
+        <table class="ref-table">
+          <tr><th>Pattern</th><th>How it works</th></tr>
+          <tr><td>Sequential delegation</td><td>Coordinator invokes one subagent at a time, passes results forward</td></tr>
+          <tr><td>Parallel delegation</td><td>Coordinator emits multiple Task tool calls in a single response — subagents run simultaneously</td></tr>
+          <tr><td>Iterative refinement</td><td>Coordinator evaluates synthesis output, re-delegates to search/analysis subagents with targeted queries, re-invokes synthesis until coverage is sufficient</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Common coordinator mistake:</strong> overly narrow task decomposition. A coordinator asked to research "impact of AI on creative industries" that decomposes into only "AI in digital art," "AI in graphic design," and "AI in photography" will produce a report that misses music, writing, and film entirely — not because subagents failed, but because the coordinator's decomposition was too narrow. The exam tests this distinction: the subagents executed their assignments correctly; the problem was what they were assigned.</div>
+
+        <h3 style="margin-top:32px">Passing Context Between Agents</h3>
+        <p>When passing findings from one subagent to another, use structured data formats that separate content from metadata. Each finding should include the claim, the source URL or document name, and the publication date. This preserves attribution through synthesis — if the synthesis agent compresses findings without preserving source mappings, the final report loses the ability to cite its sources.</p>
+
+        <p>When two credible sources conflict on a statistic, the correct pattern is to annotate the conflict with both values and their sources, not to arbitrarily select one. The coordinator decides how to reconcile before synthesis.</p>
+      </div>
     </div>
 
     <div class="divider"></div>
