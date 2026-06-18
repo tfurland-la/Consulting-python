@@ -1671,6 +1671,22 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
 
         <p>When two credible sources conflict on a statistic, the correct pattern is to annotate the conflict with both values and their sources, not to arbitrarily select one. The coordinator decides how to reconcile before synthesis.</p>
       </div>
+
+      <div class="lesson" id="session-management">
+        <h3>Session Management — Resume, Fork, and Fresh Start</h3>
+        <p>Long investigations often span multiple work sessions. Claude Code provides three mechanisms for managing session continuity, each suited to different situations.</p>
+
+        <table class="ref-table">
+          <tr><th>Mechanism</th><th>Command</th><th>When to use</th></tr>
+          <tr><td>Named session resumption</td><td><code>--resume &lt;session-name&gt;</code></td><td>Prior context is still valid and the investigation is ongoing</td></tr>
+          <tr><td>Session forking</td><td><code>fork_session</code></td><td>You want to explore two divergent approaches from a shared analysis baseline without affecting each other</td></tr>
+          <tr><td>Fresh start with injected summary</td><td>New session + structured summary in first message</td><td>Prior tool results are stale — e.g., files have changed since the last session</td></tr>
+        </table>
+
+        <div class="callout"><strong>Exam decision rule:</strong> resuming a session is only reliable when the prior context is still valid. If you modified files after the last session, the agent's cached understanding of those files is now wrong. The correct approach is to start a fresh session and inject a structured summary of what was learned previously, then explicitly inform the agent which files changed and need re-analysis. Resuming with stale tool results is a common exam distractor.</div>
+
+        <p>Session forking is particularly useful for comparison tasks — evaluating two refactoring approaches, comparing testing strategies, or exploring two architectural directions from the same codebase analysis baseline. Each fork operates independently and does not affect the other.</p>
+      </div>
     </div>
 
     <div class="divider"></div>
