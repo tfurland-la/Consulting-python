@@ -1706,6 +1706,90 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
       </div>
     </div>
 
+    <div class="module" id="tool-design">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>Tool Design & MCP Integration</h2>
+          <div class="module-desc">Tool descriptions, tool_choice, MCP config files, and structured error responses — Domain 2 of the CCA-F exam.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="tool-descriptions">
+        <h3>Tool Descriptions — The Primary Selection Mechanism</h3>
+        <p>Claude selects tools based on their descriptions. This sounds obvious but has a non-obvious implication: when two tools have minimal or similar descriptions, Claude will misroute requests between them regardless of how clear your prompt is. The description is the contract.</p>
+
+        <p>A good tool description answers four questions: what does the tool do, what inputs does it expect, what does it return, and when should it be used instead of similar alternatives.</p>
+
+        <div class="callout warning"><strong>Exam scenario:</strong> production logs show an agent calling <code>get_customer</code> when users ask about orders, instead of <code>lookup_order</code>. Both tools have descriptions of one sentence ("Retrieves customer information" / "Retrieves order details"). The correct first fix is to expand both descriptions to include input formats, example queries, edge cases, and boundary explanations — not to add few-shot examples, not to build a routing layer, not to consolidate the tools. Tool descriptions are the root cause; that is the proportionate fix.</div>
+
+        <p>Two additional principles the exam tests:</p>
+        <ul>
+          <li><strong>Too many tools degrades reliability.</strong> Giving an agent 18 tools instead of 4-5 increases decision complexity and reduces correct tool selection. Scope each agent's tool set to what its role actually requires.</li>
+          <li><strong>Generic tools cause misuse.</strong> A synthesis agent given all web search tools will attempt web searches when it should synthesize. Give agents only the tools they need, with constrained alternatives where appropriate — a <code>verify_fact</code> tool instead of the full search toolset.</li>
+        </ul>
+
+        <h3 style="margin-top:32px">tool_choice Configuration</h3>
+        <p>The <code>tool_choice</code> parameter controls whether and how Claude selects tools. Three options:</p>
+
+        <table class="ref-table">
+          <tr><th>Value</th><th>Behavior</th><th>When to use</th></tr>
+          <tr><td><code>"auto"</code></td><td>Claude decides whether to call a tool or return text</td><td>Default — appropriate for most cases</td></tr>
+          <tr><td><code>"any"</code></td><td>Claude must call a tool but can choose which one</td><td>When you need structured output and have multiple extraction schemas — guarantees a tool call without forcing a specific one</td></tr>
+          <tr><td><code>{"type": "tool", "name": "extract_metadata"}</code></td><td>Claude must call this specific tool</td><td>When a specific tool must run first — e.g., forcing metadata extraction before enrichment steps</td></tr>
+        </table>
+
+        <div class="callout">Setting <code>tool_choice: "any"</code> is the correct answer when you need guaranteed structured output but have multiple valid extraction schemas and don't know which applies. Setting a forced tool is the correct answer when tool ordering matters for correctness.</div>
+      </div>
+
+      <div class="lesson" id="mcp-errors">
+        <h3>Structured MCP Error Responses</h3>
+        <p>When an MCP tool fails, the error response you return determines whether the agent can recover intelligently or is left guessing. A generic "Operation failed" response gives the agent nothing to work with. A structured error response gives the agent everything it needs to decide what to do next.</p>
+
+        <table class="ref-table">
+          <tr><th>Field</th><th>Values</th><th>Purpose</th></tr>
+          <tr><td><code>isError</code></td><td>true / false</td><td>Signals tool failure to the agent</td></tr>
+          <tr><td><code>errorCategory</code></td><td>transient / validation / permission / business</td><td>Tells the agent what kind of failure occurred</td></tr>
+          <tr><td><code>isRetryable</code></td><td>true / false</td><td>Prevents wasted retry attempts on non-retryable errors</td></tr>
+          <tr><td>human-readable description</td><td>string</td><td>Explains the failure in terms the agent can communicate to a user</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Critical distinction:</strong> an access failure (timeout, service unavailable) is different from a valid empty result (successful query with no matches). Returning an empty result as a success when the tool actually failed suppresses the error and prevents any recovery. The coordinator receives what looks like a successful search with no results, rather than a signal that the search didn't run — a fundamentally different situation.</div>
+
+        <p>The correct error propagation pattern: subagents handle transient failures locally with retry logic. Only errors they cannot resolve get propagated to the coordinator — along with what was attempted, any partial results, and potential alternative approaches. The coordinator then has enough context to decide whether to retry with a different query, try an alternative subagent, or proceed with partial results and annotate the gap.</p>
+      </div>
+
+      <div class="lesson" id="mcp-config">
+        <h3>MCP Server Configuration Files</h3>
+        <p>MCP servers are configured in JSON files, and the location of the file determines who has access to the server.</p>
+
+        <table class="ref-table">
+          <tr><th>File</th><th>Scope</th><th>Use case</th></tr>
+          <tr><td><code>.mcp.json</code> (project root)</td><td>Shared with all team members via version control</td><td>Shared team tooling — GitHub integration, Jira, shared data sources</td></tr>
+          <tr><td><code>~/.claude.json</code> (home directory)</td><td>Personal — not version controlled</td><td>Personal or experimental MCP servers not ready for team use</td></tr>
+        </table>
+
+        <p>Credentials in <code>.mcp.json</code> use environment variable expansion rather than hard-coded values, keeping secrets out of version control:</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>.mcp.json — environment variable expansion</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>{
+  <span class="cs">"mcpServers"</span>: {
+    <span class="cs">"github"</span>: {
+      <span class="cs">"command"</span>: <span class="cs">"npx"</span>,
+      <span class="cs">"args"</span>: [<span class="cs">"-y"</span>, <span class="cs">"@modelcontextprotocol/server-github"</span>],
+      <span class="cs">"env"</span>: {
+        <span class="cs">"GITHUB_TOKEN"</span>: <span class="cs">"${GITHUB_TOKEN}"</span>
+      }
+    }
+  }
+}</pre>
+        </div>
+
+        <div class="callout">Tools from all configured MCP servers — both project-scoped and user-scoped — are discovered at connection time and available simultaneously to the agent. You do not need to choose between them.</div>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- ══ API DEPRECATIONS ══════════════════════════════════════ -->
