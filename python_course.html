@@ -1549,6 +1549,46 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
           <tr><td>:wq</td><td>Write and quit vim (e.g. git merge commit message)</td></tr>
         </table>
       </div>
+
+      <div class="lesson" id="claudemd-advanced">
+        <h3>CLAUDE.md — Advanced Configuration</h3>
+        <p>The Skilljar course covered CLAUDE.md basics: project-level, local, and user-level files. The exam tests three additional features that weren't in the course.</p>
+
+        <h3 style="margin-top:24px">@import for Modular Configuration</h3>
+        <p>Large CLAUDE.md files become hard to maintain. The <code>@import</code> syntax lets you reference external files, keeping each file focused on one concern:</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>CLAUDE.md — modular imports</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># Root CLAUDE.md imports topic-specific files</span>
+@import .claude/standards/testing.md
+@import .claude/standards/api-conventions.md
+@import .claude/standards/deployment.md</pre>
+        </div>
+
+        <h3 style="margin-top:24px">.claude/rules/ for Path-Scoped Rules</h3>
+        <p>Some conventions only apply to certain file types — test files, API handlers, Terraform configs. Rather than including all conventions in every context, <code>.claude/rules/</code> files load only when Claude is editing files that match their glob pattern.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>.claude/rules/testing.md — YAML frontmatter</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>---
+paths:
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+---
+
+# Testing conventions
+All tests use the Arrange-Act-Assert pattern.
+Mock external dependencies at the module boundary.
+Test file names must match the component they test.</pre>
+        </div>
+
+        <p>This loads only when Claude is working with test files — it never consumes context window during unrelated tasks. This is the correct answer when conventions need to apply to files spread across the codebase (e.g., test files colocated with source files in many directories), because a directory-level CLAUDE.md can't do that.</p>
+
+        <div class="callout warning"><strong>Exam question pattern:</strong> a codebase has React components, API handlers, and database models in different directories, plus test files spread throughout. The correct approach for applying test conventions everywhere is a <code>.claude/rules/</code> file with a glob pattern like <code>**/*.test.tsx</code> — not a root CLAUDE.md that relies on inference, not skills that require invocation, and not subdirectory CLAUDE.md files that are directory-bound.</div>
+
+        <h3 style="margin-top:24px">/memory Command</h3>
+        <p>The <code>/memory</code> command shows which memory files are currently loaded in the session. Use it to diagnose why a new team member isn't receiving the expected project instructions — the cause is almost always that the instructions are in a user-level file (<code>~/.claude/CLAUDE.md</code>) rather than a project-level file (<code>.claude/CLAUDE.md</code> or root <code>CLAUDE.md</code>). User-level files are not shared via version control.</p>
+      </div>
     </div>
 
     <div class="module" id="tool-use-loop">
