@@ -1551,6 +1551,102 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
       </div>
     </div>
 
+    <div class="module" id="tool-use-loop">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>The Tool Use Loop</h2>
+          <div class="module-desc">The agentic loop pattern that underlies every tool-using Claude application — and 27% of the CCA-F exam.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="agentic-loop">
+        <h3>How the Loop Works</h3>
+        <p>When Claude has access to tools, a single API call is rarely enough. Claude reasons about what it needs, requests a tool call, receives the result, and reasons again. This cycle continues until Claude has enough information to give a final answer. The structure that drives this is called the agentic loop.</p>
+
+        <p>The loop has four steps that repeat:</p>
+        <ul>
+          <li>Send a request to Claude with available tool schemas</li>
+          <li>Check <code>stop_reason</code> — if <code>"tool_use"</code>, Claude wants to call a tool</li>
+          <li>Execute the requested tool and append the result to conversation history</li>
+          <li>Send the updated history back to Claude and repeat</li>
+        </ul>
+
+        <p>The loop terminates when <code>stop_reason</code> is <code>"end_turn"</code> — Claude has finished and returned its final response.</p>
+
+        <div class="callout">Why this matters for the exam: the exam tests the exact control flow of this loop. The correct termination condition is <code>stop_reason == "end_turn"</code>. Common anti-patterns that appear as distractors: parsing Claude's text output for natural language signals like "I'm done", setting an arbitrary iteration cap as the primary stopping mechanism, or checking whether Claude returned a text block as a completion indicator. None of these are correct.</div>
+
+        <div class="code-block">
+          <div class="code-label"><span>python — agentic loop pattern</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">def</span> <span class="cf">run_conversation</span>(messages, tools):
+    <span class="ck">while</span> <span class="ck">True</span>:
+        response = client.messages.<span class="cf">create</span>(
+            model=<span class="cs">"claude-sonnet-4-6"</span>,
+            max_tokens=<span class="cn">4096</span>,
+            tools=tools,
+            messages=messages
+        )
+
+        <span class="cm"># Append Claude's full response to history — including tool_use blocks</span>
+        messages.<span class="cf">append</span>({<span class="cs">"role"</span>: <span class="cs">"assistant"</span>, <span class="cs">"content"</span>: response.content})
+
+        <span class="cm"># Correct termination condition</span>
+        <span class="ck">if</span> response.stop_reason == <span class="cs">"end_turn"</span>:
+            <span class="ck">break</span>
+
+        <span class="cm"># Handle tool use — extract tool_use blocks from response</span>
+        tool_results = []
+        <span class="ck">for</span> block <span class="ck">in</span> response.content:
+            <span class="ck">if</span> block.type == <span class="cs">"tool_use"</span>:
+                result = <span class="cf">run_tool</span>(block.name, block.input)
+                tool_results.<span class="cf">append</span>({
+                    <span class="cs">"type"</span>: <span class="cs">"tool_result"</span>,
+                    <span class="cs">"tool_use_id"</span>: block.id,
+                    <span class="cs">"content"</span>: result,
+                    <span class="cs">"is_error"</span>: <span class="ck">False</span>
+                })
+
+        <span class="cm"># Append tool results as a user message and loop</span>
+        messages.<span class="cf">append</span>({<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: tool_results})
+
+    <span class="ck">return</span> messages</pre>
+        </div>
+
+        <h3 style="margin-top:32px">What Goes in the Messages History</h3>
+        <p>Two things must be appended to the messages list on every iteration. Getting either wrong causes a <code>BadRequestError</code>.</p>
+
+        <table class="ref-table">
+          <tr><th>What to append</th><th>As role</th><th>Why</th></tr>
+          <tr><td>The full <code>response.content</code> list (not just text)</td><td>assistant</td><td>Contains both text blocks and tool_use blocks — Claude needs both in history to reason correctly</td></tr>
+          <tr><td>A list of tool_result blocks</td><td>user</td><td>Tool results are sent as a user turn; each result references the tool_use_id from the preceding assistant message</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Common mistake:</strong> appending only <code>response.content[0].text</code> to history instead of the full <code>response.content</code> list. When the response contains tool_use blocks, this drops them from history and Claude loses track of what tools it called.</div>
+
+        <h3 style="margin-top:32px">Tool Results and Error Handling</h3>
+        <p>When a tool call fails, return a tool_result with <code>is_error: True</code> and a descriptive error message. Claude receives this, understands something went wrong, and adjusts its reasoning — it may retry with different parameters, try an alternative approach, or explain the limitation to the user.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>python — error handling in tool execution</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="ck">try</span>:
+    result = <span class="cf">run_tool</span>(block.name, block.input)
+    tool_result_block = {
+        <span class="cs">"type"</span>: <span class="cs">"tool_result"</span>,
+        <span class="cs">"tool_use_id"</span>: block.id,
+        <span class="cs">"content"</span>: json.<span class="cf">dumps</span>(result),
+        <span class="cs">"is_error"</span>: <span class="ck">False</span>
+    }
+<span class="ck">except</span> Exception <span class="ck">as</span> e:
+    tool_result_block = {
+        <span class="cs">"type"</span>: <span class="cs">"tool_result"</span>,
+        <span class="cs">"tool_use_id"</span>: block.id,
+        <span class="cs">"content"</span>: <span class="cs">f"Error: {e}"</span>,
+        <span class="cs">"is_error"</span>: <span class="ck">True</span>
+    }</pre>
+        </div>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- ══ API DEPRECATIONS ══════════════════════════════════════ -->
