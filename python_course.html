@@ -1830,6 +1830,56 @@ Test file names must match the component they test.</pre>
       </div>
     </div>
 
+    <div class="module" id="prompt-engineering">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>Prompt Engineering & Batch Processing</h2>
+          <div class="module-desc">Explicit criteria, few-shot examples, validation loops, and the Message Batches API — Domain 4 of the CCA-F exam.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="explicit-criteria">
+        <h3>Explicit Criteria Over Vague Instructions</h3>
+        <p>The most common prompt engineering failure is vague instructions. "Be conservative" and "only report high-confidence findings" sound reasonable but give Claude no actionable definition of conservative or high-confidence. The model interprets these differently on every run, producing inconsistent results.</p>
+
+        <p>The correct approach is explicit categorical criteria: define exactly which issues to report and which to skip. Instead of "check that comments are accurate," write "flag comments only when the claimed behavior directly contradicts what the code actually does." The second version has a clear, testable definition.</p>
+
+        <div class="callout">Few-shot examples are the most effective technique for achieving consistently formatted output when detailed instructions alone produce inconsistent results. Add 2-4 targeted examples for the ambiguous scenarios — the cases where Claude's judgment is most likely to drift. Include reasoning that explains why the example output was chosen over plausible alternatives.</div>
+
+        <h3 style="margin-top:32px">Validation and Retry Loops</h3>
+        <p>When structured output fails validation, the correct recovery pattern is retry-with-error-feedback: send a follow-up request that includes the original document, the failed extraction, and the specific validation error. Claude uses this to self-correct.</p>
+
+        <p>Retries have limits. They work for format mismatches and structural errors. They do not work when the required information is simply absent from the source document — no amount of retrying will extract a field that doesn't exist in the input. Knowing when to retry versus when to accept a null value is a production consideration and an exam topic.</p>
+
+        <table class="ref-table">
+          <tr><th>Error type</th><th>Retry effective?</th><th>Why</th></tr>
+          <tr><td>Format mismatch (string where integer expected)</td><td>Yes</td><td>Claude can reformat the same information</td></tr>
+          <tr><td>Structural error (nested object returned as flat)</td><td>Yes</td><td>Claude can restructure its output</td></tr>
+          <tr><td>Information absent from source document</td><td>No</td><td>The data doesn't exist — retrying asks Claude to fabricate it</td></tr>
+        </table>
+      </div>
+
+      <div class="lesson" id="batches-api">
+        <h3>Message Batches API</h3>
+        <p>The Message Batches API processes requests asynchronously at 50% of the standard API cost. The tradeoff: processing takes up to 24 hours with no guaranteed latency SLA. This makes it appropriate for some workloads and unsuitable for others.</p>
+
+        <table class="ref-table">
+          <tr><th>Appropriate</th><th>Inappropriate</th></tr>
+          <tr><td>Overnight technical debt reports</td><td>Blocking pre-merge checks</td></tr>
+          <tr><td>Weekly audit processing</td><td>Real-time customer-facing responses</td></tr>
+          <tr><td>Nightly test generation</td><td>Any workflow where a developer or user is waiting</td></tr>
+          <tr><td>Large document extraction batches</td><td>Sequential tool-calling workflows</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Hard limitation:</strong> the batch API does not support multi-turn tool calling within a single request. You cannot send a request, have Claude call a tool mid-request, and return a result — the batch processes one request/response pair. Any workflow requiring tool use must use the standard synchronous API.</div>
+
+        <p>Each request in a batch uses a <code>custom_id</code> field you define. When results come back, you match them to the original requests using this ID. When some requests fail, resubmit only the failed ones — identified by their <code>custom_id</code> — with appropriate modifications (such as chunking documents that exceeded the context limit).</p>
+
+        <div class="callout"><strong>Exam decision rule:</strong> when asked whether to use the batch API, the answer hinges on one question — does anything block on the result? If yes (pre-merge check, customer waiting, CI gate), use the synchronous API. If no (overnight report, weekly audit, nightly job), use the batch API for 50% cost savings.</div>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- ══ API DEPRECATIONS ══════════════════════════════════════ -->
