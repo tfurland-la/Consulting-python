@@ -57,15 +57,6 @@
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
 
-  .sidebar-header .brand {
-    font-family: 'DM Serif Display', serif;
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 8px;
-  }
-
   .sidebar-header h1 {
     font-family: 'DM Serif Display', serif;
     font-size: 20px;
@@ -574,6 +565,7 @@
     .content { padding: 32px; }
     .hero { padding: 40px 32px 32px; }
     .hero h1 { font-size: 32px; }
+    .ref-table { display: block; overflow-x: auto; }
   }
 </style>
 </head>
@@ -1574,7 +1566,7 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
         <h3>CLAUDE.md — Advanced Configuration</h3>
         <p>The Skilljar course covered CLAUDE.md basics: project-level, local, and user-level files. The exam tests three additional features that weren't in the course.</p>
 
-        <h3 style="margin-top:24px">@import for Modular Configuration</h3>
+        <h3 style="margin-top:32px">@import for Modular Configuration</h3>
         <p>Large CLAUDE.md files become hard to maintain. The <code>@import</code> syntax lets you reference external files, keeping each file focused on one concern:</p>
 
         <div class="code-block">
@@ -1585,7 +1577,7 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
 @import .claude/standards/deployment.md</pre>
         </div>
 
-        <h3 style="margin-top:24px">.claude/rules/ for Path-Scoped Rules</h3>
+        <h3 style="margin-top:32px">.claude/rules/ for Path-Scoped Rules</h3>
         <p>Some conventions only apply to certain file types — test files, API handlers, Terraform configs. Rather than including all conventions in every context, <code>.claude/rules/</code> files load only when Claude is editing files that match their glob pattern.</p>
 
         <div class="code-block">
@@ -1606,10 +1598,12 @@ Test file names must match the component they test.</pre>
 
         <div class="callout warning"><strong>Exam question pattern:</strong> a codebase has React components, API handlers, and database models in different directories, plus test files spread throughout. The correct approach for applying test conventions everywhere is a <code>.claude/rules/</code> file with a glob pattern like <code>**/*.test.tsx</code> — not a root CLAUDE.md that relies on inference, not skills that require invocation, and not subdirectory CLAUDE.md files that are directory-bound.</div>
 
-        <h3 style="margin-top:24px">/memory Command</h3>
+        <h3 style="margin-top:32px">/memory Command</h3>
         <p>The <code>/memory</code> command shows which memory files are currently loaded in the session. Use it to diagnose why a new team member isn't receiving the expected project instructions — the cause is almost always that the instructions are in a user-level file (<code>~/.claude/CLAUDE.md</code>) rather than a project-level file (<code>.claude/CLAUDE.md</code> or root <code>CLAUDE.md</code>). User-level files are not shared via version control.</p>
       </div>
     </div>
+
+    <div class="divider"></div>
 
     <div class="module" id="tool-use-loop">
       <div class="module-header">
@@ -1766,6 +1760,8 @@ Test file names must match the component they test.</pre>
       </div>
     </div>
 
+    <div class="divider"></div>
+
     <div class="module" id="tool-design">
       <div class="module-header">
         <div class="module-num">—</div>
@@ -1850,6 +1846,8 @@ Test file names must match the component they test.</pre>
       </div>
     </div>
 
+    <div class="divider"></div>
+
     <div class="module" id="prompt-engineering">
       <div class="module-header">
         <div class="module-num">—</div>
@@ -1900,6 +1898,8 @@ Test file names must match the component they test.</pre>
       </div>
     </div>
 
+    <div class="divider"></div>
+
     <div class="module" id="context-reliability">
       <div class="module-header">
         <div class="module-num">—</div>
@@ -1913,17 +1913,17 @@ Test file names must match the component they test.</pre>
         <h3>Context Management Patterns</h3>
         <p>As conversations grow longer and tool results accumulate, context quality degrades. Three specific effects matter for the exam:</p>
 
-        <h3 style="margin-top:24px">The Lost-in-the-Middle Effect</h3>
+        <h3 style="margin-top:32px">The Lost-in-the-Middle Effect</h3>
         <p>Models reliably process information at the beginning and end of long inputs. Content in the middle receives less attention and may be omitted from the model's reasoning. This becomes a real problem in multi-agent research pipelines where findings from multiple subagents get concatenated into a single prompt.</p>
 
         <p>Mitigations: place key findings summaries at the beginning of aggregated inputs, organize detailed results with explicit section headers, and avoid relying on the model to find the most important content in the middle of a long document.</p>
 
-        <h3 style="margin-top:24px">Verbose Tool Output</h3>
+        <h3 style="margin-top:32px">Verbose Tool Output</h3>
         <p>Tool results accumulate in the conversation history and consume tokens disproportionate to their usefulness. An order lookup that returns 40 fields when only 5 are relevant to the current task wastes context on every subsequent turn.</p>
 
         <p>The correct pattern is to trim tool outputs to only the relevant fields before they enter the conversation history. A <code>PostToolUse</code> hook is the right place to do this — it intercepts the result before the model processes it and strips irrelevant fields.</p>
 
-        <h3 style="margin-top:24px">Persistent Case Facts</h3>
+        <h3 style="margin-top:32px">Persistent Case Facts</h3>
         <p>In multi-turn conversations, critical transactional data — order numbers, amounts, dates, customer-stated expectations — can be paraphrased away during summarization. The correct pattern is to extract these facts into a structured "case facts" block that gets included in every prompt, outside the summarized history.</p>
 
         <div class="code-block">
@@ -1945,7 +1945,7 @@ Conversation history follows.
 """</span></pre>
         </div>
 
-        <h3 style="margin-top:24px">Scratchpad Files in Long Sessions</h3>
+        <h3 style="margin-top:32px">Scratchpad Files in Long Sessions</h3>
         <p>In extended codebase exploration sessions, context degrades — the model starts giving inconsistent answers and referencing "typical patterns" rather than the specific classes it discovered earlier in the session. The remedy is scratchpad files: have the agent write key findings to a file as it discovers them, then reference that file for subsequent questions rather than relying on context alone. This persists knowledge across context boundaries.</p>
 
         <p>The <code>/compact</code> command summarizes the full conversation history while preserving the agent's learned knowledge, reducing context usage during extended sessions.</p>
@@ -1955,7 +1955,7 @@ Conversation history follows.
         <h3>Escalation Patterns</h3>
         <p>Knowing when to escalate to a human is as important as knowing when to resolve autonomously. The exam tests specific escalation triggers and explicitly rejects unreliable proxies.</p>
 
-        <h3 style="margin-top:24px">When to Escalate</h3>
+        <h3 style="margin-top:32px">When to Escalate</h3>
         <table class="ref-table">
           <tr><th>Trigger</th><th>Correct response</th></tr>
           <tr><td>Customer explicitly asks for a human agent</td><td>Escalate immediately — do not attempt to resolve first</td></tr>
@@ -1966,7 +1966,7 @@ Conversation history follows.
 
         <div class="callout warning"><strong>Unreliable escalation signals:</strong> sentiment analysis and self-reported confidence scores. A frustrated customer with a simple issue should be resolved, not escalated. An agent that is confidently wrong is the highest-risk scenario. Neither sentiment nor confidence reliably correlates with actual case complexity, which is the relevant variable. The exam explicitly tests this — sentiment-based and confidence-based escalation appear as distractors.</div>
 
-        <h3 style="margin-top:24px">Structured Handoff Summaries</h3>
+        <h3 style="margin-top:32px">Structured Handoff Summaries</h3>
         <p>When escalating to a human agent, the human does not have access to the conversation transcript. The structured handoff summary must include everything they need: customer ID, root cause, what was attempted, amounts or dates involved, and recommended action. A vague "customer is frustrated with order" handoff leaves the human starting from scratch.</p>
       </div>
     </div>
