@@ -1880,6 +1880,77 @@ Test file names must match the component they test.</pre>
       </div>
     </div>
 
+    <div class="module" id="context-reliability">
+      <div class="module-header">
+        <div class="module-num">—</div>
+        <div class="module-title-block">
+          <h2>Context Management & Reliability</h2>
+          <div class="module-desc">Lost-in-the-middle, verbose tool output trimming, scratchpad files, and escalation patterns — Domain 5 of the CCA-F exam.</div>
+        </div>
+      </div>
+
+      <div class="lesson" id="context-management">
+        <h3>Context Management Patterns</h3>
+        <p>As conversations grow longer and tool results accumulate, context quality degrades. Three specific effects matter for the exam:</p>
+
+        <h3 style="margin-top:24px">The Lost-in-the-Middle Effect</h3>
+        <p>Models reliably process information at the beginning and end of long inputs. Content in the middle receives less attention and may be omitted from the model's reasoning. This becomes a real problem in multi-agent research pipelines where findings from multiple subagents get concatenated into a single prompt.</p>
+
+        <p>Mitigations: place key findings summaries at the beginning of aggregated inputs, organize detailed results with explicit section headers, and avoid relying on the model to find the most important content in the middle of a long document.</p>
+
+        <h3 style="margin-top:24px">Verbose Tool Output</h3>
+        <p>Tool results accumulate in the conversation history and consume tokens disproportionate to their usefulness. An order lookup that returns 40 fields when only 5 are relevant to the current task wastes context on every subsequent turn.</p>
+
+        <p>The correct pattern is to trim tool outputs to only the relevant fields before they enter the conversation history. A <code>PostToolUse</code> hook is the right place to do this — it intercepts the result before the model processes it and strips irrelevant fields.</p>
+
+        <h3 style="margin-top:24px">Persistent Case Facts</h3>
+        <p>In multi-turn conversations, critical transactional data — order numbers, amounts, dates, customer-stated expectations — can be paraphrased away during summarization. The correct pattern is to extract these facts into a structured "case facts" block that gets included in every prompt, outside the summarized history.</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>python — case facts block pattern</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cm"># Extract critical facts once; include in every subsequent call</span>
+CASE_FACTS = {
+    <span class="cs">"order_id"</span>: <span class="cs">"ORD-8821"</span>,
+    <span class="cs">"amount"</span>: <span class="cn">247.50</span>,
+    <span class="cs">"customer_stated_expectation"</span>: <span class="cs">"full refund within 3 business days"</span>,
+    <span class="cs">"issue_date"</span>: <span class="cs">"2025-11-14"</span>
+}
+
+system_prompt = <span class="cs">f"""You are a customer support agent.
+
+Current case facts (do not summarize or paraphrase):
+{json.dumps(CASE_FACTS, indent=2)}
+
+Conversation history follows.
+"""</span></pre>
+        </div>
+
+        <h3 style="margin-top:24px">Scratchpad Files in Long Sessions</h3>
+        <p>In extended codebase exploration sessions, context degrades — the model starts giving inconsistent answers and referencing "typical patterns" rather than the specific classes it discovered earlier in the session. The remedy is scratchpad files: have the agent write key findings to a file as it discovers them, then reference that file for subsequent questions rather than relying on context alone. This persists knowledge across context boundaries.</p>
+
+        <p>The <code>/compact</code> command summarizes the full conversation history while preserving the agent's learned knowledge, reducing context usage during extended sessions.</p>
+      </div>
+
+      <div class="lesson" id="escalation">
+        <h3>Escalation Patterns</h3>
+        <p>Knowing when to escalate to a human is as important as knowing when to resolve autonomously. The exam tests specific escalation triggers and explicitly rejects unreliable proxies.</p>
+
+        <h3 style="margin-top:24px">When to Escalate</h3>
+        <table class="ref-table">
+          <tr><th>Trigger</th><th>Correct response</th></tr>
+          <tr><td>Customer explicitly asks for a human agent</td><td>Escalate immediately — do not attempt to resolve first</td></tr>
+          <tr><td>Policy is ambiguous or silent on the customer's specific request</td><td>Escalate — the agent cannot make a policy decision</td></tr>
+          <tr><td>Unable to make meaningful progress after investigation</td><td>Escalate with a structured summary of what was attempted</td></tr>
+          <tr><td>Case is complex but agent has a path to resolution</td><td>Offer to resolve — escalate only if customer reiterates</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Unreliable escalation signals:</strong> sentiment analysis and self-reported confidence scores. A frustrated customer with a simple issue should be resolved, not escalated. An agent that is confidently wrong is the highest-risk scenario. Neither sentiment nor confidence reliably correlates with actual case complexity, which is the relevant variable. The exam explicitly tests this — sentiment-based and confidence-based escalation appear as distractors.</div>
+
+        <h3 style="margin-top:24px">Structured Handoff Summaries</h3>
+        <p>When escalating to a human agent, the human does not have access to the conversation transcript. The structured handoff summary must include everything they need: customer ID, root cause, what was attempted, amounts or dates involved, and recommended action. A vague "customer is frustrated with order" handoff leaves the human starting from scratch.</p>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- ══ API DEPRECATIONS ══════════════════════════════════════ -->
