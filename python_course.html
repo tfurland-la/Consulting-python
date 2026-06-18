@@ -1687,6 +1687,23 @@ claude -p <span class="cs">"query"</span> --permission-mode bypassPermissions</p
 
         <p>Session forking is particularly useful for comparison tasks — evaluating two refactoring approaches, comparing testing strategies, or exploring two architectural directions from the same codebase analysis baseline. Each fork operates independently and does not affect the other.</p>
       </div>
+
+      <div class="lesson" id="agent-sdk-hooks">
+        <h3>Agent SDK Hooks — PostToolUse and Tool Call Interception</h3>
+        <p>The Skilljar Claude Code course covered Claude Code hooks — pre/post tool use interceptors that run shell commands. The CCA-F exam also tests a different concept: Agent SDK hooks, which intercept tool results and outgoing tool calls in an API-level agentic application.</p>
+
+        <p>Two patterns matter for the exam:</p>
+
+        <table class="ref-table">
+          <tr><th>Hook type</th><th>What it does</th><th>Use case</th></tr>
+          <tr><td>PostToolUse</td><td>Intercepts tool results before the model processes them</td><td>Normalizing heterogeneous data formats from different MCP tools — converting Unix timestamps, ISO 8601 dates, and numeric status codes into a consistent format before Claude reasons about them</td></tr>
+          <tr><td>Tool call interception</td><td>Intercepts outgoing tool calls before execution</td><td>Enforcing business rules — blocking a process_refund call if the amount exceeds $500, redirecting to a human escalation workflow instead</td></tr>
+        </table>
+
+        <div class="callout"><strong>The exam meta-principle applied here:</strong> hooks provide deterministic guarantees. Prompt-based instructions ("never process refunds over $500") have a non-zero failure rate. When a business rule requires guaranteed compliance — identity verification before financial operations, policy limits on transaction amounts — use a hook, not a prompt instruction. This distinction appears across multiple exam scenarios.</div>
+
+        <p>The key distinction from Claude Code hooks: Claude Code hooks run shell scripts in response to file system events. Agent SDK hooks intercept API-level tool interactions in Python code, operating on the structured tool call and tool result objects that flow through the agentic loop.</p>
+      </div>
     </div>
 
     <div class="divider"></div>
