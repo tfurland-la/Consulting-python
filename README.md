@@ -38,6 +38,29 @@ for every session: test-driven workflow, surface broken tests rather than paper
 over them, and never touch secrets. See [Build Your Own Study Companion][build-your-own]
 for how to fork and personalize it.
 
+## Adaptive Practice Exam
+
+An adaptive, scenario-based practice exam for the CCA-F, built as a React artifact
+in Claude.ai. It generates questions on demand using the Anthropic API (no fixed
+question bank), tracks performance at the individual task-statement level (the 30
+skills the exam tests), and weights future questions toward the areas where you are
+weakest. Performance persists across sessions.
+
+The tool lives in Claude.ai rather than in this repo because the artifact environment
+provides Anthropic API access and cross-session storage without any key handling or
+infrastructure on your part.
+
+To build it: paste [`practice-exam/practice_exam_build_prompt.md`][build-prompt]
+into a new Claude.ai conversation. Claude builds the tool as a React artifact in
+four phases: confirm each works before continuing.
+
+To fork it: the seed configuration (starting weights for every task statement) lives
+in a single commented object at the top of the generated file. Edit that object to
+build as-is with the author's known weak areas, to reset all weights to 1.0 for a
+blank slate, or to set a colleague's own weak areas. No other code changes needed.
+
+The design rationale is in [`practice-exam/practice_exam_spec.md`][exam-spec].
+
 ---
 
 [live-course]: https://tfurland-la.github.io/Consulting-python/python_course.html
@@ -46,3 +69,5 @@ for how to fork and personalize it.
 [env-setup]: https://github.com/tfurland-la/Consulting-python/wiki/Environment-Setup
 [study-companion]: https://github.com/tfurland-la/Consulting-python/wiki/Using-This-Repo-As-A-Study-Companion
 [build-your-own]: https://github.com/tfurland-la/Consulting-python/wiki/Build-Your-Own-Study-Companion
+[build-prompt]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/practice_exam_build_prompt.md
+[exam-spec]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/practice_exam_spec.md
