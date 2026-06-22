@@ -147,6 +147,52 @@ Requirements:
   C is over-engineered before prompt optimization is tried. D solves a different
   problem; sentiment doesn't correlate with case complexity.
 
+  Question 4 (D2.1): Scenario — A multi-agent research system misroutes 45% of
+  requests to the web-search agent's analyze_content tool instead of the document
+  analysis agent's analyze_document tool. Both tools have nearly identical
+  descriptions.
+  Question — What is the most effective fix?
+  A) Add a pre-routing classifier before the coordinator decides on delegation.
+  B) Rename the web-search tool to extract_web_results and update its description
+  to reference web search and URLs specifically.
+  C) Add few-shot examples to the coordinator prompt showing correct routing.
+  D) Expand the document analysis tool description while leaving the web-search
+  tool unchanged.
+  Correct: B.
+  Explanations — B: renaming removes semantic overlap at the source. A is
+  over-engineered for a description problem. C adds overhead without fixing the
+  root cause. D fixes only half the problem.
+
+  Question 5 (D4.6): Scenario — A pull request touches 14 files. A single-pass
+  review produces inconsistent depth, missed bugs, and contradictory feedback on
+  identical patterns in different files.
+  Question — How should you restructure the review?
+  A) Run three independent full-PR passes and flag issues appearing in at least
+  two runs.
+  B) Split into per-file passes for local issues plus a separate integration pass
+  for cross-file data flows.
+  C) Require developers to split large PRs into smaller submissions.
+  D) Switch to a larger model with a bigger context window.
+  Correct: B.
+  Explanations — B: per-file passes fix attention dilution; the integration pass
+  catches cross-file concerns. A suppresses real bugs by requiring consensus. C
+  shifts burden without improving the system. D misunderstands the problem.
+
+  Question 6 (D3.4): Scenario — A team is restructuring a monolithic application
+  into microservices, involving changes across dozens of files and decisions about
+  service boundaries and module dependencies.
+  Question — Which approach should you take?
+  A) Enter plan mode to explore the codebase and design before making changes.
+  B) Start with direct execution and let implementation reveal service boundaries.
+  C) Use direct execution with upfront instructions detailing each service.
+  D) Begin in direct execution and switch to plan mode only if unexpected
+  complexity emerges.
+  Correct: A.
+  Explanations — A: plan mode is designed for architectural decisions, large-scale
+  changes, and multiple valid approaches. B risks costly rework. C assumes you
+  know the structure without exploring. D ignores that the complexity is already
+  stated in requirements.
+
 - UI: show one question at a time — scenario, stem, four options as clickable
   choices. The user selects one and submits. On submit, reveal correct/incorrect,
   highlight the correct option, and show all four explanations. A "Next question"
@@ -204,8 +250,12 @@ Requirements:
   - State the exact task statement and domain.
   - Require a realistic production scenario (1-2 short paragraphs) in the style
     of the exam's use cases: customer support agents, multi-agent research
-    pipelines, Claude Code in CI/CD, developer productivity tools, structured
-    data extraction.
+    pipelines, Claude Code in CI/CD, Developer Productivity with Claude
+    (codebase exploration, legacy system understanding, boilerplate generation,
+    task automation using built-in tools Read/Write/Bash/Grep/Glob and MCP
+    servers), Structured Data Extraction (extracting information from
+    unstructured documents, validating output using JSON schemas, handling edge
+    cases, integrating with downstream systems).
   - Require exactly one correct answer and three plausible distractors that
     represent mistakes a partially-knowledgeable candidate would make.
   - Require an explanation for why the correct answer is right and why each
@@ -222,6 +272,17 @@ Requirements:
 - Pre-generate the NEXT question in the background while the user reads the
   current explanation, so advancing is instant. Show a subtle generating
   indicator if the next question isn't ready yet.
+- Repeat prevention: when selecting the next task statement via weighted random
+  draw, temporarily set effective weight to 0 for any of the last 5 task
+  statements in the persisted history (ccaf:history). Cooldown is derived from
+  stored history, not in-session state, so it survives reloads.
+- Flag as flawed: after answer reveal, show a secondary button "Flag — don't
+  count this question." If clicked before advancing: fully discard the question —
+  revert the weight update, remove it from answered count and accuracy, remove it
+  from history — as if it never happened. Increment a totalFlagged counter in
+  ccaf:stats. Show confirmation: "Flagged and discarded. This question didn't
+  affect your weights or accuracy." The button disappears after clicking or
+  advancing.
 - Everything from Phases 1-2 (UI, persistence, dashboard, weight updates) keeps
   working with generated questions.
 
@@ -265,6 +326,12 @@ and how a colleague would fork and reseed it.
   or difficulty, that is a prompt-quality issue in the generation prompt — ask
   Claude to add more few-shot examples or tighten the instructions. This is the
   same few-shot technique the exam tests in D4.2.
+- The generation prompt's scenario type list explicitly includes "Structured
+  Data Extraction" and "Developer Productivity with Claude" — two scenarios not
+  covered by the 60-question static bank in paullarionov/claude-certified-
+  architect. The tool will generate questions for these scenarios dynamically;
+  few-shot examples for them come from the D2.1, D4.6, and D3.4 questions added
+  in Phase 1 (Questions 4-6).
 - The seed weights are the author's known weak areas as of build time. As you
   practice, the adaptive logic takes over from the seed — so the seed matters
   most in the first couple of dozen questions, then your actual performance

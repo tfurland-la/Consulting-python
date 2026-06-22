@@ -215,6 +215,11 @@ The build prompt includes sample questions for this purpose. This is itself an
 application of D4.2 (few-shot prompting for output consistency) — the tool uses
 the technique it tests.
 
+The generation prompt explicitly lists six scenario types including "Structured
+Data Extraction" and "Developer Productivity with Claude" — these two are not
+covered by the initial static question set and are addressed via the additional
+few-shot examples (D2.1, D4.6, D3.4) added to the Phase 1 seed questions.
+
 ### Reliability
 
 - Generation is non-deterministic; if JSON parsing fails, retry once with the
@@ -222,6 +227,14 @@ the technique it tests.
   feedback), then surface a friendly error if it still fails.
 - Pre-generate the next question in the background while the user reads the
   current explanation, so there is no wait between questions.
+- Repeat prevention: the last 5 task statements in persisted history are
+  temporarily excluded from the weighted draw, preventing the same topic from
+  appearing in a short run. Because cooldown is derived from stored history
+  rather than in-session state, it survives reloads.
+- Flag as flawed: a per-question control performs full discard — the question
+  affects nothing: weight, accuracy, or history. This protects both adaptive
+  weighting and score integrity when a generated question is ambiguous or has a
+  defensible second answer.
 
 ---
 
