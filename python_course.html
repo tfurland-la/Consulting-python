@@ -624,6 +624,8 @@
     <a class="nav-sub" href="#pflag">-p Flag</a>
     <a class="nav-sub" href="#cicd">CI/CD Patterns</a>
     <a class="nav-sub" href="#claudemd-advanced">CLAUDE.md Advanced</a>
+    <a class="nav-sub" href="#custom-skills">Custom Skills &amp; Commands</a>
+    <a class="nav-sub" href="#plan-mode">Plan Mode vs Direct Execution</a>
 
     <a class="nav-item" href="#tool-use-loop"><span class="num">—</span>Tool Use Loop</a>
     <a class="nav-sub" href="#agentic-loop">Agentic Loop Pattern</a>
@@ -1608,6 +1610,69 @@ Test file names must match the component they test.</pre>
         <h3 style="margin-top:32px">/memory Command</h3>
         <p>The <code>/memory</code> command shows which memory files are currently loaded in the session. Use it to diagnose why a new team member isn't receiving the expected project instructions — the cause is almost always that the instructions are in a user-level file (<code>~/.claude/CLAUDE.md</code>) rather than a project-level file (<code>.claude/CLAUDE.md</code> or root <code>CLAUDE.md</code>). User-level files are not shared via version control.</p>
       </div>
+
+      <div class="lesson" id="custom-skills">
+        <h3>Custom Slash Commands and Skills (D3.2)</h3>
+        <p>Claude Code lets you define reusable commands — called <strong>slash commands</strong> or <strong>skills</strong> — that appear in the Claude Code UI as <code>/command-name</code>. Commands are just Markdown files; the file content becomes the prompt Claude runs when you invoke them.</p>
+
+        <h3 style="margin-top:32px">Where Commands Live</h3>
+        <table class="ref-table">
+          <tr><th>Location</th><th>Scope</th><th>Version-controlled?</th></tr>
+          <tr><td><code>.claude/commands/</code></td><td>Project — all users</td><td>Yes</td></tr>
+          <tr><td><code>~/.claude/commands/</code></td><td>User — all projects</td><td>No</td></tr>
+          <tr><td><code>.claude/skills/[name]/SKILL.md</code></td><td>Project skill with frontmatter</td><td>Yes</td></tr>
+          <tr><td><code>~/.claude/skills/[name]/SKILL.md</code></td><td>Personal skill — overrides project skill of same name</td><td>No</td></tr>
+        </table>
+
+        <p>A personal skill (<code>~/.claude/skills/</code>) with the same name as a project skill takes precedence. This is the intended customization path: the team publishes a shared skill; individual members can override it locally without touching the repo.</p>
+
+        <h3 style="margin-top:32px">SKILL.md Frontmatter</h3>
+        <p>Skills gain additional behavior from YAML frontmatter at the top of <code>SKILL.md</code>:</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>.claude/skills/review/SKILL.md</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>---
+context: fork
+allowed-tools: Read, Grep, Glob
+argument-hint: "path to review (default: current file)"
+---
+
+Review the code at $ARGUMENTS for bugs, clarity, and test coverage.
+Report each issue with file, line, severity, and a one-sentence fix.</pre>
+        </div>
+
+        <table class="ref-table">
+          <tr><th>Frontmatter key</th><th>What it does</th></tr>
+          <tr><td><code>context: fork</code></td><td>Runs the skill in a subagent with its own context window. Verbose output (large diffs, full file reads) doesn't pollute the main conversation context.</td></tr>
+          <tr><td><code>allowed-tools</code></td><td>Restricts which tools the skill can call. Use to scope a read-only audit skill so it cannot write or execute.</td></tr>
+          <tr><td><code>argument-hint</code></td><td>Text shown to the user as a prompt when they invoke the skill — tells them what to type after the slash command name.</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Exam question pattern:</strong> a team wants a shared code-review skill that runs as a subagent (so its output doesn't overflow the main context), can only read files, and prompts users for a path. The correct answer uses a skill SKILL.md with <code>context: fork</code>, <code>allowed-tools: Read, Grep, Glob</code>, and <code>argument-hint</code> — not a plain command file, not a CLAUDE.md rule, and not a path-scoped rules file.</div>
+      </div>
+
+      <div class="lesson" id="plan-mode">
+        <h3>Plan Mode vs Direct Execution (D3.4)</h3>
+        <p>Claude Code has two operating modes. In <strong>direct execution</strong> mode (the default), Claude reads, edits, and runs files as it works. In <strong>plan mode</strong>, Claude explores and designs without making any changes — it produces a plan for your review before touching anything.</p>
+
+        <h3 style="margin-top:32px">Decision Criteria</h3>
+        <table class="ref-table">
+          <tr><th>Use plan mode when…</th><th>Use direct execution when…</th></tr>
+          <tr><td>The task spans dozens of files or services</td><td>The task is confined to one or two files</td></tr>
+          <tr><td>Multiple valid architectural approaches exist</td><td>The stack trace points clearly to the fix</td></tr>
+          <tr><td>You're in an unfamiliar codebase</td><td>The requirement is well-scoped and unambiguous</td></tr>
+          <tr><td>Incorrect implementation would be costly to undo</td><td>The change is easily reversible</td></tr>
+        </table>
+
+        <p>The cost of skipping plan mode is rework: if implementation reveals that the architecture was wrong, you undo and restart. The cost of unnecessary plan mode is latency — so single-file fixes and clear stack traces don't warrant it.</p>
+
+        <h3 style="margin-top:32px">The Explore Subagent Pattern</h3>
+        <p>For large codebases, the discovery phase itself generates verbose output (directory listings, grep results, file reads) that consumes context you'll need for implementation. The solution: run discovery as an <strong>Explore subagent</strong> — it searches in its own context window and returns a structured summary. Then implement in plan mode or direct execution with that summary as your starting point rather than raw file dumps.</p>
+
+        <div class="callout"><strong>Combined approach:</strong> use an Explore subagent for discovery → plan mode for architectural design → direct execution for implementation. Each phase uses the right mode; none bleeds into the next.</div>
+
+        <div class="callout warning"><strong>Exam question pattern:</strong> a team is migrating a monolithic application to microservices, touching dozens of files with multiple valid service boundary options. The correct answer is plan mode — not direct execution (risks costly rework), not direct execution with upfront instructions (assumes structure you haven't explored), and not switching to plan mode only if complexity emerges (the complexity is already known from the requirements).</div>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -1806,7 +1871,7 @@ Test file names must match the component they test.</pre>
       </div>
 
       <div class="lesson" id="mcp-errors">
-        <h3>Structured MCP Error Responses</h3>
+        <h3>Structured MCP Error Responses (D2.2)</h3>
         <p>When an MCP tool fails, the error response you return determines whether the agent can recover intelligently or is left guessing. A generic "Operation failed" response gives the agent nothing to work with. A structured error response gives the agent everything it needs to decide what to do next.</p>
 
         <table class="ref-table">
@@ -1815,6 +1880,24 @@ Test file names must match the component they test.</pre>
           <tr><td><code>errorCategory</code></td><td>transient / validation / permission / business</td><td>Tells the agent what kind of failure occurred</td></tr>
           <tr><td><code>isRetryable</code></td><td>true / false</td><td>Prevents wasted retry attempts on non-retryable errors</td></tr>
           <tr><td>human-readable description</td><td>string</td><td>Explains the failure in terms the agent can communicate to a user</td></tr>
+        </table>
+
+        <h3 style="margin-top:32px">Four-Category Error Taxonomy</h3>
+        <p>The <code>errorCategory</code> field drives recovery logic. Each category implies a different action for the coordinator:</p>
+
+        <table class="ref-table">
+          <tr><th>Category</th><th>Meaning</th><th>Correct agent response</th></tr>
+          <tr><td>transient</td><td>Temporary failure — network timeout, service unavailable</td><td>Retry with backoff; the underlying state hasn't changed</td></tr>
+          <tr><td>validation</td><td>Bad input — malformed ID, missing required field</td><td>Fix the input before retrying; retrying as-is will fail again</td></tr>
+          <tr><td>business</td><td>Valid request, but policy blocks it — account suspended, limit exceeded</td><td>Do not retry; surface to the user and offer alternatives</td></tr>
+          <tr><td>permission</td><td>The agent lacks authorization for this operation</td><td>Escalate to a human; this is not a technical error</td></tr>
+        </table>
+
+        <h3 style="margin-top:32px">Two Anti-Patterns</h3>
+        <table class="ref-table">
+          <tr><th>Anti-pattern</th><th>Why it's wrong</th></tr>
+          <tr><td>Silent suppression — returning an empty result on failure</td><td>The coordinator sees a successful search with no matches, not a failure signal. It cannot retry, escalate, or try an alternative — it assumes the query ran and found nothing.</td></tr>
+          <tr><td>Aborting the whole workflow on a single tool failure</td><td>One subagent's failure rarely invalidates the entire task. The correct pattern is to propagate the error with partial results and let the coordinator decide whether to proceed, retry, or escalate.</td></tr>
         </table>
 
         <div class="callout warning"><strong>Critical distinction:</strong> an access failure (timeout, service unavailable) is different from a valid empty result (successful query with no matches). Returning an empty result as a success when the tool actually failed suppresses the error and prevents any recovery. The coordinator receives what looks like a successful search with no results, rather than a signal that the search didn't run — a fundamentally different situation.</div>
@@ -1956,6 +2039,45 @@ Conversation history follows.
         <p>In extended codebase exploration sessions, context degrades — the model starts giving inconsistent answers and referencing "typical patterns" rather than the specific classes it discovered earlier in the session. The remedy is scratchpad files: have the agent write key findings to a file as it discovers them, then reference that file for subsequent questions rather than relying on context alone. This persists knowledge across context boundaries.</p>
 
         <p>The <code>/compact</code> command summarizes the full conversation history while preserving the agent's learned knowledge, reducing context usage during extended sessions.</p>
+
+        <h3 style="margin-top:32px">Stratified Sampling for Validation (D5.5)</h3>
+        <p>When validating an extraction or classification pipeline, aggregate accuracy is a misleading metric. A system reporting 97% overall accuracy might be achieving 100% on common document types while failing at 40% on a specific type — a production-breaking error rate hidden by volume.</p>
+
+        <p>The correct validation pattern is stratified sampling: measure accuracy by segment (document type, field category, source format) before deciding the system is ready for automation. Aggregate accuracy is a useful headline but an insufficient basis for an automation decision.</p>
+
+        <div class="callout warning"><strong>Exam question pattern:</strong> a structured data extraction pipeline reports 97% accuracy in testing. The correct next step before automating is to break down accuracy by document type and field — not to expand the test set uniformly, not to tune the extraction prompt globally, and not to proceed to production. The 3% error rate may be concentrated in a single segment that matters.</div>
+
+        <h3 style="margin-top:32px">Information Provenance in Multi-Source Synthesis (D5.6)</h3>
+        <p>When a research pipeline synthesizes claims from multiple sources, each claim must carry its provenance — not just the text of the claim but its origin. Without provenance, a reader cannot assess reliability, a downstream system cannot cite sources, and conflicting statistics from different sources cannot be distinguished.</p>
+
+        <p>The correct pattern structures each claim as an object:</p>
+
+        <div class="code-block">
+          <div class="code-label"><span>json — provenance-preserving claim structure</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>{
+  <span class="cs">"claim"</span>: <span class="cs">"Q3 churn rate was 4.2%"</span>,
+  <span class="cs">"source_name"</span>: <span class="cs">"Q3 Investor Report"</span>,
+  <span class="cs">"source_url"</span>: <span class="cs">"https://example.com/q3-report"</span>,
+  <span class="cs">"publication_date"</span>: <span class="cs">"2025-10-15"</span>,
+  <span class="cs">"confidence"</span>: <span class="cs">"high"</span>
+}</pre>
+        </div>
+
+        <p>When two sources report conflicting statistics, the correct behavior is to preserve both values with annotations — not to choose one, not to average them, and not to omit the conflict. Temporal data (publication dates) is particularly important: a statistic from two years ago and one from last quarter are not interchangeable, even if they describe the same metric.</p>
+
+        <div class="callout warning"><strong>Exam question pattern:</strong> two sources report different churn rates. The correct answer is to return both values with their source metadata annotated, not to select the more recent one silently, not to flag an error, and not to ask the user which to use. Preserving the conflict with annotations is itself the correct output.</div>
+
+        <h3 style="margin-top:32px">Coverage Annotations in Synthesis (D5.3)</h3>
+        <p>When a multi-agent system produces a synthesized output, the final result must make gaps explicit — not treat partial coverage as complete coverage. The standard pattern uses three annotation levels:</p>
+
+        <table class="ref-table">
+          <tr><th>Annotation</th><th>Meaning</th></tr>
+          <tr><td>FULL COVERAGE</td><td>All sources for this claim were available and searched</td></tr>
+          <tr><td>PARTIAL COVERAGE</td><td>Some sources were unavailable or failed — cite which ones and why</td></tr>
+          <tr><td>NOT COVERED</td><td>No source for this topic was queried — the claim is based on inference, not retrieval</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Exam question pattern:</strong> a research pipeline returns a synthesis report. One subagent failed to retrieve its source. The correct behavior is to mark affected claims as PARTIAL COVERAGE and note the missing source — not to omit the claim, not to generate from context as if the source were present, and not to fail the entire pipeline.</div>
       </div>
 
       <div class="lesson" id="escalation">
@@ -1972,6 +2094,18 @@ Conversation history follows.
         </table>
 
         <div class="callout warning"><strong>Unreliable escalation signals:</strong> sentiment analysis and self-reported confidence scores. A frustrated customer with a simple issue should be resolved, not escalated. An agent that is confidently wrong is the highest-risk scenario. Neither sentiment nor confidence reliably correlates with actual case complexity, which is the relevant variable. The exam explicitly tests this — sentiment-based and confidence-based escalation appear as distractors.</div>
+
+        <h3 style="margin-top:32px">Nuanced Escalation: The Three-Step Pattern</h3>
+        <p>When a customer expresses frustration or dissatisfaction, the correct response is not immediate escalation. The exam tests a three-step pattern:</p>
+
+        <table class="ref-table">
+          <tr><th>Step</th><th>Action</th><th>Why</th></tr>
+          <tr><td>1. Acknowledge</td><td>Acknowledge the customer's frustration explicitly</td><td>Shows the agent heard them; prevents escalation of the emotional state</td></tr>
+          <tr><td>2. Offer resolution</td><td>Offer a concrete, actionable resolution to the underlying issue</td><td>First expression of dissatisfaction is rarely a request for a human — it's a request for a solution</td></tr>
+          <tr><td>3. Escalate only if reiterated</td><td>If the customer reiterates dissatisfaction after the offer, escalate</td><td>At that point the customer has made their preference clear</td></tr>
+        </table>
+
+        <div class="callout warning"><strong>Exam question pattern:</strong> a customer says they are "extremely frustrated" with their order. The distractor answers are: escalate immediately (wrong — first expression of frustration is not an escalation trigger), ignore the emotional content and just offer the resolution (wrong — skips acknowledgment), or do nothing and ask for more information (wrong — delays resolution). The correct answer acknowledges, then offers a concrete fix, then escalates only if the customer reiterates.</div>
 
         <h3 style="margin-top:32px">Structured Handoff Summaries</h3>
         <p>When escalating to a human agent, the human does not have access to the conversation transcript. The structured handoff summary must include everything they need: customer ID, root cause, what was attempted, amounts or dates involved, and recommended action. A vague "customer is frustrated with order" handoff leaves the human starting from scratch.</p>
