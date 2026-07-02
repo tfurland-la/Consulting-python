@@ -101,6 +101,41 @@ def test_build_prompt_injects_retry_feedback_only_when_given():
     assert "previous attempt" in retry.lower()
 
 
+# ── Frozen-bundle path resolution (PyInstaller) ─────────────────────────────
+
+
+def test_resource_dir_is_the_source_dir_when_not_frozen():
+    assert exam_lib._resolve_resource_dir() == PRACTICE_EXAM_DIR
+    assert exam_lib.RESOURCE_DIR == PRACTICE_EXAM_DIR
+
+
+def test_resource_dir_is_the_bundle_dir_when_frozen(monkeypatch, tmp_path):
+    monkeypatch.setattr(exam_lib.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(exam_lib.sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert exam_lib._resolve_resource_dir() == tmp_path
+
+
+def test_progress_path_stays_in_repo_when_not_frozen(exam_app):
+    assert exam_app._resolve_progress_path() == PRACTICE_EXAM_DIR / "exam_progress.json"
+
+
+def test_progress_path_moves_to_user_data_dir_when_frozen(exam_app, monkeypatch, tmp_path):
+    monkeypatch.setattr(exam_app.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(exam_app, "_user_data_dir", lambda: tmp_path / "ccaf")
+    resolved = exam_app._resolve_progress_path()
+    assert resolved == tmp_path / "ccaf" / "exam_progress.json"
+    assert resolved.parent.is_dir()  # created on resolution
+
+
+def test_selfcheck_prints_parseable_json(exam_app, capsys):
+    exam_app.selfcheck()
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["frozen"] is False
+    assert payload["resources"]["exam.html"] is True
+    assert payload["resources"]["questions.js"] is True
+    assert "claude" in payload and "progress_path" in payload
+
+
 # ── Claude CLI discovery ────────────────────────────────────────────────────
 # GUI-launched apps don't inherit the shell PATH, so discovery must not rely
 # on shutil.which alone.

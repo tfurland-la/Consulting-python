@@ -64,6 +64,23 @@ committed `/exam-refill` skill in Claude Code — it walks the
 generate → screen → review → merge pipeline. Design details:
 [`practice-exam/local_practice_exam_spec.md`][local-spec].
 
+Prefer a double-clickable app? Build one from the committed spec (binaries are
+not checked in):
+
+```
+.venv/bin/pip install pyinstaller
+.venv/bin/pyinstaller practice-exam/exam_app.spec --noconfirm \
+    --distpath practice-exam/dist --workpath practice-exam/build
+```
+
+That produces `practice-exam/dist/CCA-F Practice Exam.app` with the question
+bank frozen in and progress stored under your user data directory. Dynamic
+generation still works — the app finds your system-installed Claude Code CLI
+at runtime. Because the build is unsigned, macOS Gatekeeper blocks the first
+launch: **right-click → Open → Open** once, and it runs normally after that.
+Note the frozen bank doesn't update with `git pull` — rebuild to pick up new
+questions.
+
 **Claude.ai artifact.** The original variant: paste
 [`practice-exam/practice_exam_build_prompt.md`][build-prompt] into a new Claude.ai
 conversation and Claude builds the tool as a React artifact in four phases,

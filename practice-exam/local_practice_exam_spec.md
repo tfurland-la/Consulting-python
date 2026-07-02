@@ -64,6 +64,21 @@ progress with Export/Import.
 The page detects the desktop bridge at runtime (`pywebviewready`) and upgrades
 itself; the same HTML file serves both modes with no build step.
 
+**Packaged executable (optional third form).** `exam_app.spec` builds the
+desktop app into a standalone bundle (`pyinstaller practice-exam/exam_app.spec
+--noconfirm --distpath practice-exam/dist --workpath practice-exam/build`).
+Frozen builds resolve read-only assets from the bundle
+(`exam_lib.RESOURCE_DIR` → `sys._MEIPASS`) and write progress to the
+platform user-data directory instead of the bundle
+(`~/Library/Application Support/ccaf-practice-exam/` on macOS). Dynamic
+generation is unaffected: the claude CLI is never bundled — `find_claude()`
+locates the system installation (PATH → known install dirs → login shell →
+`CCAF_CLAUDE` override) even under the minimal PATH GUI launches receive.
+`--selfcheck` prints bundle/environment diagnostics as JSON for verification
+without opening the window. Builds are unsigned (Gatekeeper: right-click →
+Open on first launch), per-platform, gitignored, and freeze the bank at build
+time — the Python script stays the primary, always-current way to run.
+
 ---
 
 ## Architecture and file responsibilities

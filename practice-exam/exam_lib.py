@@ -11,12 +11,25 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 PRACTICE_EXAM_DIR = Path(__file__).parent
-BANK_PATH = PRACTICE_EXAM_DIR / "questions.js"
-PROMPT_PATH = PRACTICE_EXAM_DIR / "generation_prompt.md"
+
+
+def _resolve_resource_dir():
+    """Read-only assets (exam.html, questions.js, the generation prompt) live
+    next to this file in a checkout, but inside the PyInstaller bundle when
+    the desktop app is frozen into an executable."""
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).parent
+
+
+RESOURCE_DIR = _resolve_resource_dir()
+BANK_PATH = RESOURCE_DIR / "questions.js"
+PROMPT_PATH = RESOURCE_DIR / "generation_prompt.md"
 
 BANK_HEADER = (
     "// CCA-F practice exam question bank - machine-written by exam_lib.render_bank().\n"
