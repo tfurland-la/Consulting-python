@@ -193,10 +193,112 @@ Requirements:
   know the structure without exploring. D ignores that the complexity is already
   stated in requirements.
 
+  Question 7 (D3.3): Scenario — A codebase has distinct coding conventions for
+  React components, API handlers, and database models. Test files are spread
+  throughout the codebase alongside the code they test (e.g., Button.test.tsx
+  next to Button.tsx). The team wants all test files to follow the same
+  conventions regardless of directory location.
+  Question — What is the most maintainable way to ensure Claude automatically
+  applies the correct conventions when generating code?
+  A) Create rule files in .claude/rules/ with YAML frontmatter specifying glob
+  patterns to conditionally apply conventions based on file paths.
+  B) Consolidate all conventions in the root CLAUDE.md file under headers for
+  each area, relying on Claude to infer which section applies.
+  C) Create skills in .claude/skills/ for each code type that include the
+  relevant conventions in their SKILL.md files.
+  D) Place a separate CLAUDE.md file in each subdirectory containing that
+  area's specific conventions.
+  Correct: A.
+  Explanations — A: .claude/rules/ with glob patterns (e.g., **/*.test.tsx)
+  applies conventions based on file paths regardless of directory location —
+  essential for test files spread throughout the codebase. B relies on
+  inference rather than explicit matching, making it unreliable. C requires
+  manual invocation or Claude choosing to load the skill, which contradicts the
+  need for deterministic automatic application. D cannot handle files spread
+  across many directories since CLAUDE.md files are directory-bound.
+
+  Question 8 (D1.2): Scenario — A multi-agent research system runs on the topic
+  "impact of AI on creative industries." Each subagent completes successfully:
+  the web search agent finds articles, the document analysis agent summarizes
+  papers, and the synthesis agent produces coherent output. However, the final
+  report covers only visual arts — music, writing, and film are missing
+  entirely. The coordinator's logs show it decomposed the topic into three
+  subtasks: "AI in digital art creation," "AI in graphic design," and "AI in
+  photography."
+  Question — What is the most likely root cause?
+  A) The synthesis agent lacks instructions for identifying coverage gaps in the
+  findings it receives from other agents.
+  B) The coordinator agent's task decomposition is too narrow, resulting in
+  subagent assignments that don't cover all relevant domains of the topic.
+  C) The web search agent's queries are not comprehensive enough and need to be
+  expanded to cover more creative industry sectors.
+  D) The document analysis agent is filtering out sources related to non-visual
+  creative industries due to overly restrictive relevance criteria.
+  Correct: B.
+  Explanations — B: the coordinator's logs reveal the root cause directly — it
+  decomposed "creative industries" into only visual arts subtasks, completely
+  omitting music, writing, and film. The subagents executed their assigned tasks
+  correctly; the problem is what they were assigned. A, C, and D incorrectly
+  blame downstream agents that are working correctly within their assigned scope.
+
+  Question 9 (D2.3): Scenario — During testing, a synthesis agent frequently
+  needs to verify specific claims while combining findings. When verification is
+  needed, the synthesis agent returns control to the coordinator, which invokes
+  the web search agent, then re-invokes synthesis with results. This adds 2-3
+  round trips per task and increases latency by 40%. Evaluation shows 85% of
+  verifications are simple fact-checks (dates, names, statistics) while 15%
+  require deeper investigation.
+  Question — What is the most effective approach to reduce overhead while
+  maintaining system reliability?
+  A) Give the synthesis agent a scoped verify_fact tool for simple lookups,
+  while complex verifications continue delegating to the web search agent
+  through the coordinator.
+  B) Have the synthesis agent accumulate all verification needs and return them
+  as a batch to the coordinator at the end of its pass, which then sends them
+  all to the web search agent at once.
+  C) Give the synthesis agent access to all web search tools so it can handle
+  any verification need directly without round-trips through the coordinator.
+  D) Have the web search agent proactively cache extra context around each
+  source during initial research, anticipating what the synthesis agent might
+  need to verify.
+  Correct: A.
+  Explanations — A: applies the principle of least privilege — the synthesis
+  agent gets only what it needs for the 85% common case while preserving the
+  existing coordination pattern for complex cases. B creates blocking
+  dependencies since synthesis steps may depend on earlier verified facts. C
+  over-provisions the synthesis agent, violating separation of concerns. D
+  relies on speculative caching that cannot reliably predict what will need
+  verification.
+
+  Question 10 (D4.5): Scenario — A team wants to reduce API costs for automated
+  analysis. Two workflows currently use real-time Claude calls: (1) a blocking
+  pre-merge check that must complete before developers can merge, and (2) a
+  technical debt report generated overnight for review the next morning. The
+  manager proposes switching both to the Message Batches API for its 50% cost
+  savings.
+  Question — How should you evaluate this proposal?
+  A) Use batch processing for the technical debt reports only; keep real-time
+  calls for pre-merge checks.
+  B) Switch both workflows to batch processing with status polling to check for
+  completion.
+  C) Keep real-time calls for both workflows to avoid batch result ordering
+  issues.
+  D) Switch both to batch processing with a timeout fallback to real-time if
+  batches take too long.
+  Correct: A.
+  Explanations — A: the Message Batches API offers 50% cost savings but has
+  processing times up to 24 hours with no guaranteed latency SLA, making it
+  unsuitable for blocking pre-merge checks but ideal for overnight reports. B
+  is wrong because "often faster" completion is not acceptable for blocking
+  workflows. C reflects a misconception — batch results can be correlated using
+  custom_id fields, so ordering is not a real problem. D adds unnecessary
+  complexity when the simpler solution is matching each API to its appropriate
+  use case.
+
 - UI: show one question at a time — scenario, stem, four options as clickable
   choices. The user selects one and submits. On submit, reveal correct/incorrect,
   highlight the correct option, and show all four explanations. A "Next question"
-  button advances; for Phase 1 just cycle through the three static questions.
+  button advances; for Phase 1 just cycle through the ten static questions.
 - Use a clean, readable layout. Tailwind core utility classes only. Make the
   scenario text comfortably readable (this is a study tool used for long sessions).
 
@@ -235,7 +337,7 @@ confirm persistence survives a reload.
 
 ## PHASE 3 — Dynamic question generation via the Anthropic API
 
-Replace the static question set with on-demand generation. Keep the three static
+Replace the static question set with on-demand generation. Keep the ten static
 questions only as few-shot examples in the generation prompt.
 
 Requirements:
@@ -260,7 +362,7 @@ Requirements:
     represent mistakes a partially-knowledgeable candidate would make.
   - Require an explanation for why the correct answer is right and why each
     distractor is wrong.
-  - Include the three Phase 1 sample questions as few-shot examples of the
+  - Include the ten Phase 1 sample questions as few-shot examples of the
     desired style and difficulty.
   - Require STRICT JSON output only — no preamble, no markdown fences — in this
     exact shape:
