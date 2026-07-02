@@ -25,7 +25,7 @@ Key environment facts you must honor throughout:
   sessionStorage — they are not supported and will fail.
 - For question generation, call the Anthropic API from within the artifact:
   `fetch("https://api.anthropic.com/v1/messages", ...)` with model
-  `claude-sonnet-4-6` and `max_tokens` set to 1000. Do NOT include an API key —
+  `claude-sonnet-5` and `max_tokens` set to 1000. Do NOT include an API key —
   the artifact environment handles authentication.
 - Do not use HTML `<form>` tags; use onClick/onChange handlers.
 - Wrap all storage and API calls in try/catch.
@@ -346,7 +346,7 @@ Requirements:
   the exam weighting (D1 1.8, D2 1.2, D3 1.33, D4 1.33, D5 1.0 — these are the
   domain percentages normalized to the smallest; you may recompute, the point is
   D1 heaviest, D5 lightest). Select one task statement by weighted random draw.
-- Call the Anthropic API (model `claude-sonnet-4-6`, `max_tokens` 1000, no API
+- Call the Anthropic API (model `claude-sonnet-5`, `max_tokens` 1000, no API
   key) to generate one scenario-based MCQ for the selected task statement. The
   generation prompt must:
   - State the exact task statement and domain.

@@ -159,7 +159,7 @@ within each domain.
 ## Question generation
 
 Questions are generated on demand by calling the Anthropic API
-(model `claude-sonnet-4-6`) from within the artifact. The artifact environment
+(model `claude-sonnet-5`) from within the artifact. The artifact environment
 provides API access with no key handling.
 
 ### Generation request
