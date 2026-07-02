@@ -11,7 +11,6 @@ dynamic generation; without the CLI the app still runs from the question bank.
 """
 
 import json
-import shutil
 
 import webview
 
@@ -29,7 +28,7 @@ class ExamApi:
     """
 
     def health(self):
-        available = shutil.which("claude") is not None
+        available = exam_lib.find_claude() is not None
         return {"ok": True, "claude": "available" if available else "missing"}
 
     def generate(self, task_statement):

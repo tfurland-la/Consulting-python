@@ -248,7 +248,45 @@ class GenerationError(Exception):
 
 
 class ClaudeUnavailableError(Exception):
-    """The `claude` CLI is not on PATH; generation cannot run at all."""
+    """The `claude` CLI could not be located; generation cannot run at all."""
+
+
+# GUI-launched apps (double-clicked, IDE run buttons) don't inherit the shell
+# PATH — on macOS they get launchd's /usr/bin:/bin:… — so a plain PATH lookup
+# misses the common ~/.local/bin install. Discovery order: explicit override,
+# PATH, known install locations, then a login shell as the last resort.
+CLAUDE_PATH_ENV = "CCAF_CLAUDE"
+CLAUDE_PROBE_PATHS = (
+    Path.home() / ".local" / "bin" / "claude",
+    Path("/opt/homebrew/bin/claude"),
+    Path("/usr/local/bin/claude"),
+)
+
+
+def find_claude():
+    override = os.environ.get(CLAUDE_PATH_ENV)
+    if override:
+        return override if Path(override).exists() else None
+    found = shutil.which("claude")
+    if found:
+        return found
+    for candidate in CLAUDE_PROBE_PATHS:
+        if candidate.exists():
+            return str(candidate)
+    try:
+        shell = os.environ.get("SHELL", "/bin/zsh")
+        completed = subprocess.run(
+            [shell, "-lc", "command -v claude"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        path = completed.stdout.strip()
+        if completed.returncode == 0 and path:
+            return path
+    except Exception:
+        pass
+    return None
 
 
 def _few_shot_block(bank):
@@ -344,10 +382,11 @@ def extract_candidate(envelope):
 
 
 def run_claude(prompt):
-    binary = shutil.which("claude")
+    binary = find_claude()
     if binary is None:
         raise ClaudeUnavailableError(
-            "the `claude` CLI is not installed or not on PATH"
+            "the `claude` CLI could not be found — install Claude Code, or "
+            f"set {CLAUDE_PATH_ENV} to its full path"
         )
     model = os.environ.get("CCAF_MODEL", DEFAULT_MODEL)
     try:

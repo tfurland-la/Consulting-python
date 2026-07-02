@@ -101,6 +101,60 @@ def test_build_prompt_injects_retry_feedback_only_when_given():
     assert "previous attempt" in retry.lower()
 
 
+# ── Claude CLI discovery ────────────────────────────────────────────────────
+# GUI-launched apps don't inherit the shell PATH, so discovery must not rely
+# on shutil.which alone.
+
+
+def test_find_claude_env_override_wins(monkeypatch, tmp_path):
+    fake = tmp_path / "claude"
+    fake.touch()
+    monkeypatch.setenv("CCAF_CLAUDE", str(fake))
+    assert exam_lib.find_claude() == str(fake)
+    monkeypatch.setenv("CCAF_CLAUDE", str(tmp_path / "missing"))
+    assert exam_lib.find_claude() is None  # explicit override never falls through
+
+
+def test_find_claude_uses_path_lookup_first(monkeypatch):
+    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.setattr(exam_lib.shutil, "which", lambda name: "/somewhere/claude")
+    assert exam_lib.find_claude() == "/somewhere/claude"
+
+
+def test_find_claude_probes_known_install_locations(monkeypatch, tmp_path):
+    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.setattr(exam_lib.shutil, "which", lambda name: None)
+    fake = tmp_path / "claude"
+    fake.touch()
+    monkeypatch.setattr(exam_lib, "CLAUDE_PROBE_PATHS", (tmp_path / "nope", fake))
+    assert exam_lib.find_claude() == str(fake)
+
+
+def test_find_claude_falls_back_to_login_shell(monkeypatch, tmp_path):
+    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.setattr(exam_lib.shutil, "which", lambda name: None)
+    monkeypatch.setattr(exam_lib, "CLAUDE_PROBE_PATHS", ())
+
+    class FakeCompleted:
+        returncode = 0
+        stdout = "/from/login/shell/claude\n"
+
+    monkeypatch.setattr(exam_lib.subprocess, "run", lambda *a, **k: FakeCompleted())
+    assert exam_lib.find_claude() == "/from/login/shell/claude"
+
+
+def test_find_claude_returns_none_when_nothing_works(monkeypatch):
+    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.setattr(exam_lib.shutil, "which", lambda name: None)
+    monkeypatch.setattr(exam_lib, "CLAUDE_PROBE_PATHS", ())
+
+    def boom(*a, **k):
+        raise OSError("no shell")
+
+    monkeypatch.setattr(exam_lib.subprocess, "run", boom)
+    assert exam_lib.find_claude() is None
+
+
 # ── Response handling ──────────────────────────────────────────────────────
 
 
@@ -197,9 +251,9 @@ def exam_app(monkeypatch):
 
 
 def test_health_reports_claude_availability(exam_app, monkeypatch):
-    monkeypatch.setattr(exam_app.shutil, "which", lambda name: "/usr/local/bin/claude")
+    monkeypatch.setattr(exam_app.exam_lib, "find_claude", lambda: "/usr/local/bin/claude")
     assert exam_app.ExamApi().health() == {"ok": True, "claude": "available"}
-    monkeypatch.setattr(exam_app.shutil, "which", lambda name: None)
+    monkeypatch.setattr(exam_app.exam_lib, "find_claude", lambda: None)
     assert exam_app.ExamApi().health() == {"ok": True, "claude": "missing"}
 
 
