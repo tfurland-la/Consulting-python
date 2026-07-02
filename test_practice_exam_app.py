@@ -127,6 +127,43 @@ def test_progress_path_moves_to_user_data_dir_when_frozen(exam_app, monkeypatch,
     assert resolved.parent.is_dir()  # created on resolution
 
 
+def test_window_url_percent_encodes_spaces_in_the_bundle_path(exam_app, monkeypatch, tmp_path):
+    # Reproduces the packaged-app white screen: a bundle name with spaces
+    # (e.g. "CCA-F Practice Exam.app") produces an invalid file:// URI if
+    # built by naive string interpolation. WKWebView fails to load it
+    # silently — no exception, no console output, just a blank window.
+    spaced_dir = tmp_path / "CCA-F Practice Exam.app" / "Contents" / "Frameworks"
+    spaced_dir.mkdir(parents=True)
+    monkeypatch.setattr(exam_app.exam_lib, "RESOURCE_DIR", spaced_dir)
+    url = exam_app.window_url()
+    assert " " not in url
+    assert "%20" in url
+    assert url.endswith("#desktop")
+    assert url.startswith("file://")
+
+
+def test_window_url_still_works_for_unfrozen_paths_without_spaces(exam_app):
+    url = exam_app.window_url()
+    assert url == exam_app.exam_lib.RESOURCE_DIR.joinpath("exam.html").as_uri() + "#desktop"
+
+
+def test_window_url_resolves_symlinks_before_building_the_uri(exam_app, monkeypatch, tmp_path):
+    # PyInstaller's .app BUNDLE step places real files under Contents/Resources
+    # and symlinks them from Contents/Frameworks (Apple's bundle convention).
+    # WKWebView's local-file loader silently refuses to follow that symlink —
+    # no exception, no console output, just a permanent white window — so the
+    # URL must point at the resolved, real path.
+    real_dir = tmp_path / "Contents" / "Resources"
+    real_dir.mkdir(parents=True)
+    (real_dir / "exam.html").write_text("<html></html>")
+    linked_dir = tmp_path / "Contents" / "Frameworks"
+    linked_dir.mkdir(parents=True)
+    (linked_dir / "exam.html").symlink_to(real_dir / "exam.html")
+    monkeypatch.setattr(exam_app.exam_lib, "RESOURCE_DIR", linked_dir)
+    url = exam_app.window_url()
+    assert url == (real_dir / "exam.html").as_uri() + "#desktop"
+
+
 def test_selfcheck_prints_parseable_json(exam_app, capsys):
     exam_app.selfcheck()
     payload = json.loads(capsys.readouterr().out)

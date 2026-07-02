@@ -119,13 +119,28 @@ def selfcheck():
     )
 
 
+def window_url():
+    """file:// URL for exam.html, percent-encoded and symlink-resolved.
+
+    Two independent traps produce the exact same silent white window, so both
+    are handled here: (1) a packaged .app's bundle name commonly contains
+    spaces ("CCA-F Practice Exam.app"), which naive f-string interpolation
+    leaves unencoded — Path.as_uri() percent-encodes them; (2) PyInstaller's
+    .app BUNDLE step places real files under Contents/Resources and symlinks
+    them from Contents/Frameworks per Apple's bundle convention, but WKWebView's
+    local-file loader refuses to follow that symlink with no error at all — so
+    the path is resolved to its real location before building the URI. The
+    #desktop fragment tells exam.html to wait for the bridge before drawing its
+    first question, so state always loads from the progress file first (no
+    race with an early answer).
+    """
+    return (exam_lib.RESOURCE_DIR / "exam.html").resolve().as_uri() + "#desktop"
+
+
 def main():
-    # The #desktop fragment tells exam.html to wait for the bridge before
-    # drawing its first question, so state always loads from the progress
-    # file first (no race with an early answer).
     webview.create_window(
         WINDOW_TITLE,
-        f"file://{exam_lib.RESOURCE_DIR / 'exam.html'}#desktop",
+        window_url(),
         js_api=ExamApi(),
         width=1180,
         height=860,

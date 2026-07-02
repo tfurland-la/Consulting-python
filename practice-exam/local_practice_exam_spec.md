@@ -79,6 +79,17 @@ without opening the window. Builds are unsigned (Gatekeeper: right-click →
 Open on first launch), per-platform, gitignored, and freeze the bank at build
 time — the Python script stays the primary, always-current way to run.
 
+Two traps produce an identical symptom — a permanently blank white window,
+no exception, nothing in stderr — so `window_url()` guards against both:
+(1) a bundle name with spaces (e.g. "CCA-F Practice Exam.app") left unencoded
+by naive f-string interpolation makes an invalid `file://` URI; (2)
+PyInstaller's `.app` BUNDLE step places real files under `Contents/Resources`
+and symlinks them from `Contents/Frameworks` per Apple's bundle convention,
+but WKWebView's local-file loader silently refuses to follow that symlink.
+`window_url()` handles both: `Path.as_uri()` percent-encodes the path, and
+`.resolve()` dereferences the symlink before the URI is built. Regression
+tests construct both failure shapes directly (`test_practice_exam_app.py`).
+
 ---
 
 ## Architecture and file responsibilities
