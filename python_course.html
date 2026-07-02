@@ -1621,10 +1621,10 @@ Test file names must match the component they test.</pre>
           <tr><td><code>.claude/commands/</code></td><td>Project — all users</td><td>Yes</td></tr>
           <tr><td><code>~/.claude/commands/</code></td><td>User — all projects</td><td>No</td></tr>
           <tr><td><code>.claude/skills/[name]/SKILL.md</code></td><td>Project skill with frontmatter</td><td>Yes</td></tr>
-          <tr><td><code>~/.claude/skills/[name]/SKILL.md</code></td><td>Personal skill — overrides project skill of same name</td><td>No</td></tr>
+          <tr><td><code>~/.claude/skills/[name]/SKILL.md</code></td><td>Personal skill — use a different name to avoid affecting teammates</td><td>No</td></tr>
         </table>
 
-        <p>A personal skill (<code>~/.claude/skills/</code>) with the same name as a project skill takes precedence. This is the intended customization path: the team publishes a shared skill; individual members can override it locally without touching the repo.</p>
+        <p>To customize a shared skill without affecting teammates, create a personal variant in <code>~/.claude/skills/</code> with a <strong>different name</strong>. For example, if the team has a <code>/commit</code> skill, your personal version might be <code>/my-commit</code> or <code>/commit-verbose</code>. This keeps your customization local and leaves the shared skill untouched for everyone else.</p>
 
         <h3 style="margin-top:32px">SKILL.md Frontmatter</h3>
         <p>Skills gain additional behavior from YAML frontmatter at the top of <code>SKILL.md</code>:</p>
@@ -1648,7 +1648,7 @@ Report each issue with file, line, severity, and a one-sentence fix.</pre>
           <tr><td><code>argument-hint</code></td><td>Text shown to the user as a prompt when they invoke the skill — tells them what to type after the slash command name.</td></tr>
         </table>
 
-        <div class="callout warning"><strong>Exam question pattern:</strong> a team wants a shared code-review skill that runs as a subagent (so its output doesn't overflow the main context), can only read files, and prompts users for a path. The correct answer uses a skill SKILL.md with <code>context: fork</code>, <code>allowed-tools: Read, Grep, Glob</code>, and <code>argument-hint</code> — not a plain command file, not a CLAUDE.md rule, and not a path-scoped rules file.</div>
+        <div class="callout warning"><strong>Exam question pattern:</strong> a team wants a shared code-review skill that runs as a subagent (so its output doesn't overflow the main context), can only read files, and prompts users for a path. The correct answer uses a skill SKILL.md with <code>context: fork</code>, <code>allowed-tools: Read, Grep, Glob</code>, and <code>argument-hint</code> — not a plain command file, not a CLAUDE.md rule, and not a path-scoped rules file.<br><br><strong>Personal customization:</strong> to customize a shared skill without affecting teammates, create a personal variant in <code>~/.claude/skills/</code> with a different name — not the same name. The exam guide v0.2 explicitly states different names as the correct approach.</div>
       </div>
 
       <div class="lesson" id="plan-mode">
