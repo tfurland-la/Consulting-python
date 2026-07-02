@@ -285,23 +285,67 @@ def exam_app(monkeypatch):
     return load_practice_exam_module("exam_app.py")
 
 
-def test_health_reports_claude_availability(exam_app, monkeypatch):
+def test_health_reports_claude_availability_and_scenario_types(exam_app, monkeypatch):
     monkeypatch.setattr(exam_app.exam_lib, "find_claude", lambda: "/usr/local/bin/claude")
-    assert exam_app.ExamApi().health() == {"ok": True, "claude": "available"}
+    healthy = exam_app.ExamApi().health()
+    assert healthy["ok"] is True
+    assert healthy["claude"] == "available"
+    assert healthy["scenarioTypes"] == list(exam_lib.SCENARIO_TYPES)
     monkeypatch.setattr(exam_app.exam_lib, "find_claude", lambda: None)
-    assert exam_app.ExamApi().health() == {"ok": True, "claude": "missing"}
+    assert exam_app.ExamApi().health()["claude"] == "missing"
+
+
+def test_generate_passes_scenario_type_through(exam_app, monkeypatch):
+    calls = {}
+
+    def fake_generate(ts, avoid=None, scenario_type=None):
+        calls["ts"] = ts
+        calls["scenario_type"] = scenario_type
+        return make_candidate(ts)
+
+    monkeypatch.setattr(exam_app.exam_lib, "generate_question", fake_generate)
+    result = exam_app.ExamApi().generate("D2.4", [], "Structured Data Extraction")
+    assert "question" in result
+    assert calls == {"ts": "D2.4", "scenario_type": "Structured Data Extraction"}
+    # scenario_type stays optional — drill mode calls with one argument
+    exam_app.ExamApi().generate("D2.4")
+    assert calls["scenario_type"] is None
 
 
 def test_generate_wraps_success(exam_app, monkeypatch):
     candidate = make_candidate("D5.1")
     monkeypatch.setattr(
-        exam_app.exam_lib, "generate_question", lambda ts, avoid=None: candidate
+        exam_app.exam_lib,
+        "generate_question",
+        lambda ts, avoid=None, scenario_type=None: candidate,
     )
     assert exam_app.ExamApi().generate("D5.1") == {"question": candidate}
 
 
+def test_generate_appends_extra_avoid_to_bank_summaries(exam_app, monkeypatch):
+    captured = {}
+
+    def fake_generate(ts, avoid=None, scenario_type=None):
+        captured["avoid"] = avoid
+        return make_candidate(ts)
+
+    monkeypatch.setattr(exam_app.exam_lib, "generate_question", fake_generate)
+    exam_app.ExamApi().generate("D1.2", ["correct=B | scenario: an in-form sibling"])
+    assert captured["avoid"][-1] == "correct=B | scenario: an in-form sibling"
+    # bank summaries for the statement still come first
+    assert len(captured["avoid"]) > 1
+
+
+def test_generate_rejects_non_string_extra_avoid(exam_app, monkeypatch):
+    monkeypatch.setattr(
+        exam_app.exam_lib, "generate_question", lambda ts, avoid=None: make_candidate(ts)
+    )
+    result = exam_app.ExamApi().generate("D1.2", [{"not": "a string"}])
+    assert "error" in result
+
+
 def test_generate_wraps_errors_instead_of_raising(exam_app, monkeypatch):
-    def boom(ts, avoid=None):
+    def boom(ts, avoid=None, scenario_type=None):
         raise exam_lib.GenerationError("still not valid JSON")
 
     monkeypatch.setattr(exam_app.exam_lib, "generate_question", boom)

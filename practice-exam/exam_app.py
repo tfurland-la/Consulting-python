@@ -56,9 +56,17 @@ class ExamApi:
 
     def health(self):
         available = exam_lib.find_claude() is not None
-        return {"ok": True, "claude": "available" if available else "missing"}
+        return {
+            "ok": True,
+            "claude": "available" if available else "missing",
+            "scenarioTypes": list(exam_lib.SCENARIO_TYPES),
+        }
 
-    def generate(self, task_statement):
+    def generate(self, task_statement, extra_avoid=None, scenario_type=None):
+        """extra_avoid: summaries of questions generated earlier in the same
+        exam form for this statement, so streamed form generation doesn't
+        produce within-form near-duplicates. scenario_type pins one of
+        exam_lib.SCENARIO_TYPES for variety; drill mode omits both."""
         try:
             bank = exam_lib.load_bank()
             avoid = [
@@ -66,7 +74,15 @@ class ExamApi:
                 for q in bank
                 if q["taskStatement"] == task_statement
             ]
-            return {"question": exam_lib.generate_question(task_statement, avoid=avoid)}
+            for summary in extra_avoid or []:
+                if not isinstance(summary, str):
+                    raise ValueError("extra_avoid must be a list of strings")
+                avoid.append(summary)
+            return {
+                "question": exam_lib.generate_question(
+                    task_statement, avoid=avoid, scenario_type=scenario_type
+                )
+            }
         except Exception as err:  # surfaced to the page as a friendly error
             return {"error": type(err).__name__, "detail": str(err)}
 

@@ -228,6 +228,36 @@ test("drawExamForm returns null when the bank cannot fill a quota", () => {
   assert.equal(A.drawExamForm(tiny, freshState(), { rng: rngOf(0.5) }), null);
 });
 
+test("drawExamStatements fills domain quotas with statements spread evenly", () => {
+  const statements = A.drawExamStatements({ rng: rngOf(0.37) });
+  assert.equal(statements.length, 60);
+  const byDomain = {};
+  const byStatement = {};
+  for (const ts of statements) {
+    byDomain[ts.split(".")[0]] = (byDomain[ts.split(".")[0]] || 0) + 1;
+    byStatement[ts] = (byStatement[ts] || 0) + 1;
+  }
+  assert.deepEqual(byDomain, A.EXAM_FORM_QUOTAS);
+  // 16 D1 slots over 7 statements: round-robin keeps every statement <= 3,
+  // and every statement of every domain appears at least once.
+  for (const ts of Object.keys(A.TASK_STATEMENTS)) {
+    assert.ok(byStatement[ts] >= 1, `${ts} missing from the form`);
+    assert.ok(byStatement[ts] <= 3, `${ts} over-represented: ${byStatement[ts]}`);
+  }
+});
+
+test("applyExamResults does not mark ephemeral (generated) questions as seen", () => {
+  const state = freshState();
+  const form = [
+    { id: "gen-0", ephemeral: true, taskStatement: "D1.1", domain: "D1", correct: "B" },
+    { id: "D1.2-real", taskStatement: "D1.2", domain: "D1", correct: "B" },
+  ];
+  A.applyExamResults(state, form, { "gen-0": "B", "D1.2-real": "B" }, 777);
+  assert.equal(state.seen["gen-0"], undefined);
+  assert.equal(state.seen["D1.2-real"], 777);
+  assert.equal(state.stats.totalCorrect, 2); // scoring still counts both
+});
+
 test("scoreExam computes totals, domain breakdown, and approximate scaled score", () => {
   const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.7) });
   const answers = {};
@@ -274,6 +304,29 @@ test("applyExamResults updates weights, stats, seen, examHistory — but not his
 
 test("initialState includes an empty examHistory", () => {
   assert.deepEqual(freshState().examHistory, []);
+});
+
+test("discountedScore rescores with flagged questions removed entirely", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.5) });
+  const answers = {};
+  form.forEach((q, i) => {
+    answers[q.id] = i < 45 ? "B" : "A"; // 45 right, 15 wrong
+  });
+  // Discount one the user got right and one they got wrong.
+  const excluded = [form[0].id, form[59].id];
+  const score = A.discountedScore(form, answers, excluded);
+  assert.equal(score.total, 58);
+  assert.equal(score.correct, 44);
+  assert.equal(score.scaled, Math.round(100 + (900 * 44) / 58));
+  const domainTotal = Object.values(score.byDomain).reduce((s, d) => s + d.total, 0);
+  assert.equal(domainTotal, 58);
+});
+
+test("discountedScore with nothing excluded matches scoreExam", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.9) });
+  const answers = {};
+  form.forEach((q) => { answers[q.id] = "B"; });
+  assert.deepEqual(A.discountedScore(form, answers, []), A.scoreExam(form, answers));
 });
 
 test("applyFlag fully discards the last answer", () => {

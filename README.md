@@ -59,7 +59,10 @@ question bank instead. You can also open [`practice-exam/exam.html`][exam-live]
 directly (or on the live site) with zero setup — bank questions, progress in
 browser storage. Either way, a **Timed exam** mode runs a full 60-question,
 120-minute simulation with the real exam's domain weighting and an approximate
-scaled score against the 720 passing bar. To grow the question bank, run the
+scaled score against the 720 passing bar — from the bank instantly, or (in the
+desktop app) with **fresh questions generated live** so no two exams repeat:
+the exam starts once the first ten are ready and the rest generate in the
+background while you work. To grow the question bank, run the
 committed `/exam-refill` skill in Claude Code — it walks the
 generate → screen → review → merge pipeline. Design details:
 [`practice-exam/local_practice_exam_spec.md`][local-spec].

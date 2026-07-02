@@ -159,15 +159,39 @@ on a persistent blocklist and never return.
 
 ## Timed exam mode
 
-The **Timed exam (60 Q)** control runs a full-length simulation from the
-committed bank in both runtimes:
+The **Timed exam (60 Q)** control runs a full-length simulation. Two question
+sources, chosen at start:
 
-- **Form:** 60 questions drawn to the real exam's domain weighting
-  (`EXAM_FORM_QUOTAS`: D1 16, D2 11, D3 12, D4 12, D5 9 — mirrored in
-  `adaptive.js` and `exam_lib.py`, sync-tested). Within each domain the draw
-  round-robins across task statements, takes unseen questions before repeats,
-  and excludes flagged ids. pytest guards that the bank can always fill a
-  form.
+- **From the question bank** (both runtimes, instant): 60 questions drawn to
+  the real exam's domain weighting (`EXAM_FORM_QUOTAS`: D1 16, D2 11, D3 12,
+  D4 12, D5 9 — mirrored in `adaptive.js` and `exam_lib.py`, sync-tested).
+  Within each domain the draw round-robins across task statements, takes
+  unseen questions before repeats, and excludes flagged ids. pytest guards
+  that the bank can always fill a form.
+- **Fresh questions** (desktop app with Claude Code only): the same
+  quota-matched statement plan (`drawExamStatements`) is filled by live
+  generation instead — never the same exam twice. Two concurrent workers
+  generate through the bridge; each occurrence of a statement is pinned to a
+  different exam scenario type and carries summaries of its within-form
+  siblings, so a statement's 2-3 questions diversify. The exam begins once
+  the first 10 questions are ready (a progress gate; the 120-minute clock
+  starts at Begin, not during preparation) and the rest keep generating in
+  the background — at ~2 min/question consumption vs ~20 s/question
+  generation, the buffer stays ahead. If the user ever reaches an unready
+  slot, the clock freezes until it arrives; a slot whose generation fails
+  twice falls back to a bank question for the same statement (marked "bank
+  substitute" in the review). Generated questions are ephemeral: no ids in
+  `seen`, nothing persisted beyond the attempt record. A fresh exam makes
+  ~60 Claude Code calls.
+
+Because generated questions skip human review, the results screen lets any
+question be **flagged as flawed and discounted**: the attempt is rescored as
+if the question was never on the form (out of 59, 58, …), the `examHistory`
+record is updated, and flawed bank questions additionally join the permanent
+blocklist. Already-applied weight updates are kept (a single ×1.5 on one
+statement self-corrects through drilling) and the review notes this.
+
+Delivery, scoring, and state effects (shared by both sources):
 - **Delivery:** 120-minute countdown, forced answer to advance (as on the
   real exam), no task-statement labels, no feedback until the end. Timer
   expiry scores the attempt with unanswered questions counted wrong. The

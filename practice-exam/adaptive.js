@@ -238,6 +238,24 @@ function drawExamForm(bank, state, opts) {
   return shuffled(form, rng);
 }
 
+// Draw 60 task statements matching the exam-form quotas — the target list
+// for a freshly GENERATED exam form (no bank questions involved). Round-robin
+// across each domain's statements so every statement appears 1-3 times.
+function drawExamStatements(opts) {
+  const rng = (opts || {}).rng || Math.random;
+  const statements = [];
+  for (const [domain, quota] of Object.entries(EXAM_FORM_QUOTAS)) {
+    const order = shuffled(
+      Object.keys(TASK_STATEMENTS).filter((ts) => ts.split(".")[0] === domain),
+      rng
+    );
+    for (let k = 0; k < quota; k++) {
+      statements.push(order[k % order.length]);
+    }
+  }
+  return shuffled(statements, rng);
+}
+
 // answers: map of question id -> chosen letter. Unanswered counts as wrong.
 // The scaled score is a linear approximation of the exam's 100-1000 scale;
 // the real exam uses equating, so treat this as directional only.
@@ -265,6 +283,15 @@ function scoreExam(form, answers) {
   };
 }
 
+// Rescore an exam with flagged-as-flawed questions removed entirely — scored
+// out of the remaining count, exactly as if they had never been on the form.
+// Weights already applied by applyExamResults are NOT reverted (a single
+// x1.5 on one statement self-corrects through normal drilling).
+function discountedScore(form, answers, excludedIds) {
+  const excluded = new Set(excludedIds || []);
+  return scoreExam(form.filter((q) => !excluded.has(q.id)), answers);
+}
+
 // Fold an exam attempt into the adaptive state: weights, stats, and seen
 // update exactly like drill answers, and the attempt lands in examHistory.
 // Drill `history` is deliberately untouched — it drives the cooldown and
@@ -285,7 +312,9 @@ function applyExamResults(state, form, answers, at) {
     perTask.seen += 1;
     if (isCorrect) perTask.correct += 1;
     state.stats.perTask[ts] = perTask;
-    state.seen[question.id] = at;
+    if (!question.ephemeral) {
+      state.seen[question.id] = at; // generated questions leave no seen-mark
+    }
   }
   state.examHistory = state.examHistory || [];
   state.examHistory.push({
@@ -349,7 +378,9 @@ const CCAF_ADAPTIVE = {
   applyAnswer,
   applyFlag,
   drawExamForm,
+  drawExamStatements,
   scoreExam,
+  discountedScore,
   applyExamResults,
 };
 

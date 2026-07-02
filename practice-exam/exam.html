@@ -323,6 +323,31 @@ const CCAF_SEED = {
       </div>
     </div>
 
+    <div class="card" id="setup-card" hidden>
+      <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin-bottom:10px">Timed exam</h2>
+      <div id="setup-choice">
+        <p class="note" style="margin-bottom:12px">60 questions · 120 minutes · real domain weighting ·
+        answer to advance · no feedback until the end. Results update your adaptive weights.</p>
+        <div class="controls">
+          <button class="primary" id="btn-exam-fresh">Fresh questions (generated live)</button>
+          <button class="primary" id="btn-exam-bank">From the question bank (instant)</button>
+          <button class="ghost" id="btn-exam-cancel">Cancel</button>
+        </div>
+        <p class="note" id="setup-fresh-note" style="margin-top:10px"></p>
+      </div>
+      <div id="setup-progress" hidden>
+        <p id="setup-progress-text" style="margin-bottom:12px"></p>
+        <div class="domain-bar"><div class="track"><div class="fill" id="setup-progress-fill" style="width:0%"></div></div></div>
+        <div class="controls">
+          <button class="primary" id="btn-exam-begin" disabled>Begin exam</button>
+          <button class="ghost" id="btn-exam-abort">Cancel</button>
+        </div>
+        <p class="note" style="margin-top:10px">The exam begins when the first 10 questions are ready;
+        the rest keep generating in the background while you work. If you ever catch up to the
+        generator, the clock pauses until the next question arrives.</p>
+      </div>
+    </div>
+
     <div class="card" id="results-card" hidden>
       <div class="score-banner">
         <div class="scaled" id="r-scaled"></div>
@@ -438,14 +463,18 @@ function makeBridgeStorageBackend(bridge) {
    reveal), so the next question targets the freshest weights and cooldown. */
 function makeClaudeGenerator(bridge) {
   let pending = null;
-  async function generateOne() {
-    const ts = A.drawTaskStatement(app.state, {});
-    if (!ts) throw new Error("no task statement available to draw");
-    const res = await bridge.generate(ts);
+  async function generateFor(ts, extraAvoid) {
+    const res = await bridge.generate(ts, extraAvoid || []);
     if (res.error) throw new Error(res.detail || res.error);
     return res.question;
   }
+  async function generateOne() {
+    const ts = A.drawTaskStatement(app.state, {});
+    if (!ts) throw new Error("no task statement available to draw");
+    return generateFor(ts, []);
+  }
   return {
+    generateFor, // used by streamed exam-form generation
     prefetch() {
       if (!pending) {
         pending = generateOne();
@@ -600,25 +629,179 @@ function renderQuestion(question) {
 }
 
 /* ── Timed exam mode ────────────────────────────────────────────────── */
+const EXAM_READY_GATE = 10; // begin once the first N fresh questions exist
+const EXAM_GEN_WORKERS = 2; // concurrent claude calls; throttle-safe
+
 function startExam() {
-  const minutes = A.EXAM_MINUTES;
-  const ok = confirm(
-    `Timed exam: 60 questions, ${minutes} minutes, real domain weighting.\n` +
-    "You must answer each question to advance, and explanations are withheld " +
-    "until the end. Results update your adaptive weights. Closing or " +
-    "reloading the page abandons the attempt. Start now?"
-  );
-  if (!ok) return;
+  el("setup-card").hidden = false;
+  el("setup-choice").hidden = false;
+  el("setup-progress").hidden = true;
+  el("question-card").hidden = true;
+  el("results-card").hidden = true;
+  el("btn-exam-fresh").disabled = !app.bridge;
+  el("setup-fresh-note").textContent = app.bridge
+    ? "Fresh questions make ~60 Claude Code calls; the first ten take a few minutes to prepare."
+    : "Fresh questions need the desktop app with the Claude Code CLI. This page can run the bank exam.";
+}
+
+function closeExamSetup() {
+  if (app.freshPrep) app.freshPrep.cancelled = true;
+  app.freshPrep = null;
+  el("setup-card").hidden = true;
+  el("question-card").hidden = false;
+}
+
+function startBankExam() {
   const form = A.drawExamForm(BANK, app.state, {});
   if (!form) {
     alert("The question bank cannot fill a full 60-question form right now.");
+    closeExamSetup();
     return;
   }
+  el("setup-card").hidden = true;
+  beginExam(form, null);
+}
+
+// Mirrors exam_lib.summarize_for_avoid so within-form generations diversify.
+function summarizeForAvoid(question) {
+  return (
+    `correct=${question.correct} | scenario: ${question.scenario.slice(0, 160)} ` +
+    `| correct because: ${question.explanations[question.correct].slice(0, 120)}`
+  );
+}
+
+function startFreshExam() {
+  const plan = A.drawExamStatements({});
+  const types = app.scenarioTypes || [];
+  const offsets = {};
+  const occurrence = {};
+  const assignments = plan.map((ts) => {
+    if (!(ts in offsets)) offsets[ts] = Math.floor(Math.random() * (types.length || 1));
+    const n = (occurrence[ts] = (occurrence[ts] || 0) + 1);
+    return {
+      ts,
+      scenarioType: types.length ? types[(offsets[ts] + n - 1) % types.length] : null,
+    };
+  });
+  const prep = {
+    assignments,
+    buffer: new Array(assignments.length).fill(null),
+    failedSlots: new Set(),
+    nextSlot: 0,
+    done: 0,
+    cancelled: false,
+    summariesByTs: {},
+    examStarted: false,
+  };
+  app.freshPrep = prep;
+  el("setup-choice").hidden = true;
+  el("setup-progress").hidden = false;
+  el("btn-exam-begin").disabled = true;
+  updatePrepProgress(prep);
+  for (let w = 0; w < EXAM_GEN_WORKERS; w++) prepWorker(prep);
+}
+
+async function prepWorker(prep) {
+  while (!prep.cancelled && prep.nextSlot < prep.assignments.length) {
+    const slot = prep.nextSlot++;
+    const { ts, scenarioType } = prep.assignments[slot];
+    let question = null;
+    for (let attempt = 0; attempt < 2 && !question && !prep.cancelled; attempt++) {
+      try {
+        const extraAvoid = (prep.summariesByTs[ts] || []).slice();
+        const res = await app.bridge.generate(ts, extraAvoid, scenarioType);
+        if (res.error) throw new Error(res.detail || res.error);
+        question = res.question;
+      } catch {
+        /* one silent retry; second failure marks the slot */
+      }
+    }
+    if (prep.cancelled) return;
+    if (question) {
+      question.id = `gen-${slot}`;
+      question.ephemeral = true;
+      prep.buffer[slot] = question;
+      (prep.summariesByTs[ts] = prep.summariesByTs[ts] || []).push(
+        summarizeForAvoid(question)
+      );
+    } else {
+      prep.failedSlots.add(slot);
+    }
+    prep.done += 1;
+    onPrepProgress(prep, slot);
+  }
+}
+
+function slotResolved(prep, slot) {
+  return prep.buffer[slot] !== null || prep.failedSlots.has(slot);
+}
+
+function onPrepProgress(prep, slot) {
+  // Case 1: still on the preparing screen.
+  if (!prep.examStarted) {
+    if (prep.failedSlots.size >= EXAM_READY_GATE && prep.done === prep.failedSlots.size) {
+      // Generation is entirely broken — nothing has succeeded yet.
+      prep.cancelled = true;
+      app.freshPrep = null;
+      el("setup-card").hidden = true;
+      el("question-card").hidden = false;
+      alert(
+        "Question generation is failing repeatedly — Claude Code may be " +
+        "unavailable. Try the bank exam instead."
+      );
+      return;
+    }
+    updatePrepProgress(prep);
+    return;
+  }
+  // Case 2: exam in flight. Keep the subtle ready counter fresh, and resume
+  // if the user is parked on the slot that just resolved.
+  const exam = app.exam;
+  if (!exam) return;
+  const generated = prep.buffer.filter(Boolean).length;
+  el("status-note").textContent =
+    prep.done < prep.assignments.length ? `Fresh questions ready: ${generated}/60` : "";
+  if (exam.waitingIndex === slot) {
+    exam.deadline += Date.now() - exam.waitingSince; // the pause costs nothing
+    exam.waitingIndex = null;
+    exam.waitingSince = null;
+    renderExamQuestion();
+  }
+}
+
+function updatePrepProgress(prep) {
+  const generated = prep.buffer.filter(Boolean).length;
+  el("setup-progress-fill").style.width = `${Math.round((100 * prep.done) / prep.assignments.length)}%`;
+  const gateResolved = prep.assignments
+    .slice(0, EXAM_READY_GATE)
+    .every((_, i) => slotResolved(prep, i));
+  el("setup-progress-text").textContent = gateResolved
+    ? `Ready to begin — ${generated} generated so far; the rest keep arriving during the exam.`
+    : `Generating fresh questions… ${generated} of ${prep.assignments.length} ready ` +
+      `(exam begins once the first ${EXAM_READY_GATE} are in).`;
+  el("btn-exam-begin").disabled = !gateResolved;
+}
+
+function beginFreshExam() {
+  const prep = app.freshPrep;
+  if (!prep) return;
+  prep.examStarted = true;
+  app.freshPrep = null;
+  el("setup-card").hidden = true;
+  beginExam(prep.buffer.slice(), prep); // sparse form, materialized on demand
+}
+
+function beginExam(form, prep) {
   app.exam = {
     form,
+    prep,
     index: 0,
     answers: {},
-    deadline: Date.now() + minutes * 60 * 1000,
+    discounted: [],
+    waitingIndex: null,
+    waitingSince: null,
+    recordedAt: null,
+    deadline: Date.now() + A.EXAM_MINUTES * 60 * 1000,
     timerId: setInterval(renderExamTimer, 1000),
   };
   document.body.classList.add("exam-active");
@@ -630,21 +813,61 @@ function startExam() {
   renderExamQuestion();
 }
 
+// A generated slot that failed twice falls back to a bank question for the
+// same statement (same domain as last resort), never reusing a question
+// already on this form.
+function substituteFromBank(exam, slot) {
+  const ts = exam.prep.assignments[slot].ts;
+  const used = new Set(exam.form.filter(Boolean).map((q) => q.id));
+  const blocked = new Set(app.state.flagged);
+  const pool = BANK.filter((q) => !used.has(q.id) && !blocked.has(q.id));
+  const byStatement = pool.filter((q) => q.taskStatement === ts);
+  const byDomain = pool.filter((q) => q.domain === ts.split(".")[0]);
+  const pickFrom = byStatement.length ? byStatement : byDomain.length ? byDomain : pool;
+  const picked = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+  return { ...picked, substituted: true };
+}
+
 function renderExamTimer() {
   if (!app.exam) return;
-  const remaining = Math.max(0, app.exam.deadline - Date.now());
+  // While waiting on generation the clock freezes at the pause moment.
+  const now = app.exam.waitingSince || Date.now();
+  const remaining = Math.max(0, app.exam.deadline - now);
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
   const timer = el("exam-timer");
   timer.textContent =
     `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}` +
-    ` · Q ${app.exam.index + 1}/${app.exam.form.length}`;
+    ` · Q ${app.exam.index + 1}/${app.exam.form.length}` +
+    (app.exam.waitingSince ? " · paused" : "");
   timer.classList.toggle("low", remaining < 10 * 60 * 1000);
   if (remaining <= 0) finishExam();
 }
 
 function renderExamQuestion() {
-  const question = app.exam.form[app.exam.index];
+  const exam = app.exam;
+  let question = exam.form[exam.index];
+  if (!question && exam.prep) {
+    if (exam.prep.buffer[exam.index]) {
+      question = exam.form[exam.index] = exam.prep.buffer[exam.index];
+    } else if (exam.prep.failedSlots.has(exam.index)) {
+      question = exam.form[exam.index] = substituteFromBank(exam, exam.index);
+    } else {
+      // The user outpaced the generator: park here with the clock frozen;
+      // onPrepProgress resumes the moment this slot resolves.
+      exam.waitingIndex = exam.index;
+      exam.waitingSince = Date.now();
+      el("q-task").textContent = `Question ${exam.index + 1} of ${exam.form.length}`;
+      el("q-task-label").textContent = "";
+      el("q-scenario").textContent =
+        "Generating this question — the clock is paused…";
+      el("q-stem").textContent = "";
+      el("q-options").replaceChildren();
+      el("btn-submit").hidden = true;
+      renderExamTimer();
+      return;
+    }
+  }
   app.current = question;
   app.selected = null;
   // No task-statement tag during the exam — the real exam doesn't label questions.
@@ -700,7 +923,17 @@ async function finishExam() {
   if (!exam) return;
   clearInterval(exam.timerId);
   app.exam = null;
-  const score = A.applyExamResults(app.state, exam.form, exam.answers, Date.now());
+  if (exam.prep) {
+    exam.prep.cancelled = true; // stop background generation
+    for (let i = 0; i < exam.form.length; i++) {
+      // Slots never reached (time expired) still need real questions to
+      // score against — unanswered counts as wrong either way.
+      if (!exam.form[i]) exam.form[i] = exam.prep.buffer[i] || substituteFromBank(exam, i);
+    }
+  }
+  const at = Date.now();
+  exam.recordedAt = at;
+  const score = A.applyExamResults(app.state, exam.form, exam.answers, at);
   await persist();
   renderResults(exam, score);
   renderDashboard();
@@ -711,7 +944,9 @@ function abandonExam() {
   const ok = confirm("End this exam without scoring? The attempt is discarded entirely.");
   if (!ok) return;
   clearInterval(app.exam.timerId);
+  if (app.exam.prep) app.exam.prep.cancelled = true;
   app.exam = null;
+  el("status-note").textContent = "";
   exitExamLayout();
   nextQuestion();
 }
@@ -757,26 +992,60 @@ function renderResults(exam, score) {
     domains.appendChild(row);
   }
 
+  if (exam.discounted.length > 0) {
+    el("r-raw").textContent +=
+      ` · ${exam.discounted.length} flagged question(s) discounted — scored out of ` +
+      `${score.total}. Adaptive weights keep their original update.`;
+  }
+
   const review = el("r-review");
   review.replaceChildren();
   exam.form.forEach((question, i) => {
     const chosen = exam.answers[question.id];
     const good = chosen === question.correct;
+    const discounted = exam.discounted.includes(question.id);
     const item = document.createElement("details");
     item.className = "review-item";
     const summary = document.createElement("summary");
     const mark = document.createElement("span");
     mark.className = `mark ${good ? "good" : "bad"}`;
     mark.textContent = good ? "✓" : "✗";
+    const source =
+      (question.ephemeral ? " · generated live" : "") +
+      (question.substituted ? " · bank substitute" : "") +
+      (discounted ? " · DISCOUNTED" : "");
     summary.append(
       mark,
       document.createTextNode(
-        ` Q${i + 1} · ${question.taskStatement} — ` +
+        ` Q${i + 1} · ${question.taskStatement}${source} — ` +
         (good ? `correct (${question.correct})` :
           `your answer ${chosen || "—"}, correct ${question.correct}`)
       )
     );
     item.appendChild(summary);
+    if (!discounted) {
+      const flagBtn = document.createElement("button");
+      flagBtn.className = "ghost";
+      flagBtn.style.margin = "8px 0";
+      flagBtn.textContent = "Flag as flawed — discount from score";
+      flagBtn.addEventListener("click", async () => {
+        exam.discounted.push(question.id);
+        if (!question.ephemeral && !app.state.flagged.includes(question.id)) {
+          app.state.flagged.push(question.id); // flawed bank questions never return
+        }
+        const rescored = A.discountedScore(exam.form, exam.answers, exam.discounted);
+        const last = app.state.examHistory[app.state.examHistory.length - 1];
+        if (last && last.at === exam.recordedAt) {
+          last.correct = rescored.correct;
+          last.total = rescored.total;
+          last.scaled = rescored.scaled;
+        }
+        await persist();
+        renderResults(exam, rescored);
+        renderDashboard();
+      });
+      item.appendChild(flagBtn);
+    }
     const scenario = document.createElement("div");
     scenario.className = "scenario";
     scenario.textContent = question.scenario;
@@ -1035,9 +1304,12 @@ async function enableBridge(bridge) {
     const health = await bridge.health();
     if (health.claude === "available") {
       app.generator = makeClaudeGenerator(bridge);
+      app.bridge = bridge; // raw bridge: fresh-exam generation calls it directly
+      app.scenarioTypes = health.scenarioTypes || [];
     }
   } catch {
     app.generator = null;
+    app.bridge = null;
   }
   renderModeBadge();
   if (app.state) renderDashboard();
@@ -1107,10 +1379,15 @@ async function init() {
   el("btn-next").addEventListener("click", nextQuestion);
   el("btn-flag").addEventListener("click", flagQuestion);
   el("btn-exam").addEventListener("click", startExam);
+  el("btn-exam-fresh").addEventListener("click", startFreshExam);
+  el("btn-exam-bank").addEventListener("click", startBankExam);
+  el("btn-exam-cancel").addEventListener("click", closeExamSetup);
+  el("btn-exam-begin").addEventListener("click", beginFreshExam);
+  el("btn-exam-abort").addEventListener("click", closeExamSetup);
   el("btn-abandon").addEventListener("click", abandonExam);
   el("btn-return").addEventListener("click", returnToPractice);
   window.addEventListener("beforeunload", (event) => {
-    if (app.exam) event.preventDefault(); // exam attempts are in-memory only
+    if (app.exam || app.freshPrep) event.preventDefault(); // attempts and prep are in-memory only
   });
   el("btn-export").addEventListener("click", exportProgress);
   el("btn-import").addEventListener("click", () => el("import-file").click());
