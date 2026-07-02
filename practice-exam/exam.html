@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCA-F Adaptive Practice Exam</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   SEED CONFIGURATION — the only thing you need to edit to make this yours.
+
+   Every CCA-F task statement carries a starting weight that controls how
+   often it is drawn before your own answers take over. Three ways to use it:
+
+   1. AS-IS ............ keep the defaults below (the original author's known
+                         weak areas at build time).
+   2. BLANK SLATE ...... delete every entry so the object is `{}` (or use the
+                         "Blank slate" button in the app) — every statement
+                         starts at 1.0 and the tool discovers your weak areas
+                         purely from your answers.
+   3. CUSTOM SEED ...... set your own trouble spots to 3.0 (known weak) or
+                         2.0 (shaky); anything you leave out defaults to 1.0.
+
+   Weights move x0.7 when you answer correctly (floor 0.5) and x1.5 when you
+   miss (cap 5.0), so the seed matters most for the first couple dozen
+   questions. Nothing else in this file needs to change.
+   ═══════════════════════════════════════════════════════════════════════ */
+const CCAF_SEED = {
+  // High priority — test heavily from the start
+  "D4.3": 3.0, // structured output: json_schema wrapper, additionalProperties, required lists
+  "D1.1": 3.0, // agentic loops
+  "D1.2": 3.0, // multi-agent orchestration
+  "D1.3": 3.0, // subagent context passing
+  "D1.5": 3.0, // Agent SDK hooks
+  "D2.2": 3.0, // structured MCP error responses
+  "D2.4": 3.0, // MCP config files (.mcp.json / ~/.claude.json)
+  "D3.1": 3.0, // CLAUDE.md advanced: @import, .claude/rules/, /memory
+  "D4.5": 3.0, // Message Batches API
+  "D5.1": 3.0, // context management patterns
+  "D5.2": 3.0, // escalation patterns
+  // Medium priority — some exposure, not yet solid
+  "D2.3": 2.0, // tool_choice options (auto / any / forced)
+  "D1.4": 2.0, // programmatic enforcement vs prompt-based guidance
+};
+</script>
+
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --ink-light: #4a4a6a;
+    --ink-faint: #8888aa;
+    --paper: #f7f6f1;
+    --paper-warm: #eeeade;
+    --card: #fffdf8;
+    --accent: #2E4057;
+    --teal: #048A81;
+    --teal-soft: #e2f2f0;
+    --amber: #c17f24;
+    --coral: #c94f3a;
+    --coral-soft: #f8e9e6;
+    --transition: 0.2s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+  }
+  .badge {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+  }
+  .badge.dynamic { background: var(--teal); color: #fff; }
+  header .session {
+    margin-left: auto;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .layout {
+    display: flex;
+    gap: 28px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px;
+    align-items: flex-start;
+  }
+  main { flex: 1; min-width: 0; }
+  aside { width: 320px; flex-shrink: 0; }
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    aside { width: 100%; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--paper-warm);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+
+  .task-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--teal);
+    background: var(--teal-soft);
+    border-radius: 5px;
+    padding: 2px 10px;
+    margin-bottom: 4px;
+  }
+  .task-label {
+    font-size: 13px;
+    color: var(--ink-faint);
+    margin-bottom: 16px;
+  }
+  .scenario { color: var(--ink-light); margin-bottom: 16px; white-space: pre-line; }
+  .stem { font-weight: 600; margin-bottom: 18px; }
+
+  .option {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    line-height: 1.55;
+    background: #fff;
+    border: 1.5px solid var(--paper-warm);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition);
+  }
+  .option:hover:not(:disabled) { border-color: var(--teal); }
+  .option.selected { border-color: var(--accent); background: #f2f4f8; }
+  .option:disabled { cursor: default; }
+  .option .key {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: var(--ink-faint);
+  }
+  .option.reveal-correct { border-color: var(--teal); background: var(--teal-soft); }
+  .option.reveal-wrong { border-color: var(--coral); background: var(--coral-soft); }
+
+  .verdict { font-weight: 600; margin: 14px 0 10px; }
+  .verdict.good { color: var(--teal); }
+  .verdict.bad { color: var(--coral); }
+
+  .explanation {
+    font-size: 14.5px;
+    color: var(--ink-light);
+    border-left: 3px solid var(--paper-warm);
+    padding: 6px 14px;
+    margin-bottom: 8px;
+  }
+  .explanation.correct-line { border-left-color: var(--teal); }
+  .explanation .key { font-family: 'DM Mono', monospace; font-weight: 500; }
+
+  .controls { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; align-items: center; }
+  button.primary, button.ghost {
+    font: inherit;
+    font-size: 14.5px;
+    border-radius: 7px;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: opacity var(--transition), background var(--transition);
+  }
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+  }
+  button.primary:disabled { opacity: 0.4; cursor: default; }
+  button.ghost {
+    background: transparent;
+    color: var(--ink-light);
+    border: 1.5px solid var(--paper-warm);
+  }
+  button.ghost:hover { border-color: var(--ink-faint); }
+  .note { font-size: 13px; color: var(--ink-faint); }
+  .note.alert { color: var(--coral); }
+
+  aside h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    padding: 4px 0;
+  }
+  .stat-row .val { font-family: 'DM Mono', monospace; }
+  .domain-bar { margin: 8px 0; font-size: 13px; }
+  .domain-bar .track {
+    height: 6px;
+    background: var(--paper-warm);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+  .domain-bar .fill { height: 100%; background: var(--teal); }
+  .weak-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--paper-warm);
+  }
+  .weak-item .ts { font-family: 'DM Mono', monospace; color: var(--amber); white-space: nowrap; }
+  .weak-item .label { color: var(--ink-light); flex: 1; }
+  .weak-item .w { font-family: 'DM Mono', monospace; color: var(--ink-faint); }
+
+  details.how { font-size: 14px; color: var(--ink-light); }
+  details.how summary { cursor: pointer; font-weight: 500; color: var(--ink); }
+  details.how p { margin: 10px 0; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+  .toolbar button { flex: 1 1 45%; font-size: 13px; padding: 7px 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CCA-F Adaptive Practice Exam</h1>
+  <span class="badge" id="mode-badge">loading…</span>
+  <span class="session" id="session-counter"></span>
+</header>
+
+<div class="layout">
+  <main>
+    <div class="card" id="question-card">
+      <span class="task-tag" id="q-task"></span>
+      <div class="task-label" id="q-task-label"></div>
+      <div class="scenario" id="q-scenario"></div>
+      <div class="stem" id="q-stem"></div>
+      <div id="q-options"></div>
+      <div id="q-feedback"></div>
+      <div class="controls">
+        <button class="primary" id="btn-submit" disabled>Submit answer</button>
+        <button class="primary" id="btn-next" hidden>Next question</button>
+        <button class="ghost" id="btn-flag" hidden>Flag — don't count this question</button>
+        <span class="note" id="status-note"></span>
+      </div>
+    </div>
+  </main>
+
+  <aside>
+    <div class="card">
+      <h2>Progress</h2>
+      <div class="stat-row"><span>Overall accuracy</span><span class="val" id="d-accuracy">—</span></div>
+      <div class="stat-row"><span>Questions answered</span><span class="val" id="d-answered">0</span></div>
+      <div class="stat-row"><span>Flagged &amp; discarded</span><span class="val" id="d-flagged">0</span></div>
+      <div id="d-domains" style="margin-top:12px"></div>
+      <h2 style="margin-top:22px">Current weak spots</h2>
+      <div id="d-weak"></div>
+    </div>
+
+    <div class="card">
+      <h2>Data</h2>
+      <div class="toolbar">
+        <button class="ghost" id="btn-export">Export progress</button>
+        <button class="ghost" id="btn-import">Import progress</button>
+        <button class="ghost" id="btn-blank">Blank slate</button>
+        <button class="ghost" id="btn-reset">Reset everything</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json" hidden>
+      <p class="note" id="storage-note" style="margin-top:10px"></p>
+    </div>
+
+    <div class="card">
+      <details class="how">
+        <summary>How this works</summary>
+        <p>Every CCA-F task statement carries a weight. Miss a question and its
+        statement's weight rises (&times;1.5, capped at 5.0); get it right and the
+        weight falls (&times;0.7, floored at 0.5). The next question is drawn at
+        random, biased by those weights and by the real exam's domain mix — so
+        practice naturally concentrates on your weak spots and backs off as you
+        master them.</p>
+        <p>The five most recently tested statements sit out each draw, so short
+        runs stay varied. Progress persists between sessions; the weak-spots list
+        shows where the tool currently thinks you should work.</p>
+        <p>In the desktop app, fresh questions are generated on demand through
+        your local Claude Code. Opened as a plain page, questions come from the
+        reviewed bank in <code>questions.js</code> instead.</p>
+      </details>
+    </div>
+  </aside>
+</div>
+
+<script src="adaptive.js"></script>
+<script src="questions.js"></script>
+<script>
+"use strict";
+
+const A = window.CCAF_ADAPTIVE;
+const BANK = window.CCAF_BANK || [];
+const STORAGE_KEY = "ccaf.state.v1";
+const STATE_VERSION = 1;
+
+const el = (id) => document.getElementById(id);
+
+/* ── Storage backends ──────────────────────────────────────────────────
+   localStorage when available; plain in-memory otherwise. The pywebview
+   desktop app replaces this with file-backed persistence via its bridge. */
+function makeLocalStorageBackend() {
+  const probeKey = "ccaf.probe";
+  localStorage.setItem(probeKey, "1");
+  localStorage.removeItem(probeKey);
+  return {
+    kind: "localStorage",
+    async load() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    },
+    async save(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    },
+  };
+}
+
+function makeMemoryBackend() {
+  let held = null;
+  return {
+    kind: "memory",
+    async load() { return held; },
+    async save(state) { held = state; },
+  };
+}
+
+/* Desktop app: progress lives in practice-exam/exam_progress.json via the
+   pywebview bridge instead of browser storage. */
+function makeBridgeStorageBackend(bridge) {
+  return {
+    kind: "file",
+    async load() { return await bridge.load_state(); },
+    async save(state) { await bridge.save_state(JSON.parse(JSON.stringify(state))); },
+  };
+}
+
+/* ── Live generation through the desktop bridge ────────────────────────
+   Keeps at most one question in flight. The draw happens post-grading (at
+   reveal), so the next question targets the freshest weights and cooldown. */
+function makeClaudeGenerator(bridge) {
+  let pending = null;
+  async function generateOne() {
+    const ts = A.drawTaskStatement(app.state, {});
+    if (!ts) throw new Error("no task statement available to draw");
+    const res = await bridge.generate(ts);
+    if (res.error) throw new Error(res.detail || res.error);
+    return res.question;
+  }
+  return {
+    prefetch() {
+      if (!pending) {
+        pending = generateOne();
+        pending.catch(() => {}); // consumed (and reported) on take()
+      }
+    },
+    async take() {
+      const inFlight = pending || generateOne();
+      pending = null;
+      return inFlight;
+    },
+  };
+}
+
+/* ── App state ──────────────────────────────────────────────────────── */
+const app = {
+  storage: null,
+  generator: null,   // set by the desktop bridge; null => bank-only static mode
+  state: null,
+  current: null,     // question currently on screen
+  selected: null,
+  lastAnswer: null,  // {taskStatement, questionId, correct, at, prevWeight}
+  answeredThisSession: 0,
+  firstQuestionServed: false, // session's first question comes from the bank
+};
+
+function validateImportedState(candidate) {
+  if (!candidate || typeof candidate !== "object") throw new Error("not an object");
+  if (candidate.version !== STATE_VERSION) {
+    throw new Error(`unsupported state version ${candidate.version}`);
+  }
+  const known = new Set(Object.keys(A.TASK_STATEMENTS));
+  for (const ts of Object.keys(candidate.weights || {})) {
+    if (!known.has(ts)) throw new Error(`unknown task statement ${ts}`);
+  }
+  return {
+    version: STATE_VERSION,
+    weights: A.makeSeedWeights(candidate.weights),
+    stats: {
+      totalAnswered: candidate.stats?.totalAnswered || 0,
+      totalCorrect: candidate.stats?.totalCorrect || 0,
+      totalFlagged: candidate.stats?.totalFlagged || 0,
+      perTask: candidate.stats?.perTask || {},
+    },
+    history: Array.isArray(candidate.history) ? candidate.history.slice(-A.HISTORY_LIMIT) : [],
+    seen: candidate.seen || {},
+    flagged: Array.isArray(candidate.flagged) ? candidate.flagged : [],
+  };
+}
+
+async function persist() {
+  try {
+    await app.storage.save(app.state);
+  } catch (err) {
+    el("storage-note").textContent = `Could not save progress: ${err.message}`;
+    el("storage-note").classList.add("alert");
+  }
+}
+
+/* ── Question flow ──────────────────────────────────────────────────── */
+function drawNextFromBank() {
+  const availability = A.availabilityFromBank(BANK, app.state.flagged);
+  const ts = A.drawTaskStatement(app.state, { availability });
+  if (!ts) return null;
+  return A.pickBankQuestion(BANK, ts, app.state, {});
+}
+
+async function nextQuestion() {
+  el("btn-next").disabled = true; // debounce: no duplicate generation on double-click
+  try {
+    await advanceToNextQuestion();
+  } finally {
+    el("btn-next").disabled = false;
+  }
+}
+
+async function advanceToNextQuestion() {
+  let question = null;
+  let note = null;
+  // The session's first question comes from the unseen bank so the app starts
+  // instantly; generation covers everything after (prefetched at each reveal).
+  if (app.generator && app.firstQuestionServed) {
+    el("status-note").textContent = "Generating the next question…";
+    try {
+      question = await app.generator.take();
+    } catch (err) {
+      note = `Generation failed (${err.message}) — using the question bank instead.`;
+    }
+  }
+  if (!question) {
+    question = drawNextFromBank();
+  }
+  if (!question && app.generator) {
+    try {
+      question = await app.generator.take();
+      note = null;
+    } catch (err) {
+      note = `Generation failed: ${err.message}`;
+    }
+  }
+  if (!question) {
+    el("q-scenario").textContent =
+      "No questions are available — the bank is empty or fully flagged. " +
+      "Reset progress or add questions via generate_bank.py.";
+    return;
+  }
+  app.firstQuestionServed = true;
+  renderQuestion(question);
+  if (note) el("status-note").textContent = note;
+}
+
+function renderQuestion(question) {
+  app.current = question;
+  app.selected = null;
+  app.lastAnswer = null;
+
+  el("q-task").textContent = question.taskStatement;
+  el("q-task-label").textContent =
+    `${A.DOMAINS[question.domain]} — ${A.TASK_STATEMENTS[question.taskStatement]}`;
+  el("q-scenario").textContent = question.scenario;
+  el("q-stem").textContent = question.question;
+  el("q-feedback").replaceChildren();
+  el("status-note").textContent = question.id ? "" : "Generated question";
+
+  const container = el("q-options");
+  container.replaceChildren();
+  for (const key of ["A", "B", "C", "D"]) {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.dataset.key = key;
+    const keySpan = document.createElement("span");
+    keySpan.className = "key";
+    keySpan.textContent = key;
+    const textSpan = document.createElement("span");
+    textSpan.textContent = question.options[key];
+    btn.append(keySpan, textSpan);
+    btn.addEventListener("click", () => {
+      app.selected = key;
+      container.querySelectorAll(".option").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      el("btn-submit").disabled = false;
+    });
+    container.appendChild(btn);
+  }
+
+  el("btn-submit").hidden = false;
+  el("btn-submit").disabled = true;
+  el("btn-next").hidden = true;
+  el("btn-flag").hidden = true;
+}
+
+async function submitAnswer() {
+  if (!app.selected || !app.current) return;
+  const question = app.current;
+  const correct = app.selected === question.correct;
+  const prevWeight = app.state.weights[question.taskStatement];
+  const answer = {
+    taskStatement: question.taskStatement,
+    questionId: question.id || null,
+    correct,
+    at: Date.now(),
+    prevWeight,
+  };
+  A.applyAnswer(app.state, answer);
+  app.lastAnswer = answer;
+  app.answeredThisSession += 1;
+  await persist();
+
+  // Reveal
+  el("q-options").querySelectorAll(".option").forEach((btn) => {
+    btn.disabled = true;
+    if (btn.dataset.key === question.correct) btn.classList.add("reveal-correct");
+    else if (btn.dataset.key === app.selected) btn.classList.add("reveal-wrong");
+  });
+
+  const feedback = el("q-feedback");
+  feedback.replaceChildren();
+  const verdict = document.createElement("div");
+  verdict.className = `verdict ${correct ? "good" : "bad"}`;
+  verdict.textContent = correct
+    ? "Correct."
+    : `Incorrect — the right answer is ${question.correct}.`;
+  feedback.appendChild(verdict);
+  for (const key of ["A", "B", "C", "D"]) {
+    const line = document.createElement("div");
+    line.className = "explanation" + (key === question.correct ? " correct-line" : "");
+    const keySpan = document.createElement("span");
+    keySpan.className = "key";
+    keySpan.textContent = `${key} — `;
+    line.appendChild(keySpan);
+    line.appendChild(document.createTextNode(question.explanations[key]));
+    feedback.appendChild(line);
+  }
+
+  el("btn-submit").hidden = true;
+  el("btn-next").hidden = false;
+  el("btn-flag").hidden = false;
+  renderDashboard();
+
+  if (app.generator) app.generator.prefetch();
+}
+
+async function flagQuestion() {
+  if (!app.lastAnswer) return;
+  A.applyFlag(app.state, app.lastAnswer);
+  app.lastAnswer = null;
+  app.answeredThisSession -= 1;
+  await persist();
+  el("btn-flag").hidden = true;
+  el("status-note").textContent =
+    "Flagged and discarded. This question didn't affect your weights or accuracy.";
+  renderDashboard();
+}
+
+/* ── Dashboard ──────────────────────────────────────────────────────── */
+function renderDashboard() {
+  const stats = app.state.stats;
+  el("d-accuracy").textContent = stats.totalAnswered
+    ? `${Math.round((100 * stats.totalCorrect) / stats.totalAnswered)}%`
+    : "—";
+  el("d-answered").textContent = String(stats.totalAnswered);
+  el("d-flagged").textContent = String(stats.totalFlagged);
+  el("session-counter").textContent =
+    `${app.answeredThisSession} this session · ${stats.totalAnswered} all time`;
+
+  const domains = el("d-domains");
+  domains.replaceChildren();
+  for (const [domain, label] of Object.entries(A.DOMAINS)) {
+    let seen = 0, right = 0;
+    for (const [ts, counts] of Object.entries(stats.perTask)) {
+      if (ts.startsWith(domain + ".")) { seen += counts.seen; right += counts.correct; }
+    }
+    const pct = seen ? Math.round((100 * right) / seen) : 0;
+    const row = document.createElement("div");
+    row.className = "domain-bar";
+    const text = document.createElement("div");
+    text.textContent = `${domain} · ${label} ${seen ? `— ${pct}% of ${seen}` : "— no data"}`;
+    const track = document.createElement("div");
+    track.className = "track";
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    fill.style.width = `${pct}%`;
+    track.appendChild(fill);
+    row.append(text, track);
+    domains.appendChild(row);
+  }
+
+  const weak = el("d-weak");
+  weak.replaceChildren();
+  const top = Object.entries(app.state.weights)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  for (const [ts, weight] of top) {
+    const item = document.createElement("div");
+    item.className = "weak-item";
+    const tsSpan = document.createElement("span");
+    tsSpan.className = "ts";
+    tsSpan.textContent = ts;
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "label";
+    labelSpan.textContent = A.TASK_STATEMENTS[ts];
+    const weightSpan = document.createElement("span");
+    weightSpan.className = "w";
+    weightSpan.textContent = weight.toFixed(2);
+    item.append(tsSpan, labelSpan, weightSpan);
+    weak.appendChild(item);
+  }
+}
+
+/* ── Data controls ──────────────────────────────────────────────────── */
+function exportProgress() {
+  if (app.storage.kind === "file") {
+    // Desktop app: the progress file on disk already IS the export.
+    alert(
+      "Your progress is already a plain file: practice-exam/exam_progress.json.\n" +
+      "Copy that file to move or back up your progress."
+    );
+    return;
+  }
+  const payload = JSON.stringify(
+    { app: "ccaf-local", exportedAt: new Date().toISOString(), ...app.state },
+    null,
+    2
+  );
+  const blob = new Blob([payload], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `ccaf-progress-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function importProgress(file) {
+  try {
+    const imported = validateImportedState(JSON.parse(await file.text()));
+    const ok = confirm(
+      "Importing replaces your current progress (weights, history, accuracy). Continue?"
+    );
+    if (!ok) return;
+    app.state = imported;
+    await persist();
+    renderDashboard();
+    await nextQuestion();
+  } catch (err) {
+    alert(`Could not import this file: ${err.message}`);
+  }
+}
+
+async function blankSlate() {
+  const ok = confirm(
+    "Set every task statement's weight back to 1.0? Your accuracy history is kept."
+  );
+  if (!ok) return;
+  app.state.weights = A.makeSeedWeights({});
+  await persist();
+  renderDashboard();
+}
+
+async function resetEverything() {
+  const ok = confirm(
+    "Reset ALL progress — weights, accuracy, history — back to the seed? This cannot be undone."
+  );
+  if (!ok) return;
+  app.state = A.initialState(CCAF_SEED);
+  app.answeredThisSession = 0;
+  await persist();
+  renderDashboard();
+  await nextQuestion();
+}
+
+/* ── Init ───────────────────────────────────────────────────────────── */
+function renderModeBadge() {
+  const badge = el("mode-badge");
+  badge.classList.remove("dynamic");
+  if (app.generator) {
+    badge.textContent = "Live generation · Claude Code";
+    badge.classList.add("dynamic");
+  } else if (app.storage && app.storage.kind === "file") {
+    badge.textContent = `Desktop · bank of ${BANK.length} (Claude Code CLI not found)`;
+  } else {
+    badge.textContent = `Question bank · ${BANK.length} questions`;
+  }
+}
+
+/* The desktop app loads this page with a #desktop fragment, so init waits
+   for the bridge BEFORE the first draw — state always comes from the
+   progress file first and an early answer can never be clobbered by an
+   in-flight load. Without the fragment (plain page), init proceeds
+   immediately and watchForBridge remains as a defensive upgrade path. */
+async function enableBridge(bridge) {
+  // Upgrade-path guard: if the user already answered this session (only
+  // possible via the hash-less fallback), keep the in-memory state — adding
+  // the generator is safe, swapping storage lineages mid-session is not.
+  if (app.answeredThisSession === 0) {
+    app.storage = makeBridgeStorageBackend(bridge);
+    el("storage-note").textContent = "Progress file: practice-exam/exam_progress.json";
+    el("storage-note").classList.remove("alert");
+    try {
+      const stored = await app.storage.load();
+      if (stored) {
+        app.state = validateImportedState(stored);
+      } else {
+        app.state = app.state || A.initialState(CCAF_SEED);
+        await persist(); // adopt the fresh seed state into the progress file
+      }
+    } catch (err) {
+      el("storage-note").textContent = `Could not read the progress file: ${err.message}`;
+      el("storage-note").classList.add("alert");
+    }
+  }
+  try {
+    const health = await bridge.health();
+    if (health.claude === "available") {
+      app.generator = makeClaudeGenerator(bridge);
+    }
+  } catch {
+    app.generator = null;
+  }
+  renderModeBadge();
+  if (app.state) renderDashboard();
+}
+
+function waitForBridge(timeoutMs) {
+  if (window.pywebview && window.pywebview.api) {
+    return Promise.resolve(window.pywebview.api);
+  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    window.addEventListener(
+      "pywebviewready",
+      () => {
+        clearTimeout(timer);
+        resolve(window.pywebview.api);
+      },
+      { once: true }
+    );
+  });
+}
+
+function watchForBridge() {
+  if (window.pywebview && window.pywebview.api) {
+    enableBridge(window.pywebview.api);
+    return;
+  }
+  window.addEventListener(
+    "pywebviewready",
+    () => enableBridge(window.pywebview.api),
+    { once: true }
+  );
+}
+
+async function init() {
+  if (window.location.hash === "#desktop") {
+    // Launched by exam_app.py: block on the bridge (bounded, in case the
+    // file was opened in a plain browser with the fragment by accident).
+    const bridge = await waitForBridge(4000);
+    if (bridge) await enableBridge(bridge);
+  }
+
+  if (!app.storage) {
+    try {
+      app.storage = makeLocalStorageBackend();
+    } catch {
+      app.storage = makeMemoryBackend();
+      el("storage-note").textContent =
+        "Browser storage is unavailable here — progress lasts only for this session. " +
+        "Use Export before closing, or run the desktop app.";
+      el("storage-note").classList.add("alert");
+    }
+
+    let stored = null;
+    try {
+      stored = await app.storage.load();
+    } catch {
+      stored = null;
+    }
+    app.state = stored ? validateImportedState(stored) : A.initialState(CCAF_SEED);
+
+    renderModeBadge();
+    watchForBridge(); // after app.state exists — enableBridge persists/replaces it
+  }
+
+  el("btn-submit").addEventListener("click", submitAnswer);
+  el("btn-next").addEventListener("click", nextQuestion);
+  el("btn-flag").addEventListener("click", flagQuestion);
+  el("btn-export").addEventListener("click", exportProgress);
+  el("btn-import").addEventListener("click", () => el("import-file").click());
+  el("import-file").addEventListener("change", (event) => {
+    if (event.target.files[0]) importProgress(event.target.files[0]);
+    event.target.value = "";
+  });
+  el("btn-blank").addEventListener("click", blankSlate);
+  el("btn-reset").addEventListener("click", resetEverything);
+
+  renderDashboard();
+  await nextQuestion();
+}
+
+init();
+</script>
+</body>
+</html>

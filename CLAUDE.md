@@ -58,12 +58,15 @@ https://docs.claude.com rather than relying on training data.
 - `test_lesson1/3/4/5.py`, `test_consulting_assistant.py` — tests (`pytest -v`)
 - `consulting_assistant.py` — a worked assistant: system prompt + multi-turn loop + prompt caching
 - `output.json` — sample JSON output
+- `practice-exam/` — CCA-F adaptive practice exam: local desktop app (`exam_app.py`,
+  `exam.html`, reviewed question bank in `questions.js`) plus the Claude.ai artifact
+  recipe; design in `practice-exam/local_practice_exam_spec.md`
 
 ## Run it
 
 ```
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install anthropic python-dotenv pytest
+pip install anthropic python-dotenv pytest pywebview
 pytest -v
 ```
 

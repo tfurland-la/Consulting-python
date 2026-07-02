@@ -40,26 +40,35 @@ for how to fork and personalize it.
 
 ## Adaptive Practice Exam
 
-An adaptive, scenario-based practice exam for the CCA-F, built as a React artifact
-in Claude.ai. It generates questions on demand using the Anthropic API (no fixed
-question bank), tracks performance at the individual task-statement level (the 30
-skills the exam tests), and weights future questions toward the areas where you are
-weakest. Performance persists across sessions.
+An adaptive, scenario-based practice exam for the CCA-F. It tracks performance at
+the individual task-statement level (the 30 skills the exam tests) and weights
+future questions toward the areas where you are weakest. Performance persists
+across sessions. Two ways to run it:
 
-The tool lives in Claude.ai rather than in this repo because the artifact environment
-provides Anthropic API access and cross-session storage without any key handling or
-infrastructure on your part.
+**Local desktop app (recommended).** Runs on your machine with no API key — question
+generation goes through your own authenticated Claude Code CLI:
 
-To build it: paste [`practice-exam/practice_exam_build_prompt.md`][build-prompt]
-into a new Claude.ai conversation. Claude builds the tool as a React artifact in
-four phases: confirm each works before continuing.
+```
+pip install pywebview
+python3 practice-exam/exam_app.py
+```
 
-To fork it: the seed configuration (starting weights for every task statement) lives
-in a single commented object at the top of the generated file. Edit that object to
-build as-is with the author's known weak areas, to reset all weights to 1.0 for a
-blank slate, or to set a colleague's own weak areas. No other code changes needed.
+Fresh questions are generated on demand and your progress lives in a plain JSON
+file. Without the Claude Code CLI the app still works, drawing from the reviewed
+question bank instead. You can also open [`practice-exam/exam.html`][exam-live]
+directly (or on the live site) with zero setup — bank questions, progress in
+browser storage. Design details: [`practice-exam/local_practice_exam_spec.md`][local-spec].
 
-The design rationale is in [`practice-exam/practice_exam_spec.md`][exam-spec].
+**Claude.ai artifact.** The original variant: paste
+[`practice-exam/practice_exam_build_prompt.md`][build-prompt] into a new Claude.ai
+conversation and Claude builds the tool as a React artifact in four phases,
+generating questions with the artifact environment's built-in API access.
+
+Either way, the seed configuration (starting weights for every task statement)
+lives in a single commented object — at the top of `exam.html` locally, or at the
+top of the generated artifact. Edit it to keep the author's known weak areas, reset
+everything to 1.0 for a blank slate, or set your own. The design rationale is in
+[`practice-exam/practice_exam_spec.md`][exam-spec].
 
 ---
 
@@ -71,3 +80,5 @@ The design rationale is in [`practice-exam/practice_exam_spec.md`][exam-spec].
 [build-your-own]: https://github.com/tfurland-la/Consulting-python/wiki/Build-Your-Own-Study-Companion
 [build-prompt]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/practice_exam_build_prompt.md
 [exam-spec]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/practice_exam_spec.md
+[exam-live]: https://tfurland-la.github.io/Consulting-python/practice-exam/exam.html
+[local-spec]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/local_practice_exam_spec.md

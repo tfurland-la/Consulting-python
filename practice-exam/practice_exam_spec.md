@@ -1,5 +1,11 @@
 # CCA-F Adaptive Practice Exam — Specification
 
+> **Two variants exist.** This document specifies the original Claude.ai
+> artifact variant. A local variant — desktop app, no API key, questions via
+> your own Claude Code CLI — is specified in
+> [`local_practice_exam_spec.md`](local_practice_exam_spec.md) and shares this
+> document's exam model and adaptive logic.
+
 This document specifies an adaptive practice exam tool for the Claude Certified
 Architect – Foundations (CCA-F) exam. It is the durable reference for what the
 tool does and why. The companion build prompt (`practice_exam_build_prompt.md`)
