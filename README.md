@@ -57,7 +57,12 @@ Fresh questions are generated on demand and your progress lives in a plain JSON
 file. Without the Claude Code CLI the app still works, drawing from the reviewed
 question bank instead. You can also open [`practice-exam/exam.html`][exam-live]
 directly (or on the live site) with zero setup — bank questions, progress in
-browser storage. Design details: [`practice-exam/local_practice_exam_spec.md`][local-spec].
+browser storage. Either way, a **Timed exam** mode runs a full 60-question,
+120-minute simulation with the real exam's domain weighting and an approximate
+scaled score against the 720 passing bar. To grow the question bank, run the
+committed `/exam-refill` skill in Claude Code — it walks the
+generate → screen → review → merge pipeline. Design details:
+[`practice-exam/local_practice_exam_spec.md`][local-spec].
 
 **Claude.ai artifact.** The original variant: paste
 [`practice-exam/practice_exam_build_prompt.md`][build-prompt] into a new Claude.ai

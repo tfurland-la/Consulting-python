@@ -55,6 +55,13 @@ const WEIGHT_FLOOR = 0.5;
 const WEIGHT_CAP = 5.0;
 const COOLDOWN_SIZE = 5;
 const HISTORY_LIMIT = 50;
+const EXAM_HISTORY_LIMIT = 20;
+
+// A 60-question exam form mirroring the real exam's domain weighting
+// (27/18/20/20/15% -> 16/11/12/12/9). Matches EXAM_FORM_QUOTAS in exam_lib.py.
+const EXAM_FORM_QUOTAS = { D1: 16, D2: 11, D3: 12, D4: 12, D5: 9 };
+const EXAM_MINUTES = 120;
+const PASSING_SCALED_SCORE = 720;
 
 function makeSeedWeights(seed) {
   const weights = {};
@@ -72,6 +79,7 @@ function initialState(seed) {
     history: [],
     seen: {},
     flagged: [],
+    examHistory: [],
   };
 }
 
@@ -170,6 +178,128 @@ function applyAnswer(state, answer) {
   return state;
 }
 
+// ── Timed exam mode ──────────────────────────────────────────────────────
+
+function shuffled(items, rng) {
+  const draw = rng || Math.random;
+  const copy = items.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(draw() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// Draw a 60-question exam form: domain quotas per EXAM_FORM_QUOTAS,
+// round-robin across a domain's task statements (unseen questions first
+// within each statement), flagged questions excluded. Returns null if the
+// bank cannot fill a quota.
+function drawExamForm(bank, state, opts) {
+  const options = opts || {};
+  const rng = options.rng || Math.random;
+  const blocked = new Set(state.flagged);
+  const form = [];
+  for (const [domain, quota] of Object.entries(EXAM_FORM_QUOTAS)) {
+    // Two round-robin phases: every statement's unseen questions first
+    // (globally — no repeat is drawn while any unseen remains in the
+    // domain), then seen questions as filler.
+    const unseenQueues = {};
+    const seenQueues = {};
+    for (const question of bank) {
+      if (question.domain !== domain || blocked.has(question.id)) continue;
+      const target = state.seen[question.id] === undefined ? unseenQueues : seenQueues;
+      (target[question.taskStatement] = target[question.taskStatement] || []).push(question);
+    }
+    const statements = new Set([...Object.keys(unseenQueues), ...Object.keys(seenQueues)]);
+    const order = shuffled([...statements], rng);
+    for (const ts of order) {
+      if (unseenQueues[ts]) unseenQueues[ts] = shuffled(unseenQueues[ts], rng);
+      if (seenQueues[ts]) seenQueues[ts] = shuffled(seenQueues[ts], rng);
+    }
+    const picked = [];
+    for (const queues of [unseenQueues, seenQueues]) {
+      let exhausted = false;
+      while (picked.length < quota && !exhausted) {
+        exhausted = true;
+        for (const ts of order) {
+          if (picked.length >= quota) break;
+          const next = queues[ts] && queues[ts].shift();
+          if (next) {
+            picked.push(next);
+            exhausted = false;
+          }
+        }
+      }
+      if (picked.length >= quota) break;
+    }
+    if (picked.length < quota) return null; // domain exhausted below quota
+    form.push(...picked);
+  }
+  return shuffled(form, rng);
+}
+
+// answers: map of question id -> chosen letter. Unanswered counts as wrong.
+// The scaled score is a linear approximation of the exam's 100-1000 scale;
+// the real exam uses equating, so treat this as directional only.
+function scoreExam(form, answers) {
+  let correct = 0;
+  const byDomain = {};
+  for (const question of form) {
+    const d = (byDomain[question.domain] = byDomain[question.domain] || {
+      correct: 0,
+      total: 0,
+    });
+    d.total += 1;
+    if (answers[question.id] === question.correct) {
+      correct += 1;
+      d.correct += 1;
+    }
+  }
+  const scaled = Math.round(100 + (900 * correct) / form.length);
+  return {
+    correct,
+    total: form.length,
+    scaled,
+    passed: scaled >= PASSING_SCALED_SCORE,
+    byDomain,
+  };
+}
+
+// Fold an exam attempt into the adaptive state: weights, stats, and seen
+// update exactly like drill answers, and the attempt lands in examHistory.
+// Drill `history` is deliberately untouched — it drives the cooldown and
+// trend display, and 60 batch entries would wipe it.
+function applyExamResults(state, form, answers, at) {
+  const score = scoreExam(form, answers);
+  for (const question of form) {
+    const ts = question.taskStatement;
+    const isCorrect = answers[question.id] === question.correct;
+    const multiplier = isCorrect ? CORRECT_MULTIPLIER : INCORRECT_MULTIPLIER;
+    const updated = state.weights[ts] * multiplier;
+    state.weights[ts] = isCorrect
+      ? Math.max(WEIGHT_FLOOR, updated)
+      : Math.min(WEIGHT_CAP, updated);
+    state.stats.totalAnswered += 1;
+    if (isCorrect) state.stats.totalCorrect += 1;
+    const perTask = state.stats.perTask[ts] || { seen: 0, correct: 0 };
+    perTask.seen += 1;
+    if (isCorrect) perTask.correct += 1;
+    state.stats.perTask[ts] = perTask;
+    state.seen[question.id] = at;
+  }
+  state.examHistory = state.examHistory || [];
+  state.examHistory.push({
+    at,
+    correct: score.correct,
+    total: score.total,
+    scaled: score.scaled,
+  });
+  if (state.examHistory.length > EXAM_HISTORY_LIMIT) {
+    state.examHistory.splice(0, state.examHistory.length - EXAM_HISTORY_LIMIT);
+  }
+  return score;
+}
+
 // Full discard of the most recent answer (spec: "flag as flawed"). The caller
 // keeps {taskStatement, questionId, correct, at, prevWeight} for the question
 // on screen; the control is only offered before advancing.
@@ -207,6 +337,9 @@ const CCAF_ADAPTIVE = {
   WEIGHT_CAP,
   COOLDOWN_SIZE,
   HISTORY_LIMIT,
+  EXAM_FORM_QUOTAS,
+  EXAM_MINUTES,
+  PASSING_SCALED_SCORE,
   makeSeedWeights,
   initialState,
   effectiveWeights,
@@ -215,6 +348,9 @@ const CCAF_ADAPTIVE = {
   pickBankQuestion,
   applyAnswer,
   applyFlag,
+  drawExamForm,
+  scoreExam,
+  applyExamResults,
 };
 
 if (typeof module !== "undefined" && module.exports) {

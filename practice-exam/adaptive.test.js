@@ -167,6 +167,115 @@ test("pickBankQuestion falls back to least-recently-seen when all are seen", () 
   assert.equal(picked.id, "b");
 });
 
+// ── Timed exam mode ─────────────────────────────────────────────────────
+
+function syntheticBank() {
+  // 3 questions per statement, ids ts-0..2, correct always "B"
+  const bank = [];
+  for (const ts of Object.keys(A.TASK_STATEMENTS)) {
+    for (let i = 0; i < 3; i++) {
+      bank.push({ id: `${ts}-${i}`, taskStatement: ts, domain: ts.split(".")[0], correct: "B" });
+    }
+  }
+  return bank;
+}
+
+test("EXAM_FORM_QUOTAS mirror the exam's domain weighting over 60 questions", () => {
+  assert.deepEqual(A.EXAM_FORM_QUOTAS, { D1: 16, D2: 11, D3: 12, D4: 12, D5: 9 });
+  const total = Object.values(A.EXAM_FORM_QUOTAS).reduce((s, n) => s + n, 0);
+  assert.equal(total, 60);
+});
+
+test("drawExamForm fills every domain quota from the bank", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.42) });
+  assert.equal(form.length, 60);
+  const byDomain = {};
+  const ids = new Set();
+  for (const q of form) {
+    byDomain[q.domain] = (byDomain[q.domain] || 0) + 1;
+    ids.add(q.id);
+  }
+  assert.deepEqual(byDomain, A.EXAM_FORM_QUOTAS);
+  assert.equal(ids.size, 60); // no repeats within a form
+});
+
+test("drawExamForm spreads questions across task statements", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.1) });
+  const perStatement = {};
+  for (const q of form) {
+    perStatement[q.taskStatement] = (perStatement[q.taskStatement] || 0) + 1;
+  }
+  // 16 D1 questions over 7 statements: round-robin keeps every statement <= 3
+  for (const [ts, n] of Object.entries(perStatement)) {
+    assert.ok(n <= 3, `${ts} over-represented: ${n}`);
+  }
+});
+
+test("drawExamForm excludes flagged questions and prefers unseen", () => {
+  const bank = syntheticBank();
+  const state = freshState();
+  state.flagged.push("D1.1-0");
+  state.seen["D1.1-1"] = 5;
+  const form = A.drawExamForm(bank, state, { rng: rngOf(0.3) });
+  const ids = form.map((q) => q.id);
+  assert.ok(!ids.includes("D1.1-0"), "flagged question drawn");
+  // D1 quota 16 < 20 unseen unflagged D1 questions, so the seen one is not needed
+  assert.ok(!ids.includes("D1.1-1"), "seen question drawn while unseen available");
+});
+
+test("drawExamForm returns null when the bank cannot fill a quota", () => {
+  const tiny = syntheticBank().filter((q) => q.domain !== "D5");
+  assert.equal(A.drawExamForm(tiny, freshState(), { rng: rngOf(0.5) }), null);
+});
+
+test("scoreExam computes totals, domain breakdown, and approximate scaled score", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.7) });
+  const answers = {};
+  form.forEach((q, i) => {
+    answers[q.id] = i < 45 ? "B" : "A"; // 45 right, 15 wrong
+  });
+  const score = A.scoreExam(form, answers);
+  assert.equal(score.total, 60);
+  assert.equal(score.correct, 45);
+  assert.equal(score.scaled, Math.round(100 + (900 * 45) / 60)); // 775
+  assert.equal(score.passed, true);
+  const domainTotal = Object.values(score.byDomain).reduce((s, d) => s + d.total, 0);
+  assert.equal(domainTotal, 60);
+});
+
+test("scoreExam counts unanswered questions as wrong", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.2) });
+  const score = A.scoreExam(form, {}); // nothing answered
+  assert.equal(score.correct, 0);
+  assert.equal(score.scaled, 100);
+  assert.equal(score.passed, false);
+});
+
+test("applyExamResults updates weights, stats, seen, examHistory — but not history", () => {
+  const bank = syntheticBank();
+  const state = freshState();
+  A.applyAnswer(state, { taskStatement: "D1.1", questionId: "drill-q", correct: true, at: 1 });
+  const drillHistoryLen = state.history.length;
+  const form = A.drawExamForm(bank, state, { rng: rngOf(0.6) });
+  const answers = {};
+  form.forEach((q) => { answers[q.id] = "B"; }); // all correct
+  A.applyExamResults(state, form, answers, 9999);
+  assert.equal(state.stats.totalAnswered, 1 + 60);
+  assert.equal(state.stats.totalCorrect, 1 + 60);
+  assert.equal(state.history.length, drillHistoryLen); // cooldown history untouched
+  assert.equal(state.examHistory.length, 1);
+  assert.equal(state.examHistory[0].correct, 60);
+  assert.equal(state.examHistory[0].at, 9999);
+  assert.equal(state.seen[form[0].id], 9999);
+  // a correct exam answer moves the weight down like a drill answer
+  const ts = form[0].taskStatement;
+  assert.ok(state.weights[ts] < A.makeSeedWeights({})[ts] || state.weights[ts] === A.WEIGHT_FLOOR);
+});
+
+test("initialState includes an empty examHistory", () => {
+  assert.deepEqual(freshState().examHistory, []);
+});
+
 test("applyFlag fully discards the last answer", () => {
   const state = freshState({ "D4.3": 3.0 });
   const prevWeight = state.weights["D4.3"];

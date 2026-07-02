@@ -15,7 +15,9 @@ reference** — they apply unchanged:
 - *Interface and feedback* (one question at a time, per-question explanations,
   progress dashboard)
 
-This document specifies only what differs.
+This document specifies only what differs, plus the local-only **timed exam
+mode** (the original spec listed it as a possible later addition; it exists
+here).
 
 ---
 
@@ -129,11 +131,41 @@ pass; its grounding rule makes the CCA-F exam guide authoritative over
 product docs, with genuine fabrications (facts in neither source) remaining
 disqualifying.
 
+The committed **`/exam-refill` skill** (`.claude/skills/exam-refill/` — the
+one path un-ignored inside `.claude/`) walks this whole pipeline in Claude
+Code: status → targeted single-worker generation → screening → the required
+human review → merge + pytest.
+
 Static-mode selection prefers unseen questions within the drawn task
 statement, falling back to least-recently-seen; questions flagged as flawed go
 on a persistent blocklist and never return.
 
 ---
+
+## Timed exam mode
+
+The **Timed exam (60 Q)** control runs a full-length simulation from the
+committed bank in both runtimes:
+
+- **Form:** 60 questions drawn to the real exam's domain weighting
+  (`EXAM_FORM_QUOTAS`: D1 16, D2 11, D3 12, D4 12, D5 9 — mirrored in
+  `adaptive.js` and `exam_lib.py`, sync-tested). Within each domain the draw
+  round-robins across task statements, takes unseen questions before repeats,
+  and excludes flagged ids. pytest guards that the bank can always fill a
+  form.
+- **Delivery:** 120-minute countdown, forced answer to advance (as on the
+  real exam), no task-statement labels, no feedback until the end. Timer
+  expiry scores the attempt with unanswered questions counted wrong. The
+  attempt lives in memory only — closing the page abandons it (the page
+  warns).
+- **Scoring:** raw correct out of 60 plus an *approximate* scaled score
+  (linear 100–1000 map; the real exam uses equating) against the 720 passing
+  bar, a per-domain breakdown, and a full expandable review with all
+  explanations.
+- **State effects:** results update weights, accuracy stats, and seen marks
+  exactly like drill answers, and append one record to `examHistory` (capped
+  at 20). Drill `history` is deliberately untouched — it drives the cooldown
+  and would be wiped by 60 batch entries.
 
 ## State
 
@@ -146,7 +178,8 @@ One schema everywhere (desktop file, localStorage, exports):
                 "perTask": { "D1.1": { "seen": 0, "correct": 0 } } },
   "history":  [ { "t": "D1.2", "q": "D1.2-a3f9c2b1", "c": true, "at": 0 } ],
   "seen":     { "<questionId>": 0 },
-  "flagged":  [ "<questionId>" ] }
+  "flagged":  [ "<questionId>" ],
+  "examHistory": [ { "at": 0, "correct": 42, "total": 60, "scaled": 730 } ] }
 ```
 
 `history` keeps the last 50 answers and drives the 5-statement cooldown.

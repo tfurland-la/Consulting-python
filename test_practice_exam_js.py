@@ -25,17 +25,25 @@ def test_adaptive_js_suite_passes():
     assert result.returncode == 0, f"node --test failed:\n{result.stdout}\n{result.stderr}"
 
 
-def test_js_task_statements_match_python():
+def _dump_js_export(name):
     dump = subprocess.run(
         [
             node,
             "-e",
             "console.log(JSON.stringify(require("
             + json.dumps(str(PRACTICE_EXAM_DIR / "adaptive.js"))
-            + ").TASK_STATEMENTS))",
+            + f").{name}))",
         ],
         capture_output=True,
         text=True,
     )
     assert dump.returncode == 0, dump.stderr
-    assert json.loads(dump.stdout) == exam_lib.TASK_STATEMENTS
+    return json.loads(dump.stdout)
+
+
+def test_js_task_statements_match_python():
+    assert _dump_js_export("TASK_STATEMENTS") == exam_lib.TASK_STATEMENTS
+
+
+def test_js_exam_form_quotas_match_python():
+    assert _dump_js_export("EXAM_FORM_QUOTAS") == exam_lib.EXAM_FORM_QUOTAS

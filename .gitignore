@@ -5,7 +5,11 @@ __pycache__/
 engagement.json
 .DS_Store
 .vscode/
-.claude/
+# .claude/ is local-only except the committed exam-refill skill
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/exam-refill/
 CLAUDE.local.md
 pyproject.toml
 *.code-workspace

@@ -28,6 +28,11 @@ BANK_MARKER = "window.CCAF_BANK ="
 # coverage cannot silently regress below three questions per statement.
 MIN_PER_TASK = 3
 
+# Domain quotas for a 60-question timed exam form, mirroring the real exam's
+# weighting (27/18/20/20/15%). Matches EXAM_FORM_QUOTAS in adaptive.js
+# (cross-checked by test_practice_exam_js.py).
+EXAM_FORM_QUOTAS = {"D1": 16, "D2": 11, "D3": 12, "D4": 12, "D5": 9}
+
 DOMAINS = {
     "D1": "Agentic Architecture & Orchestration",
     "D2": "Tool Design & MCP Integration",

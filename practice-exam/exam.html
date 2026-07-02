@@ -248,6 +248,52 @@ const CCAF_SEED = {
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
   .toolbar button { flex: 1 1 45%; font-size: 13px; padding: 7px 10px; }
+
+  /* ── Timed exam mode ─────────────────────────────────────── */
+  body.exam-active aside { display: none; }
+  body.exam-active .layout { max-width: 780px; }
+  .exam-timer {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: #fff;
+    background: rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 3px 12px;
+  }
+  .exam-timer.low { background: var(--coral); }
+  .score-banner {
+    text-align: center;
+    padding: 18px 0 6px;
+  }
+  .score-banner .scaled {
+    font-family: 'DM Serif Display', serif;
+    font-size: 56px;
+    line-height: 1.1;
+  }
+  .score-banner .verdict-chip {
+    display: inline-block;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 4px 16px;
+    margin-top: 6px;
+    color: #fff;
+  }
+  .score-banner .verdict-chip.pass { background: var(--teal); }
+  .score-banner .verdict-chip.fail { background: var(--coral); }
+  details.review-item {
+    border: 1px solid var(--paper-warm);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 14.5px;
+  }
+  details.review-item summary { cursor: pointer; }
+  details.review-item summary .mark { font-weight: 600; }
+  details.review-item summary .mark.good { color: var(--teal); }
+  details.review-item summary .mark.bad { color: var(--coral); }
+  details.review-item .scenario { margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -255,6 +301,7 @@ const CCAF_SEED = {
 <header>
   <h1>CCA-F Adaptive Practice Exam</h1>
   <span class="badge" id="mode-badge">loading…</span>
+  <span class="exam-timer" id="exam-timer" hidden></span>
   <span class="session" id="session-counter"></span>
 </header>
 
@@ -271,7 +318,23 @@ const CCAF_SEED = {
         <button class="primary" id="btn-submit" disabled>Submit answer</button>
         <button class="primary" id="btn-next" hidden>Next question</button>
         <button class="ghost" id="btn-flag" hidden>Flag — don't count this question</button>
+        <button class="ghost" id="btn-abandon" hidden>End exam</button>
         <span class="note" id="status-note"></span>
+      </div>
+    </div>
+
+    <div class="card" id="results-card" hidden>
+      <div class="score-banner">
+        <div class="scaled" id="r-scaled"></div>
+        <div class="note">approximate scaled score (linear; the real exam uses equating)</div>
+        <div id="r-verdict"></div>
+        <div class="note" id="r-raw" style="margin-top:8px"></div>
+      </div>
+      <div id="r-domains" style="margin:16px 0"></div>
+      <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:18px 0 10px">Review</h2>
+      <div id="r-review"></div>
+      <div class="controls">
+        <button class="primary" id="btn-return">Return to practice</button>
       </div>
     </div>
   </main>
@@ -290,6 +353,7 @@ const CCAF_SEED = {
     <div class="card">
       <h2>Data</h2>
       <div class="toolbar">
+        <button class="ghost" id="btn-exam">Timed exam (60 Q)</button>
         <button class="ghost" id="btn-export">Export progress</button>
         <button class="ghost" id="btn-import">Import progress</button>
         <button class="ghost" id="btn-blank">Blank slate</button>
@@ -406,6 +470,7 @@ const app = {
   lastAnswer: null,  // {taskStatement, questionId, correct, at, prevWeight}
   answeredThisSession: 0,
   firstQuestionServed: false, // session's first question comes from the bank
+  exam: null,        // {form, index, answers, deadline, timerId} while a timed exam runs
 };
 
 function validateImportedState(candidate) {
@@ -429,6 +494,7 @@ function validateImportedState(candidate) {
     history: Array.isArray(candidate.history) ? candidate.history.slice(-A.HISTORY_LIMIT) : [],
     seen: candidate.seen || {},
     flagged: Array.isArray(candidate.flagged) ? candidate.flagged : [],
+    examHistory: Array.isArray(candidate.examHistory) ? candidate.examHistory : [],
   };
 }
 
@@ -533,7 +599,220 @@ function renderQuestion(question) {
   el("btn-flag").hidden = true;
 }
 
+/* ── Timed exam mode ────────────────────────────────────────────────── */
+function startExam() {
+  const minutes = A.EXAM_MINUTES;
+  const ok = confirm(
+    `Timed exam: 60 questions, ${minutes} minutes, real domain weighting.\n` +
+    "You must answer each question to advance, and explanations are withheld " +
+    "until the end. Results update your adaptive weights. Closing or " +
+    "reloading the page abandons the attempt. Start now?"
+  );
+  if (!ok) return;
+  const form = A.drawExamForm(BANK, app.state, {});
+  if (!form) {
+    alert("The question bank cannot fill a full 60-question form right now.");
+    return;
+  }
+  app.exam = {
+    form,
+    index: 0,
+    answers: {},
+    deadline: Date.now() + minutes * 60 * 1000,
+    timerId: setInterval(renderExamTimer, 1000),
+  };
+  document.body.classList.add("exam-active");
+  el("exam-timer").hidden = false;
+  el("results-card").hidden = true;
+  el("question-card").hidden = false;
+  el("btn-abandon").hidden = false;
+  renderExamTimer();
+  renderExamQuestion();
+}
+
+function renderExamTimer() {
+  if (!app.exam) return;
+  const remaining = Math.max(0, app.exam.deadline - Date.now());
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  const timer = el("exam-timer");
+  timer.textContent =
+    `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}` +
+    ` · Q ${app.exam.index + 1}/${app.exam.form.length}`;
+  timer.classList.toggle("low", remaining < 10 * 60 * 1000);
+  if (remaining <= 0) finishExam();
+}
+
+function renderExamQuestion() {
+  const question = app.exam.form[app.exam.index];
+  app.current = question;
+  app.selected = null;
+  // No task-statement tag during the exam — the real exam doesn't label questions.
+  el("q-task").textContent = `Question ${app.exam.index + 1} of ${app.exam.form.length}`;
+  el("q-task-label").textContent = "";
+  el("q-scenario").textContent = question.scenario;
+  el("q-stem").textContent = question.question;
+  el("q-feedback").replaceChildren();
+  el("status-note").textContent = "";
+
+  const container = el("q-options");
+  container.replaceChildren();
+  for (const key of ["A", "B", "C", "D"]) {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.dataset.key = key;
+    const keySpan = document.createElement("span");
+    keySpan.className = "key";
+    keySpan.textContent = key;
+    const textSpan = document.createElement("span");
+    textSpan.textContent = question.options[key];
+    btn.append(keySpan, textSpan);
+    btn.addEventListener("click", () => {
+      app.selected = key;
+      container.querySelectorAll(".option").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      el("btn-submit").disabled = false;
+    });
+    container.appendChild(btn);
+  }
+  el("btn-submit").hidden = false;
+  el("btn-submit").disabled = true;
+  el("btn-submit").textContent =
+    app.exam.index + 1 === app.exam.form.length ? "Answer & finish" : "Answer & continue";
+  el("btn-next").hidden = true;
+  el("btn-flag").hidden = true;
+  renderExamTimer();
+}
+
+function examAnswer() {
+  if (!app.selected) return;
+  app.exam.answers[app.exam.form[app.exam.index].id] = app.selected;
+  if (app.exam.index + 1 < app.exam.form.length) {
+    app.exam.index += 1;
+    renderExamQuestion();
+  } else {
+    finishExam();
+  }
+}
+
+async function finishExam() {
+  const exam = app.exam;
+  if (!exam) return;
+  clearInterval(exam.timerId);
+  app.exam = null;
+  const score = A.applyExamResults(app.state, exam.form, exam.answers, Date.now());
+  await persist();
+  renderResults(exam, score);
+  renderDashboard();
+}
+
+function abandonExam() {
+  if (!app.exam) return;
+  const ok = confirm("End this exam without scoring? The attempt is discarded entirely.");
+  if (!ok) return;
+  clearInterval(app.exam.timerId);
+  app.exam = null;
+  exitExamLayout();
+  nextQuestion();
+}
+
+// Restores the normal (drill) chrome: sidebar, timer off, button labels.
+// Card visibility is the caller's business — results stay up after a finish.
+function exitExamLayout() {
+  document.body.classList.remove("exam-active");
+  el("exam-timer").hidden = true;
+  el("btn-abandon").hidden = true;
+  el("btn-submit").textContent = "Submit answer";
+}
+
+function renderResults(exam, score) {
+  exitExamLayout(); // sidebar returns alongside results — weak spots now reflect the exam
+  el("question-card").hidden = true;
+  el("results-card").hidden = false;
+
+  el("r-scaled").textContent = String(score.scaled);
+  const verdict = document.createElement("span");
+  verdict.className = `verdict-chip ${score.passed ? "pass" : "fail"}`;
+  verdict.textContent = score.passed
+    ? `Pass · ${A.PASSING_SCALED_SCORE} needed`
+    : `Below the ${A.PASSING_SCALED_SCORE} passing score`;
+  el("r-verdict").replaceChildren(verdict);
+  el("r-raw").textContent = `${score.correct} of ${score.total} correct`;
+
+  const domains = el("r-domains");
+  domains.replaceChildren();
+  for (const [domain, counts] of Object.entries(score.byDomain)) {
+    const pct = Math.round((100 * counts.correct) / counts.total);
+    const row = document.createElement("div");
+    row.className = "domain-bar";
+    const text = document.createElement("div");
+    text.textContent = `${domain} · ${A.DOMAINS[domain]} — ${counts.correct}/${counts.total}`;
+    const track = document.createElement("div");
+    track.className = "track";
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    fill.style.width = `${pct}%`;
+    track.appendChild(fill);
+    row.append(text, track);
+    domains.appendChild(row);
+  }
+
+  const review = el("r-review");
+  review.replaceChildren();
+  exam.form.forEach((question, i) => {
+    const chosen = exam.answers[question.id];
+    const good = chosen === question.correct;
+    const item = document.createElement("details");
+    item.className = "review-item";
+    const summary = document.createElement("summary");
+    const mark = document.createElement("span");
+    mark.className = `mark ${good ? "good" : "bad"}`;
+    mark.textContent = good ? "✓" : "✗";
+    summary.append(
+      mark,
+      document.createTextNode(
+        ` Q${i + 1} · ${question.taskStatement} — ` +
+        (good ? `correct (${question.correct})` :
+          `your answer ${chosen || "—"}, correct ${question.correct}`)
+      )
+    );
+    item.appendChild(summary);
+    const scenario = document.createElement("div");
+    scenario.className = "scenario";
+    scenario.textContent = question.scenario;
+    const stem = document.createElement("div");
+    stem.className = "stem";
+    stem.textContent = question.question;
+    item.append(scenario, stem);
+    for (const key of ["A", "B", "C", "D"]) {
+      const line = document.createElement("div");
+      line.className = "explanation" + (key === question.correct ? " correct-line" : "");
+      const keySpan = document.createElement("span");
+      keySpan.className = "key";
+      const markers =
+        (key === chosen ? " (your answer)" : "");
+      keySpan.textContent = `${key}${markers} — `;
+      line.appendChild(keySpan);
+      line.appendChild(
+        document.createTextNode(`${question.options[key]} · ${question.explanations[key]}`)
+      );
+      item.appendChild(line);
+    }
+    review.appendChild(item);
+  });
+}
+
+async function returnToPractice() {
+  el("results-card").hidden = true;
+  el("question-card").hidden = false;
+  await nextQuestion();
+}
+
 async function submitAnswer() {
+  if (app.exam) {
+    examAnswer();
+    return;
+  }
   if (!app.selected || !app.current) return;
   const question = app.current;
   const correct = app.selected === question.correct;
@@ -827,6 +1106,12 @@ async function init() {
   el("btn-submit").addEventListener("click", submitAnswer);
   el("btn-next").addEventListener("click", nextQuestion);
   el("btn-flag").addEventListener("click", flagQuestion);
+  el("btn-exam").addEventListener("click", startExam);
+  el("btn-abandon").addEventListener("click", abandonExam);
+  el("btn-return").addEventListener("click", returnToPractice);
+  window.addEventListener("beforeunload", (event) => {
+    if (app.exam) event.preventDefault(); // exam attempts are in-memory only
+  });
   el("btn-export").addEventListener("click", exportProgress);
   el("btn-import").addEventListener("click", () => el("import-file").click());
   el("import-file").addEventListener("change", (event) => {

@@ -82,6 +82,19 @@ def test_per_task_statement_minimum(bank):
     assert not short, f"below MIN_PER_TASK={exam_lib.MIN_PER_TASK}: {short}"
 
 
+def test_bank_covers_a_full_exam_form(bank):
+    """Every domain must hold at least its 60-question exam-form quota."""
+    assert sum(exam_lib.EXAM_FORM_QUOTAS.values()) == 60
+    per_domain = {}
+    for entry in bank:
+        per_domain[entry["domain"]] = per_domain.get(entry["domain"], 0) + 1
+    for domain, quota in exam_lib.EXAM_FORM_QUOTAS.items():
+        assert per_domain.get(domain, 0) >= quota, (
+            f"{domain} has {per_domain.get(domain, 0)} questions, "
+            f"exam form needs {quota}"
+        )
+
+
 def test_render_bank_round_trips_the_committed_file(bank):
     source = (PRACTICE_EXAM_DIR / "questions.js").read_text()
     assert exam_lib.render_bank(bank) == source
