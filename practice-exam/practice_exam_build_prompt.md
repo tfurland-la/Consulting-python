@@ -364,6 +364,17 @@ Requirements:
     distractor is wrong.
   - Include the ten Phase 1 sample questions as few-shot examples of the
     desired style and difficulty.
+  - Instruct the model NOT to invent specific technical facts — flag names,
+    environment variables, configuration behaviors, or claims about how a
+    feature depends on configuration or deployment — unless grounded in the
+    documented CCA-F exam content provided in the prompt (the task statement
+    descriptions and few-shot examples). If an explanation needs a technical
+    detail to justify why an option is correct or incorrect, it must use only
+    facts established in the provided exam content rather than fabricating
+    plausible-sounding specifics. When in doubt, prefer an explanation
+    grounded in the exam's stated principles (e.g., programmatic enforcement
+    vs. probabilistic compliance, tool description quality, structured error
+    categories) over one relying on an invented technical detail.
   - Require STRICT JSON output only — no preamble, no markdown fences — in this
     exact shape:
     {"taskStatement","domain","scenario","question",
@@ -428,6 +439,14 @@ and how a colleague would fork and reseed it.
   or difficulty, that is a prompt-quality issue in the generation prompt — ask
   Claude to add more few-shot examples or tighten the instructions. This is the
   same few-shot technique the exam tests in D4.2.
+- The fabrication guardrail in the Phase 3 generation prompt exists because
+  real use surfaced two generated questions that fabricated technical specifics
+  to prop up their marked-correct answer: one invented a nonexistent CLI flag
+  (--non-interactive), and another invented an unfounded claim that "strict
+  JSON mode availability depends on deployment configuration." Neither was
+  grounded in the actual CCA-F exam content. The fix is a generation-prompt
+  instruction rather than a post-hoc filter — preventing fabrication at
+  generation time is more reliable than trying to detect it after the fact.
 - The generation prompt's scenario type list explicitly includes "Structured
   Data Extraction" and "Developer Productivity with Claude" — two scenarios not
   covered by the 60-question static bank in paullarionov/claude-certified-

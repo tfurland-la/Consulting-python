@@ -235,6 +235,13 @@ few-shot examples (D2.1, D4.6, D3.4) added to the Phase 1 seed questions.
   affects nothing: weight, accuracy, or history. This protects both adaptive
   weighting and score integrity when a generated question is ambiguous or has a
   defensible second answer.
+- Fabrication guardrail: the generation prompt explicitly instructs the
+  model not to invent technical facts (flag names, environment variables,
+  configuration-dependent behavior) unless grounded in the provided exam
+  content. This was added after real use surfaced two generated questions
+  that fabricated specifics to justify a marked-correct answer — the
+  flag-as-flawed control catches these when they occur, but preventing them
+  at generation time is the more reliable fix.
 
 ---
 
