@@ -1,0 +1,13 @@
+MASTER SERVICES AGREEMENT
+
+This MSA is entered into between Cobalt Financial Partners ("Client") and
+Westbrook Consulting Group ("Consultant") effective May 11, 2026.
+
+Consultant will deliver an enterprise data governance framework. Total fees
+under the initial work order are $220,000 USD. The parties expect the
+initial work order to run roughly six weeks, subject to data access.
+
+Deliverables: governance operating model; data quality scorecard; policy
+library.
+
+Invoices payable net 30.

@@ -1,0 +1,22 @@
+STATEMENT OF WORK #12
+
+Client: Pinewood Manufacturing Co.
+Start date: February 16, 2026. Term: sixteen (16) weeks.
+
+Scope: plant-floor OEE improvement program across two facilities.
+
+Deliverables:
+  - OEE baseline study
+  - loss-tree analysis
+  - operator standard work library
+  - sustainment dashboard
+
+FEES
+| Milestone                | Amount      |
+|--------------------------|-------------|
+| Baseline complete        | $31,500     |
+| Pilot line improvements  | $52,750     |
+| Rollout and sustainment  | $42,500     |
+| TOTAL                    | $126,750    |
+
+Fees invoiced on milestone acceptance. Governing law: State of Texas.

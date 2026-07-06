@@ -1,0 +1,82 @@
+[
+  {
+    "article_id": "article_01",
+    "title": "Remote work settles into a hybrid rhythm",
+    "text": "Five years after the great workplace experiment began, most mid-size firms have landed on structured hybrid schedules rather than fully remote or fully in-office models. Surveys of operations leaders describe a stabilization: attendance policies that changed quarterly through the early transition years have now gone untouched for eighteen months or more.\n\nThe stabilization has shifted managerial attention from where work happens to how it is coordinated. Companies report investing in asynchronous documentation practices and meeting-load reduction programs, with several large employers publishing internal 'collaboration charters' that codify response-time expectations by channel.",
+    "source_name": "Workplace Signal",
+    "url": "https://example.com/workplace-signal/hybrid-rhythm",
+    "publication_date": "2025-03-14"
+  },
+  {
+    "article_id": "article_02",
+    "title": "The commercial real estate reckoning slows but doesn't stop",
+    "text": "Downtown office vacancy continued to drift upward this year, though at a slower pace than the sharp corrections of earlier years. Landlords increasingly compete on amenities and flexible floor plans, and conversions to residential use have moved from novelty to a measurable share of transactions in several metros.\n\nAnalysts caution that headline vacancy rates mask a split market: newer buildings with strong transit access and hospitality-grade amenities lease briskly, while older stock struggles to attract tenants at any price point.",
+    "source_name": "Metro Property Ledger",
+    "url": "https://example.com/metro-property/reckoning-slows",
+    "publication_date": "2025-06-02"
+  },
+  {
+    "article_id": "article_03",
+    "title": "Survey: 42% of knowledge workers now fully or mostly remote",
+    "text": "A national workforce survey conducted this spring found that 42% of knowledge workers report working fully or mostly remotely, a figure that has held roughly steady across the past three survey waves. The survey, which polled 8,200 workers across industries, defines 'mostly remote' as three or more remote days per typical week.\n\nThe authors note substantial variation by sector: technology and professional services remain the most remote-friendly, while healthcare administration and financial services have pulled workers back to offices at higher rates. Respondents citing commute time as their top quality-of-life factor were nearly twice as likely to have changed employers in the past two years.",
+    "source_name": "National Work Trends Panel",
+    "url": "https://example.com/nwtp/spring-remote-share",
+    "publication_date": "2024-05-20"
+  },
+  {
+    "article_id": "article_04",
+    "title": "Managers report collaboration gains from structured overlap hours",
+    "text": "Teams that adopted fixed 'overlap windows' — three to four hours daily when every member is reachable regardless of location — report faster decision cycles and fewer stalled handoffs, according to interviews with engineering and operations managers at two dozen firms.\n\nThe practice appears to matter more than office attendance itself. Several managers described fully distributed teams with strict overlap discipline outperforming hybrid teams whose in-office days did not align.",
+    "source_name": "Team Dynamics Review",
+    "url": "https://example.com/tdr/overlap-hours",
+    "publication_date": "2025-01-08"
+  },
+  {
+    "article_id": "article_05",
+    "title": "Small businesses quietly shed office leases",
+    "text": "Firms under fifty employees are exiting traditional office leases at the highest rate of any segment, favoring coworking memberships and on-demand meeting space. Brokers describe a structural change in the smallest tier of the market: five-year leases replaced by rolling quarterly commitments.\n\nThe shift is less ideological than financial. Owners interviewed cite lease costs as the second-largest controllable expense after payroll, and the flexibility to scale space with headcount as decisive.",
+    "source_name": "Main Street Economics",
+    "url": "https://example.com/main-street-econ/office-leases",
+    "publication_date": "2024-11-11"
+  },
+  {
+    "article_id": "article_06",
+    "title": "The four-day week pilots expand, with caveats",
+    "text": "A second wave of four-day-week pilots is underway, larger and more methodologically careful than the first. Early participants report maintained output and improved retention, but program designers emphasize that results depend heavily on meeting-load reduction and process redesign done before the schedule change, not after.\n\nSkeptics note that pilot participants are self-selected and disproportionately drawn from knowledge-work sectors where output measurement is contested. Two large pilots in logistics and retail are expected to report next year and are seen as the real test.",
+    "source_name": "Future of Work Quarterly",
+    "url": "https://example.com/fowq/four-day-pilots",
+    "publication_date": "2025-04-22"
+  },
+  {
+    "article_id": "article_07",
+    "title": "Remote share of knowledge work falls to 31%, panel finds",
+    "text": "The autumn wave of the national workforce panel puts the fully-or-mostly-remote share of knowledge workers at 31%, down from the low forties reported in earlier waves. Panel methodologists attribute part of the decline to tightened return-to-office policies at large employers and part to a definitional refinement that now counts hybrid workers with two remote days as office-based rather than mostly remote.\n\nThe report stresses that the two effects cannot be fully separated with the available data. Sector patterns persist: technology remains majority-remote under either definition, while financial services attendance is approaching pre-transition norms.",
+    "source_name": "National Work Trends Panel",
+    "url": "https://example.com/nwtp/autumn-remote-share",
+    "publication_date": "2025-11-03"
+  },
+  {
+    "article_id": "article_08",
+    "title": "Home office spending matures into replacement cycle",
+    "text": "Retailers report that home-office equipment purchases have shifted from first-time setup to replacement and upgrade purchases, a signal that remote work infrastructure has become a durable category rather than a one-time event. Ergonomic seating and lighting lead the upgrade wave.\n\nEmployer stipend programs have consolidated: fewer companies offer them, but those that do have raised amounts and moved from receipts-based reimbursement to flat annual allowances.",
+    "source_name": "Consumer Durables Weekly",
+    "url": "https://example.com/cdw/home-office-cycle",
+    "publication_date": "2025-08-19"
+  },
+  {
+    "article_id": "article_09",
+    "title": "Middle managers carry the coordination load, studies find",
+    "text": "Research teams tracking distributed organizations converge on a consistent finding: coordination costs of flexible work fall disproportionately on middle managers, who spend measurably more time scheduling, relaying context between sub-teams, and reconciling decisions made in different channels.\n\nOrganizations that invested in explicit decision logs and written status rituals show smaller managerial overhead increases, suggesting the load is addressable with process rather than attendance mandates.",
+    "source_name": "Organizational Science Digest",
+    "url": "https://example.com/osd/middle-managers",
+    "publication_date": "2025-02-27"
+  },
+  {
+    "article_id": "article_10",
+    "title": "Transit ridership adapts to the Tuesday-Thursday economy",
+    "text": "Urban transit agencies have redesigned service patterns around midweek peaks, with several systems now running enhanced Tuesday-through-Thursday schedules and reduced Monday and Friday service. Fare revenue has partially recovered on the strength of off-peak and weekend leisure travel.\n\nPlanners describe the change as permanent rather than cyclical, and are shifting capital priorities toward frequency on core corridors over coverage expansion.",
+    "source_name": "Civic Infrastructure Report",
+    "url": "https://example.com/cir/tuesday-thursday",
+    "publication_date": "2024-09-30"
+  }
+]

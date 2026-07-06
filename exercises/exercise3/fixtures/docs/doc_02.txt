@@ -1,0 +1,22 @@
+STATEMENT OF WORK #7
+
+Client: Blue Harbor Logistics
+Effective date: April 6, 2026
+Term: eight (8) weeks from the effective date.
+
+Scope: warehouse slotting analysis and pick-path redesign for the Camden
+facility.
+
+Deliverables:
+  - slotting heat map
+  - revised pick-path layout
+  - implementation playbook
+
+FEE SCHEDULE
+| Line item                     | Amount     |
+|-------------------------------|------------|
+| Diagnostic and data analysis  | $38,000    |
+| Redesign and playbook         | $46,500    |
+| TOTAL                         | $84,500    |
+
+Payment terms: net 45. Governing law: State of Delaware.

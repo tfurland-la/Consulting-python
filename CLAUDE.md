@@ -61,6 +61,10 @@ https://docs.claude.com rather than relying on training data.
 - `practice-exam/` — CCA-F adaptive practice exam: local desktop app (`exam_app.py`,
   `exam.html`, reviewed question bank in `questions.js`) plus the Claude.ai artifact
   recipe; design in `practice-exam/local_practice_exam_spec.md`
+- `exercises/` — hands-on CCA-F preparation exercises (start at `exercises/README.md`).
+  Scaffolding follows the role-split contract in that README: Claude must never
+  implement the exam-tested logic there — stubs, assertions, and prompts are the
+  learner's work by design.
 
 ## Run it
 

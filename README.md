@@ -95,6 +95,15 @@ top of the generated artifact. Edit it to keep the author's known weak areas, re
 everything to 1.0 for a blank slate, or set your own. The design rationale is in
 [`practice-exam/practice_exam_spec.md`][exam-spec].
 
+## Preparation Exercises
+
+The [`exercises/`](exercises/README.md) folder expands the exam guide's four
+recommended hands-on exercises into phased, gated builds — fixtures, mocks,
+and test skeletons are scaffolded; you write everything the exam tests (the
+agentic loop, the enforcement hook, the schemas, the coordinator, and every
+test assertion). Start at `exercises/README.md`; recommended order 1 → 4 →
+3 → 2.
+
 ---
 
 [live-course]: https://tfurland-la.github.io/Consulting-python/python_course.html

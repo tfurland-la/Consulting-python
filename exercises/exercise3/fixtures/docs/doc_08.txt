@@ -1,0 +1,22 @@
+STATEMENT OF WORK #4
+
+Client: Larkspur Energy Services
+Start: May 4, 2026. Duration: ten (10) weeks.
+
+Scope: field-operations cost reduction program. Total program fee:
+$150,000 USD as referenced in the transmittal letter.
+
+Deliverables:
+  - cost driver analysis
+  - crew scheduling model
+  - vendor renegotiation playbook
+
+PAYMENT SCHEDULE
+| Milestone            | Amount      |
+|----------------------|-------------|
+| Kickoff              | $55,000     |
+| Interim readout      | $55,000     |
+| Final delivery       | $55,000     |
+| SCHEDULE TOTAL       | $165,000    |
+
+Invoices due on milestone completion. Governing law: New York.

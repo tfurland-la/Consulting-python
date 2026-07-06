@@ -1,0 +1,191 @@
+{
+  "doc_01": {
+    "client_name": "Meridian Retail Group",
+    "contract_value": 150000,
+    "currency": "USD",
+    "start_date": "2026-03-02",
+    "duration_weeks": 12,
+    "jurisdiction": "New York",
+    "payment_terms": "net 30"
+  },
+  "doc_02": {
+    "client_name": "Blue Harbor Logistics",
+    "contract_value": 84500,
+    "currency": "USD",
+    "start_date": "2026-04-06",
+    "duration_weeks": 8,
+    "jurisdiction": "Delaware",
+    "payment_terms": "net 45"
+  },
+  "doc_03": {
+    "client_name": "Cobalt Financial Partners",
+    "contract_value": 220000,
+    "currency": "USD",
+    "start_date": "2026-05-11",
+    "duration_weeks": 6,
+    "jurisdiction": null,
+    "payment_terms": "net 30"
+  },
+  "doc_04": {
+    "client_name": "Aster Health Systems",
+    "contract_value": 35000,
+    "currency": "USD",
+    "start_date": "2026-06-01",
+    "duration_weeks": 6,
+    "jurisdiction": "California",
+    "payment_terms": "net 15"
+  },
+  "doc_05": {
+    "client_name": "Pinewood Manufacturing Co.",
+    "contract_value": 126750,
+    "currency": "USD",
+    "start_date": "2026-02-16",
+    "duration_weeks": 16,
+    "jurisdiction": "Texas",
+    "payment_terms": "milestone-based"
+  },
+  "doc_06": {
+    "client_name": "Northgate Credit Union",
+    "contract_value": 95000,
+    "currency": "USD",
+    "start_date": "2026-01-12",
+    "duration_weeks": 13,
+    "jurisdiction": "Illinois",
+    "payment_terms": "net 30"
+  },
+  "doc_07": {
+    "client_name": "Silverline Media Holdings",
+    "contract_value": 310000,
+    "currency": "USD",
+    "start_date": "2026-03-30",
+    "duration_weeks": 24,
+    "jurisdiction": null,
+    "payment_terms": "net 60"
+  },
+  "doc_08": {
+    "client_name": "Larkspur Energy Services",
+    "contract_value": 165000,
+    "currency": "USD",
+    "start_date": "2026-05-04",
+    "duration_weeks": 10,
+    "jurisdiction": "New York",
+    "payment_terms": "milestone-based"
+  },
+  "doc_09": {
+    "client_name": "Harbor & Vane LLP",
+    "contract_value": 47500,
+    "currency": "USD",
+    "start_date": "2026-04-20",
+    "duration_weeks": 6,
+    "jurisdiction": "Massachusetts",
+    "payment_terms": "net 30"
+  },
+  "doc_10": {
+    "client_name": "Trellis Gardens Corporation",
+    "contract_value": 18200,
+    "currency": "USD",
+    "start_date": "2026-07-06",
+    "duration_weeks": 8,
+    "jurisdiction": "Washington",
+    "payment_terms": "net 15"
+  },
+  "doc_11": {
+    "client_name": "Kestrel Airways Ground Services",
+    "contract_value": 205000,
+    "currency": "USD",
+    "start_date": "2026-06-15",
+    "duration_weeks": 10,
+    "jurisdiction": "Georgia",
+    "payment_terms": "net 45"
+  },
+  "doc_12": {
+    "client_name": "Foxglove Biotech Inc.",
+    "contract_value": null,
+    "currency": "USD",
+    "start_date": "2026-01-05",
+    "duration_weeks": 52,
+    "jurisdiction": "Virginia",
+    "payment_terms": "net 30"
+  },
+  "doc_13": {
+    "client_name": "Bright Meadow Insurance Services",
+    "contract_value": 68900,
+    "currency": "USD",
+    "start_date": "2026-03-09",
+    "duration_weeks": 9,
+    "jurisdiction": "New York",
+    "payment_terms": "net 30"
+  },
+  "doc_14": {
+    "client_name": "Copperfield Grocers",
+    "contract_value": 132000,
+    "currency": "USD",
+    "start_date": "2026-02-02",
+    "duration_weeks": 14,
+    "jurisdiction": "Colorado",
+    "payment_terms": "milestone-based"
+  },
+  "doc_15": {
+    "client_name": "Juniper Point Hospitality",
+    "contract_value": 22000,
+    "currency": "USD",
+    "start_date": "2026-08-03",
+    "duration_weeks": 7,
+    "jurisdiction": "Oregon",
+    "payment_terms": "net 15"
+  },
+  "doc_16": {
+    "client_name": "Wrenfield Public Utilities",
+    "contract_value": 500000,
+    "currency": "USD",
+    "start_date": "2026-02-23",
+    "duration_weeks": 48,
+    "jurisdiction": "New York",
+    "payment_terms": "quarterly"
+  },
+  "doc_17": {
+    "client_name": "Saffron Lane Foods",
+    "contract_value": 91300,
+    "currency": "USD",
+    "start_date": "2026-05-18",
+    "duration_weeks": 7,
+    "jurisdiction": "Arizona",
+    "payment_terms": "net 30"
+  },
+  "doc_18": {
+    "client_name": "Gullwing Marine Group",
+    "contract_value": 73250,
+    "currency": "USD",
+    "start_date": "2026-06-08",
+    "duration_weeks": 11,
+    "jurisdiction": "Florida",
+    "payment_terms": "net 45"
+  },
+  "doc_19": {
+    "client_name": "Ottervale Software Collective",
+    "contract_value": null,
+    "currency": "USD",
+    "start_date": "2026-09-07",
+    "duration_weeks": 6,
+    "jurisdiction": "Michigan",
+    "payment_terms": "unchanged from SOW #11"
+  },
+  "doc_20": {
+    "client_name": "Damsonfield Apparel",
+    "contract_value": 164000,
+    "currency": "USD",
+    "start_date": "2026-03-16",
+    "duration_weeks": 20,
+    "jurisdiction": "North Carolina",
+    "payment_terms": "net 60"
+  },
+  "doc_21_oversized": {
+    "client_name": "Rushbrook Analytics Ltd.",
+    "contract_value": 88000,
+    "currency": "USD",
+    "start_date": "2026-04-13",
+    "duration_weeks": 12,
+    "jurisdiction": "Nevada",
+    "payment_terms": "net 30"
+  }
+}
