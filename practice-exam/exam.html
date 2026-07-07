@@ -626,6 +626,14 @@ function renderQuestion(question) {
   el("btn-submit").disabled = true;
   el("btn-next").hidden = true;
   el("btn-flag").hidden = true;
+
+  // Prefetch the NEXT question the moment this one appears, so the time spent
+  // reading the scenario, thinking, and answering is added to the generation
+  // budget — not just the seconds spent reading the explanation afterward.
+  // Tradeoff: the next task statement is drawn from weights as they stand now,
+  // before this question is graded, so its adaptive weighting is one answer
+  // stale. That is a deliberate exchange for hiding ~32s of generation.
+  if (app.generator && !app.exam) app.generator.prefetch();
 }
 
 /* ── Timed exam mode ────────────────────────────────────────────────── */
@@ -1129,6 +1137,9 @@ async function submitAnswer() {
   el("btn-flag").hidden = false;
   renderDashboard();
 
+  // Safety net: if prefetch was skipped or reset since this question rendered,
+  // (re)start it now so "Next" still has a head start. No-op when one is
+  // already in flight (the generator guards against double-starting).
   if (app.generator) app.generator.prefetch();
 }
 
