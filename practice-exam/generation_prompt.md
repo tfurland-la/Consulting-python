@@ -22,7 +22,7 @@ Requirements:
   knowledge would make.
 - Provide an explanation of why the correct answer is right and why each
   distractor is wrong.
-- You are NOT to invent specific technical facts — flag names, environment
+{{DIFFICULTY}}- You are NOT to invent specific technical facts — flag names, environment
   variables, configuration behaviors, or claims about how a feature depends on
   configuration or deployment — unless grounded in the documented CCA-F exam
   content provided in this prompt (the task statement descriptions and the

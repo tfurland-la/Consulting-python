@@ -64,8 +64,9 @@ test("applyAnswer updates stats, history, and seen", () => {
   A.applyAnswer(state, { taskStatement: "D2.1", questionId: "q9", correct: true, at: 1234 });
   assert.equal(state.stats.totalAnswered, 1);
   assert.equal(state.stats.totalCorrect, 1);
-  assert.deepEqual(state.stats.perTask["D2.1"], { seen: 1, correct: 1 });
-  assert.deepEqual(state.history, [{ t: "D2.1", q: "q9", c: true, at: 1234 }]);
+  assert.equal(state.stats.perTask["D2.1"].seen, 1);
+  assert.equal(state.stats.perTask["D2.1"].correct, 1);
+  assert.deepEqual(state.history, [{ t: "D2.1", q: "q9", c: true, at: 1234, d: "standard" }]);
   assert.equal(state.seen["q9"], 1234);
 });
 
@@ -337,9 +338,168 @@ test("applyFlag fully discards the last answer", () => {
   assert.equal(state.weights["D4.3"], 3.0);
   assert.equal(state.stats.totalAnswered, 0);
   assert.equal(state.stats.totalCorrect, 0);
-  assert.deepEqual(state.stats.perTask["D4.3"], { seen: 0, correct: 0 });
+  assert.equal(state.stats.perTask["D4.3"].seen, 0);
+  assert.equal(state.stats.perTask["D4.3"].correct, 0);
   assert.deepEqual(state.history, []);
   assert.equal(state.seen["q1"], undefined);
   assert.deepEqual(state.flagged, ["q1"]);
   assert.equal(state.stats.totalFlagged, 1);
+});
+
+// ── Coverage-first draw + difficulty tiering + HARD floor ─────────────────
+
+// Mirrors Tom's imported Claude.ai progress: three seeded-high unseen
+// statements, four seeded-high seen-once, three mastered (seen>=3, 100%).
+function importedState() {
+  const s = A.initialState({});
+  const set = (ts, weight, seen, correct) => {
+    s.weights[ts] = weight;
+    if (seen) s.stats.perTask[ts] = { seen, correct };
+  };
+  set("D2.2", 3.0, 0, 0);
+  set("D4.3", 3.0, 0, 0);
+  set("D4.5", 3.0, 0, 0);
+  set("D1.2", 2.1, 1, 1);
+  set("D3.1", 2.1, 1, 1);
+  set("D5.1", 2.1, 1, 1);
+  set("D5.2", 2.1, 1, 1);
+  set("D1.1", 0.72, 4, 4);
+  set("D1.5", 1.03, 3, 3);
+  set("D2.4", 1.03, 3, 3);
+  return s;
+}
+
+test("coverageOwed lists weight>=2.0 statements not yet seen twice", () => {
+  const owed = new Set(A.coverageOwed(importedState()));
+  assert.deepEqual(
+    [...owed].sort(),
+    ["D1.2", "D2.2", "D3.1", "D4.3", "D4.5", "D5.1", "D5.2"].sort()
+  );
+  // D1.1/D1.5/D2.4 are weight<2 -> never owed regardless of seen.
+  assert.ok(!owed.has("D1.1"));
+});
+
+test("inCoveragePhase is true until every weight>=2 statement reaches seen>=2", () => {
+  const s = importedState();
+  assert.equal(A.inCoveragePhase(s), true);
+  // Force every owed statement to seen>=2.
+  for (const ts of A.coverageOwed(s)) s.stats.perTask[ts] = { seen: 2, correct: 2 };
+  assert.equal(A.inCoveragePhase(s), false);
+});
+
+test("ACCEPTANCE: first coverage draw from the imported state is D4.3", () => {
+  // Least-seen first (the three seen==0), tie broken by effective weight
+  // desc (D4.3 & D4.5 both 3.99), then task-statement id asc -> D4.3.
+  assert.equal(A.drawTaskStatement(importedState(), { rng: rngOf(0.5) }), "D4.3");
+});
+
+test("coverage draw guarantees the three unseen statements before the seen-once ones", () => {
+  const s = importedState();
+  const order = [];
+  for (let i = 0; i < 3; i++) {
+    const ts = A.drawTaskStatement(s, { rng: rngOf(0.5) });
+    order.push(ts);
+    A.applyAnswer(s, { taskStatement: ts, questionId: null, correct: true, at: i, difficulty: "standard" });
+  }
+  assert.deepEqual(order.sort(), ["D2.2", "D4.3", "D4.5"]); // all three unseen, first
+});
+
+test("coverage draw does not place the same statement consecutively", () => {
+  const s = importedState();
+  let prev = null;
+  for (let i = 0; i < 10; i++) {
+    const ts = A.drawTaskStatement(s, { rng: rngOf(0.3) });
+    assert.notEqual(ts, prev, `statement ${ts} repeated at draw ${i}`);
+    A.applyAnswer(s, { taskStatement: ts, questionId: null, correct: true, at: i, difficulty: "standard" });
+    prev = ts;
+  }
+});
+
+test("selection reverts to weighted-random once coverage is satisfied", () => {
+  const s = A.initialState({});
+  // No weight>=2 statement -> not in coverage -> pure weighted random.
+  for (const ts of Object.keys(s.weights)) s.weights[ts] = 0;
+  s.weights["D1.1"] = 1.0; // eff 1.8
+  s.weights["D5.6"] = 1.0; // eff 1.0
+  assert.equal(A.inCoveragePhase(s), false);
+  assert.equal(A.drawTaskStatement(s, { rng: rngOf(0.1) }), "D1.1");
+});
+
+test("drawTaskStatement excludes the on-screen statement so prefetch can't repeat it", () => {
+  // Render-time prefetch draws before the current question is graded; without
+  // excluding it, coverage-first would re-pick the same unseen statement.
+  const s = importedState();
+  const first = A.drawTaskStatement(s, {}); // D4.3
+  assert.equal(first, "D4.3");
+  const next = A.drawTaskStatement(s, { exclude: "D4.3" });
+  assert.notEqual(next, "D4.3"); // a different owed statement
+  assert.ok(A.coverageOwed(s).includes(next));
+});
+
+test("drawTaskStatement ignores exclude when it would empty the pool", () => {
+  const s = importedState();
+  // Collapse coverage to a single owed statement, then exclude it.
+  for (const ts of A.coverageOwed(s)) {
+    if (ts !== "D4.3") s.stats.perTask[ts] = { seen: 2, correct: 2 };
+  }
+  assert.deepEqual(A.coverageOwed(s), ["D4.3"]);
+  assert.equal(A.drawTaskStatement(s, { exclude: "D4.3" }), "D4.3"); // best-effort
+});
+
+test("difficultyFor: unseen is standard, mastered (seen>=3 & 100%) is hard", () => {
+  const s = importedState();
+  assert.equal(A.difficultyFor(s, "D4.3"), "standard"); // seen 0
+  assert.equal(A.difficultyFor(s, "D1.2"), "standard"); // imported seen1, no in-app tier evidence
+  assert.equal(A.difficultyFor(s, "D1.1"), "hard"); // seen4/4
+  assert.equal(A.difficultyFor(s, "D1.5"), "hard"); // seen3/3
+});
+
+test("difficultyFor escalates to hard after one correct in-app standard answer", () => {
+  const s = importedState();
+  assert.equal(A.difficultyFor(s, "D4.3"), "standard");
+  A.applyAnswer(s, { taskStatement: "D4.3", questionId: null, correct: true, at: 1, difficulty: "standard" });
+  assert.equal(A.difficultyFor(s, "D4.3"), "hard"); // second pass after correct standard
+});
+
+test("applyAnswer records the difficulty tier and per-tier counters", () => {
+  const s = A.initialState({});
+  A.applyAnswer(s, { taskStatement: "D4.3", questionId: "q1", correct: true, at: 1, difficulty: "standard" });
+  assert.equal(s.history[0].d, "standard");
+  assert.equal(s.stats.perTask["D4.3"].stdSeen, 1);
+  assert.equal(s.stats.perTask["D4.3"].stdCorrect, 1);
+  A.applyAnswer(s, { taskStatement: "D4.3", questionId: "q2", correct: false, at: 2, difficulty: "hard" });
+  assert.equal(s.history[1].d, "hard");
+  assert.equal(s.stats.perTask["D4.3"].hardSeen, 1);
+  assert.equal(s.stats.perTask["D4.3"].hardCorrect, 0);
+});
+
+test("applyAnswer defaults difficulty to standard when unspecified", () => {
+  const s = A.initialState({});
+  A.applyAnswer(s, { taskStatement: "D4.3", questionId: "q1", correct: true, at: 1 });
+  assert.equal(s.history[0].d, "standard");
+});
+
+test("HARD floor lifts a mastered statement's effective weight to 1.0", () => {
+  const s = importedState();
+  // D1.1 decayed to eff 0.72*1.8 = 1.296 already >1; use a lower one.
+  s.weights["D1.5"] = 0.5; // eff 0.5*1.8 = 0.9 (<1.0), hard-eligible (seen3/3)
+  const eff = A.effectiveWeights(s, {});
+  assert.ok(eff["D1.5"] >= 1.0, `expected floor, got ${eff["D1.5"]}`);
+});
+
+test("HARD floor releases after two hard answers, restoring earned decay", () => {
+  const s = importedState();
+  s.weights["D1.5"] = 0.5;
+  s.stats.perTask["D1.5"] = { seen: 3, correct: 3, hardSeen: 2, hardCorrect: 2 };
+  const eff = A.effectiveWeights(s, {});
+  assert.ok(Math.abs(eff["D1.5"] - 0.9) < 1e-9, `floor should have released, got ${eff["D1.5"]}`);
+});
+
+test("HARD floor never resurrects a coverage-excluded statement", () => {
+  const s = importedState();
+  s.weights["D1.5"] = 0.5;
+  // In coverage phase, only owed statements are available; D1.5 (mastered,
+  // weight<2) must stay at 0 despite being hard-eligible.
+  const eff = A.effectiveWeights(s, { availability: { "D4.3": 1 } });
+  assert.equal(eff["D1.5"], 0);
 });

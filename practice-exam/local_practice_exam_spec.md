@@ -217,6 +217,46 @@ Delivery, scoring, and state effects (shared by both sources):
   at 20). Drill `history` is deliberately untouched — it drives the cooldown
   and would be wiped by 60 batch entries.
 
+## Coverage-first selection and difficulty tiering
+
+Pure weighted-random selection can starve a high-weight statement for many
+questions and, once a learner is answering everything correctly at the base
+difficulty, stops discriminating. Two mechanisms in `adaptive.js` address this;
+both are durable app behavior driven by the persisted state, not session
+context.
+
+**Coverage-first draw.** Before weighted-random runs, `drawTaskStatement`
+checks for statements at weight ≥ 2.0 not yet seen twice (`coverageOwed`).
+While any exist, the draw is restricted to that owed set: strictly least-seen
+first (so never-tested statements lead), effective weight then task-statement
+id as tiebreaks, the standard 5-statement cooldown, and a domain-interleave
+nudge so equal-priority picks don't stack the same domain and telegraph the
+answer category. Only once every weight ≥ 2.0 statement has reached seen ≥ 2
+does selection revert to pure weighted-random. Render-time prefetch draws
+before the on-screen question is graded, so the draw takes an `exclude` for the
+current statement to prevent a back-to-back repeat.
+
+**Difficulty tiering.** `difficultyFor` returns `standard` on a statement's
+first exposure; `hard` once it is mastered — seen ≥ 3 with a perfect record
+(the mastery bar), or after one correct **standard** answer earned in-app (the
+second-pass escalation). Hard questions instruct the generator to make two
+options surface-defensible with the distinction turning on a single exam
+principle (modeled on the exam guide's scoped-verify_fact sample); the
+fabrication guardrail still binds — harder means a sharper principle, never
+invented specifics. Imported correct answers carry no tier tag, so they raise
+the mastery-bar counts but do not by themselves trigger second-pass escalation.
+
+**Conditional hard floor.** A hard-eligible statement's effective weight is
+floored at 1.0 (a floor, not a boost — it lifts only what sits below 1.0 and
+preserves the ordering above) so earned decay cannot suppress the statements
+most in need of stress-testing at the hard tier. The floor releases once the
+statement has answered two hard variants, after which true earned decay
+resumes. It never resurrects a statement excluded by coverage or availability.
+
+**Import.** Weights load from the state file as-is — decays below 1.0 are
+earned evidence and are never re-seeded. If the file omits a statement it
+defaults to 1.0; nothing else is reset.
+
 ## State
 
 One schema everywhere (desktop file, localStorage, exports):
@@ -225,15 +265,22 @@ One schema everywhere (desktop file, localStorage, exports):
 { "version": 1,
   "weights":  { "D1.1": 3.0, "…": 1.0 },
   "stats":    { "totalAnswered": 0, "totalCorrect": 0, "totalFlagged": 0,
-                "perTask": { "D1.1": { "seen": 0, "correct": 0 } } },
-  "history":  [ { "t": "D1.2", "q": "D1.2-a3f9c2b1", "c": true, "at": 0 } ],
+                "perTask": { "D1.1": { "seen": 0, "correct": 0,
+                                       "stdSeen": 0, "stdCorrect": 0,
+                                       "hardSeen": 0, "hardCorrect": 0 } } },
+  "history":  [ { "t": "D1.2", "q": "D1.2-a3f9c2b1", "c": true, "at": 0, "d": "standard" } ],
   "seen":     { "<questionId>": 0 },
   "flagged":  [ "<questionId>" ],
   "examHistory": [ { "at": 0, "correct": 42, "total": 60, "scaled": 730 } ] }
 ```
 
-`history` keeps the last 50 answers and drives the 5-statement cooldown.
-Import validates the version and task-statement keys and never destroys
+`history` keeps the last 50 answers and drives the 5-statement cooldown; each
+entry's `d` records the difficulty tier it was earned at, so an exported /
+re-imported record is unambiguous about which tier a streak came from. The
+per-tier `perTask` counters (`stdSeen`/`stdCorrect`/`hardSeen`/`hardCorrect`)
+drive difficulty escalation and the floor release and survive history trimming;
+imported entries carry only `seen`/`correct` and the tier counters default to
+0. Import validates the version and task-statement keys and never destroys
 existing state on a bad file. Reset restores the seed; the **Blank slate**
 button sets every weight to 1.0 without touching accuracy history (use #2 of
 the seed configuration, no code edit required).

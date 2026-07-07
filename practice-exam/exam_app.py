@@ -63,11 +63,14 @@ class ExamApi:
             "progressPath": str(PROGRESS_PATH),
         }
 
-    def generate(self, task_statement, extra_avoid=None, scenario_type=None):
+    def generate(self, task_statement, extra_avoid=None, scenario_type=None,
+                 difficulty="standard"):
         """extra_avoid: summaries of questions generated earlier in the same
         exam form for this statement, so streamed form generation doesn't
         produce within-form near-duplicates. scenario_type pins one of
-        exam_lib.SCENARIO_TYPES for variety; drill mode omits both."""
+        exam_lib.SCENARIO_TYPES for variety; difficulty selects the standard or
+        hard tier (the page decides it from adaptive state). Drill mode omits
+        scenario_type and passes the tier."""
         try:
             bank = exam_lib.load_bank()
             avoid = [
@@ -81,7 +84,10 @@ class ExamApi:
                 avoid.append(summary)
             return {
                 "question": exam_lib.generate_question(
-                    task_statement, avoid=avoid, scenario_type=scenario_type
+                    task_statement,
+                    avoid=avoid,
+                    scenario_type=scenario_type,
+                    difficulty=difficulty or "standard",
                 )
             }
         except Exception as err:  # surfaced to the page as a friendly error

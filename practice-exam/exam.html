@@ -464,15 +464,24 @@ function makeBridgeStorageBackend(bridge) {
    reveal), so the next question targets the freshest weights and cooldown. */
 function makeClaudeGenerator(bridge) {
   let pending = null;
-  async function generateFor(ts, extraAvoid) {
-    const res = await bridge.generate(ts, extraAvoid || []);
+  async function generateFor(ts, extraAvoid, difficulty) {
+    const tier = difficulty === "hard" ? "hard" : "standard";
+    const res = await bridge.generate(ts, extraAvoid || [], null, tier);
     if (res.error) throw new Error(res.detail || res.error);
-    return res.question;
+    const question = res.question;
+    question.difficulty = tier; // stamp the tier so submitAnswer can log it
+    return question;
   }
   async function generateOne() {
-    const ts = A.drawTaskStatement(app.state, {});
+    // Exclude the on-screen statement: prefetch runs before it is graded, so
+    // without this coverage-first could draw the same statement again and show
+    // it twice in a row.
+    const exclude = app.current ? app.current.taskStatement : null;
+    const ts = A.drawTaskStatement(app.state, { exclude });
     if (!ts) throw new Error("no task statement available to draw");
-    return generateFor(ts, []);
+    // Coverage-first (drawTaskStatement) chooses the statement; difficultyFor
+    // chooses the tier from the same adaptive state.
+    return generateFor(ts, [], A.difficultyFor(app.state, ts));
   }
   return {
     generateFor, // used by streamed exam-form generation
@@ -1096,12 +1105,15 @@ async function submitAnswer() {
   const question = app.current;
   const correct = app.selected === question.correct;
   const prevWeight = app.state.weights[question.taskStatement];
+  // Bank questions are standard tier; generated ones carry their stamped tier.
+  const difficulty = question.difficulty === "hard" ? "hard" : "standard";
   const answer = {
     taskStatement: question.taskStatement,
     questionId: question.id || null,
     correct,
     at: Date.now(),
     prevWeight,
+    difficulty,
   };
   A.applyAnswer(app.state, answer);
   app.lastAnswer = answer;
@@ -1119,9 +1131,10 @@ async function submitAnswer() {
   feedback.replaceChildren();
   const verdict = document.createElement("div");
   verdict.className = `verdict ${correct ? "good" : "bad"}`;
-  verdict.textContent = correct
-    ? "Correct."
-    : `Incorrect — the right answer is ${question.correct}.`;
+  const tierSuffix = difficulty === "hard" ? "  ·  HARD variant" : "";
+  verdict.textContent =
+    (correct ? "Correct." : `Incorrect — the right answer is ${question.correct}.`) +
+    tierSuffix;
   feedback.appendChild(verdict);
   for (const key of ["A", "B", "C", "D"]) {
     const line = document.createElement("div");

@@ -75,6 +75,34 @@ def test_build_prompt_rejects_unknown_scenario_type():
         exam_lib.build_prompt("D1.4", scenario_type="Space Exploration")
 
 
+def test_build_prompt_adds_hard_instructions_only_for_hard_difficulty():
+    hard = exam_lib.build_prompt("D1.4", difficulty="hard")
+    standard = exam_lib.build_prompt("D1.4", difficulty="standard")
+    default = exam_lib.build_prompt("D1.4")
+    assert "HARD" in hard and "two" in hard  # two defensible options
+    assert "single exam principle" in hard
+    assert "HARD" not in standard
+    assert standard == default  # standard is the unmarked default
+    # The fabrication guardrail must persist at the hard tier.
+    assert "NOT to invent specific technical facts" in hard
+
+
+def test_build_prompt_rejects_unknown_difficulty():
+    with pytest.raises(ValueError):
+        exam_lib.build_prompt("D1.4", difficulty="brutal")
+
+
+def test_generate_question_passes_difficulty_to_prompt(monkeypatch):
+    seen = {}
+
+    def fake_run(prompt):
+        seen["prompt"] = prompt
+        return {"structured_output": make_candidate("D1.4")}
+
+    exam_lib.generate_question("D1.4", run=fake_run, difficulty="hard")
+    assert "HARD" in seen["prompt"]
+
+
 def test_build_prompt_includes_avoid_list_only_when_given():
     existing = exam_lib.summarize_for_avoid(
         {
@@ -336,18 +364,34 @@ def test_health_reports_claude_availability_and_scenario_types(exam_app, monkeyp
 def test_generate_passes_scenario_type_through(exam_app, monkeypatch):
     calls = {}
 
-    def fake_generate(ts, avoid=None, scenario_type=None):
+    def fake_generate(ts, avoid=None, scenario_type=None, difficulty="standard"):
         calls["ts"] = ts
         calls["scenario_type"] = scenario_type
+        calls["difficulty"] = difficulty
         return make_candidate(ts)
 
     monkeypatch.setattr(exam_app.exam_lib, "generate_question", fake_generate)
     result = exam_app.ExamApi().generate("D2.4", [], "Structured Data Extraction")
     assert "question" in result
-    assert calls == {"ts": "D2.4", "scenario_type": "Structured Data Extraction"}
+    assert calls["ts"] == "D2.4"
+    assert calls["scenario_type"] == "Structured Data Extraction"
     # scenario_type stays optional — drill mode calls with one argument
     exam_app.ExamApi().generate("D2.4")
     assert calls["scenario_type"] is None
+
+
+def test_generate_passes_difficulty_through(exam_app, monkeypatch):
+    calls = {}
+
+    def fake_generate(ts, avoid=None, scenario_type=None, difficulty="standard"):
+        calls["difficulty"] = difficulty
+        return make_candidate(ts)
+
+    monkeypatch.setattr(exam_app.exam_lib, "generate_question", fake_generate)
+    exam_app.ExamApi().generate("D1.1", [], None, "hard")
+    assert calls["difficulty"] == "hard"
+    exam_app.ExamApi().generate("D1.1")  # defaults to standard
+    assert calls["difficulty"] == "standard"
 
 
 def test_generate_wraps_success(exam_app, monkeypatch):
@@ -355,7 +399,7 @@ def test_generate_wraps_success(exam_app, monkeypatch):
     monkeypatch.setattr(
         exam_app.exam_lib,
         "generate_question",
-        lambda ts, avoid=None, scenario_type=None: candidate,
+        lambda ts, avoid=None, scenario_type=None, difficulty="standard": candidate,
     )
     assert exam_app.ExamApi().generate("D5.1") == {"question": candidate}
 
@@ -363,7 +407,7 @@ def test_generate_wraps_success(exam_app, monkeypatch):
 def test_generate_appends_extra_avoid_to_bank_summaries(exam_app, monkeypatch):
     captured = {}
 
-    def fake_generate(ts, avoid=None, scenario_type=None):
+    def fake_generate(ts, avoid=None, scenario_type=None, difficulty="standard"):
         captured["avoid"] = avoid
         return make_candidate(ts)
 
@@ -376,14 +420,16 @@ def test_generate_appends_extra_avoid_to_bank_summaries(exam_app, monkeypatch):
 
 def test_generate_rejects_non_string_extra_avoid(exam_app, monkeypatch):
     monkeypatch.setattr(
-        exam_app.exam_lib, "generate_question", lambda ts, avoid=None: make_candidate(ts)
+        exam_app.exam_lib,
+        "generate_question",
+        lambda ts, avoid=None, scenario_type=None, difficulty="standard": make_candidate(ts),
     )
     result = exam_app.ExamApi().generate("D1.2", [{"not": "a string"}])
     assert "error" in result
 
 
 def test_generate_wraps_errors_instead_of_raising(exam_app, monkeypatch):
-    def boom(ts, avoid=None, scenario_type=None):
+    def boom(ts, avoid=None, scenario_type=None, difficulty="standard"):
         raise exam_lib.GenerationError("still not valid JSON")
 
     monkeypatch.setattr(exam_app.exam_lib, "generate_question", boom)

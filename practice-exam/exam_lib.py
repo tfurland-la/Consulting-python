@@ -324,12 +324,34 @@ def summarize_for_avoid(question):
     )
 
 
+DIFFICULTIES = ("standard", "hard")
+
+# HARD tier: sharpen the principle distinction, never lean on invented specifics
+# (the fabrication guardrail below still binds). Modeled on the exam guide's
+# hardest sample (Q9, scoped verify_fact): two surface-plausible options where
+# the decision turns on one exam principle.
+HARD_DIFFICULTY_INSTRUCTIONS = (
+    "- Make this a HARD question. At least TWO of the four options must be "
+    "defensible on the surface to a partially-knowledgeable candidate; the "
+    "distinction between the best answer and the strongest distractor must turn "
+    "on a single exam principle (e.g., programmatic enforcement vs. "
+    "probabilistic compliance, root-cause fix vs. proportionate first step, "
+    "least privilege, the exam-guide framing of the 'most effective FIRST "
+    "step'). Model the option style on the official guide's scoped verify_fact "
+    "question: plausible near-miss distractors, not obviously-wrong ones. "
+    "Harder means a sharper principle distinction, NOT reliance on invented "
+    "technical specifics.\n"
+)
+
+
 def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
-                 scenario_type=None):
+                 scenario_type=None, difficulty="standard"):
     if task_statement not in TASK_STATEMENTS:
         raise ValueError(f"unknown task statement: {task_statement!r}")
     if scenario_type is not None and scenario_type not in SCENARIO_TYPES:
         raise ValueError(f"unknown scenario type: {scenario_type!r}")
+    if difficulty not in DIFFICULTIES:
+        raise ValueError(f"unknown difficulty: {difficulty!r}")
     domain = task_statement.split(".")[0]
     if bank is None:
         bank = load_bank()
@@ -357,6 +379,7 @@ def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
             "prefer a correct-answer letter that is not already "
             "over-represented in the summaries:\n" + listing + "\n\n"
         )
+    difficulty_block = HARD_DIFFICULTY_INSTRUCTIONS if difficulty == "hard" else ""
     prompt = PROMPT_PATH.read_text(encoding="utf-8")
     for placeholder, value in (
         ("{{TASK_ID}}", task_statement),
@@ -365,6 +388,7 @@ def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
         ("{{DOMAIN_LABEL}}", DOMAINS[domain]),
         ("{{FEW_SHOT_EXAMPLES}}", _few_shot_block(bank)),
         ("{{SCENARIO_TYPE}}", scenario_block),
+        ("{{DIFFICULTY}}", difficulty_block),
         ("{{AVOID}}", avoid_block),
         ("{{RETRY_FEEDBACK}}", retry_block),
     ):
@@ -431,15 +455,16 @@ def run_claude(prompt):
     return json.loads(completed.stdout)
 
 
-def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=None):
+def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=None,
+                      difficulty="standard"):
     """Generate and validate one question; retry once with error feedback.
 
     The retry-with-error-feedback loop is the exam's own D4.4 pattern applied
     to this tool. ClaudeUnavailableError propagates immediately — a missing
     CLI will not fix itself on retry. `avoid` lists summaries of existing
-    questions for the task statement (see summarize_for_avoid) and
-    `scenario_type` pins one of SCENARIO_TYPES, so repeated generations
-    diversify instead of converging on one template.
+    questions for the task statement (see summarize_for_avoid), `scenario_type`
+    pins one of SCENARIO_TYPES, and `difficulty` selects the standard or hard
+    question tier — so repeated generations diversify instead of converging.
     """
     if task_statement not in TASK_STATEMENTS:
         raise ValueError(f"unknown task statement: {task_statement!r}")
@@ -452,6 +477,7 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
             bank=bank,
             avoid=avoid,
             scenario_type=scenario_type,
+            difficulty=difficulty,
         )
         try:
             candidate = extract_candidate(run(prompt))
