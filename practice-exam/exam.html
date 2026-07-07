@@ -448,8 +448,9 @@ function makeMemoryBackend() {
   };
 }
 
-/* Desktop app: progress lives in practice-exam/exam_progress.json via the
-   pywebview bridge instead of browser storage. */
+/* Desktop app: progress persists through the pywebview bridge instead of
+   browser storage. The bridge decides the actual file location (repo checkout
+   vs. packaged app's user-data dir) and reports it via health().progressPath. */
 function makeBridgeStorageBackend(bridge) {
   return {
     kind: "file",
@@ -500,6 +501,7 @@ const app = {
   answeredThisSession: 0,
   firstQuestionServed: false, // session's first question comes from the bank
   exam: null,        // {form, index, answers, deadline, timerId} while a timed exam runs
+  progressPath: null, // absolute path the desktop bridge writes progress to
 };
 
 function validateImportedState(candidate) {
@@ -1213,9 +1215,12 @@ function renderDashboard() {
 /* ── Data controls ──────────────────────────────────────────────────── */
 function exportProgress() {
   if (app.storage.kind === "file") {
-    // Desktop app: the progress file on disk already IS the export.
+    // Desktop app: the progress file on disk already IS the export. Name the
+    // real path the bridge reported (the packaged app writes to a user-data
+    // directory, not the repo).
+    const path = app.progressPath || "the app's progress file";
     alert(
-      "Your progress is already a plain file: practice-exam/exam_progress.json.\n" +
+      `Your progress is already a plain file:\n${path}\n\n` +
       "Copy that file to move or back up your progress."
     );
     return;
@@ -1291,12 +1296,23 @@ function renderModeBadge() {
    in-flight load. Without the fragment (plain page), init proceeds
    immediately and watchForBridge remains as a defensive upgrade path. */
 async function enableBridge(bridge) {
+  // Ask the bridge where it actually writes progress (differs between the
+  // repo checkout and the packaged app) so the UI can name the real path.
+  let health = null;
+  try {
+    health = await bridge.health();
+  } catch {
+    health = null;
+  }
+  app.progressPath = (health && health.progressPath) || null;
+  const progressLabel = app.progressPath || "the app's progress file";
+
   // Upgrade-path guard: if the user already answered this session (only
   // possible via the hash-less fallback), keep the in-memory state — adding
   // the generator is safe, swapping storage lineages mid-session is not.
   if (app.answeredThisSession === 0) {
     app.storage = makeBridgeStorageBackend(bridge);
-    el("storage-note").textContent = "Progress file: practice-exam/exam_progress.json";
+    el("storage-note").textContent = `Progress file: ${progressLabel}`;
     el("storage-note").classList.remove("alert");
     try {
       const stored = await app.storage.load();
@@ -1312,8 +1328,7 @@ async function enableBridge(bridge) {
     }
   }
   try {
-    const health = await bridge.health();
-    if (health.claude === "available") {
+    if (health && health.claude === "available") {
       app.generator = makeClaudeGenerator(bridge);
       app.bridge = bridge; // raw bridge: fresh-exam generation calls it directly
       app.scenarioTypes = health.scenarioTypes || [];

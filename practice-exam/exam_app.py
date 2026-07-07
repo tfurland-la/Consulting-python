@@ -60,6 +60,7 @@ class ExamApi:
             "ok": True,
             "claude": "available" if available else "missing",
             "scenarioTypes": list(exam_lib.SCENARIO_TYPES),
+            "progressPath": str(PROGRESS_PATH),
         }
 
     def generate(self, task_statement, extra_avoid=None, scenario_type=None):

@@ -328,6 +328,7 @@ def test_health_reports_claude_availability_and_scenario_types(exam_app, monkeyp
     assert healthy["ok"] is True
     assert healthy["claude"] == "available"
     assert healthy["scenarioTypes"] == list(exam_lib.SCENARIO_TYPES)
+    assert healthy["progressPath"] == str(exam_app.PROGRESS_PATH)
     monkeypatch.setattr(exam_app.exam_lib, "find_claude", lambda: None)
     assert exam_app.ExamApi().health()["claude"] == "missing"
 
