@@ -417,6 +417,18 @@ Requirements:
 - A brief "how this works" panel in the UI explaining the adaptive behaviour:
   questions are generated and weighted toward task statements you miss, progress
   persists across sessions, and the dashboard shows current weak spots.
+- A "when to flag" note (in that panel, or near the flag control) giving the
+  three signs a generated question is flawed and should be flagged rather than
+  answered: (1) invented specifics — a flag, environment variable, or config
+  behaviour not in the CCA-F exam guide or course (e.g. `--non-interactive`
+  when the documented flag is `-p`/`--print`); (2) two defensible answers —
+  another option still looks correct and the explanation against it rests on a
+  preference or an unverifiable caveat, not a real correctness gap; (3) an
+  outdated pattern as the marked answer — a superseded mechanism (e.g.
+  `CLAUDE.local.md` when home-directory imports via `@~/.claude/` paths are
+  current). State that flagging fully discards the question — weights, accuracy,
+  and history untouched, as if it never appeared — and "when in doubt, flag."
+  Flags are local to the user; do not add or imply any upstream reporting.
 - Visual polish: clear correct/incorrect states (green/red), readable typography
   for long study sessions, a clean dashboard, responsive layout.
 - Graceful empty/error states: first-run with no history, storage unavailable,

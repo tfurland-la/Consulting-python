@@ -322,6 +322,37 @@ accidentally.
 
 ---
 
+## When to flag a question
+
+The flag control exists so a flawed generated question doesn't corrupt your
+adaptive weights. Nothing else tells you a question is flawed, so recognizing
+one is a skill worth transferring. Flag a question — don't count it — when you
+see any of these:
+
+1. **Invented specifics.** The marked-correct answer or an explanation relies
+   on a flag, environment variable, configuration behavior, or API constraint
+   you cannot find in the CCA-F exam guide or the course material. (Real
+   example: a question that marked `--non-interactive` correct when the
+   documented flag is `-p`/`--print`.)
+2. **Two defensible answers.** After reading the explanations, a second option
+   still seems correct and the explanation against it relies on a preference or
+   an unverifiable caveat rather than a real correctness gap. (Real example: an
+   explanation dismissing a valid fix with "availability depends on deployment
+   configuration" — a caveat grounded in nothing.)
+3. **Outdated pattern as the answer.** The marked-correct answer recommends a
+   mechanism that works but has been superseded by a current best practice.
+   (Real example: `CLAUDE.local.md` marked correct when home-directory imports
+   via `@~/.claude/` paths are the current pattern.)
+
+Flagging fully discards the question — weights, accuracy, and history are
+untouched, as if it never appeared. Flagging protects your own data: a bad
+question left un-flagged teaches the adaptive engine the wrong thing about your
+weak areas, and it will drill you accordingly. When in doubt, flag — a
+discarded good question costs one question; an absorbed bad one distorts your
+practice.
+
+---
+
 ## Seeding options for colleagues (design for reuse)
 
 The tool is built so a colleague can take it and make it their own with minimal

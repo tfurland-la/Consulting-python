@@ -98,6 +98,11 @@ top of the generated artifact. Edit it to keep the author's known weak areas, re
 everything to 1.0 for a blank slate, or set your own. The design rationale is in
 [`practice-exam/practice_exam_spec.md`][exam-spec].
 
+If a generated question looks wrong, flag it so it can't skew your weights — see
+[When to flag a question](practice-exam/practice_exam_spec.md#when-to-flag-a-question)
+for the three tells (invented specifics, two defensible answers, an outdated
+pattern as the answer); flagging fully discards the question.
+
 **Which to use, and when.** The two are stages of one progression. The artifact
 is the on-ramp — zero-friction, weighted-random discovery — best for your first
 30–50 questions while weights are still forming. Move to the local app once you

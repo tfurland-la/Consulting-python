@@ -405,6 +405,29 @@ const CCAF_SEED = {
         reviewed bank in <code>questions.js</code> instead.</p>
       </details>
     </div>
+
+    <div class="card">
+      <details class="how">
+        <summary>When to flag a question</summary>
+        <p>Flag — don't count — a generated question that looks flawed, so it
+        can't skew your weights:</p>
+        <ul>
+          <li><strong>Invented specifics</strong> — the correct answer or an
+          explanation leans on a flag, environment variable, or config
+          behaviour you can't find in the exam guide or course (e.g.
+          <code>--non-interactive</code> when the real flag is <code>-p</code>).</li>
+          <li><strong>Two defensible answers</strong> — another option still
+          looks right and the case against it rests on a preference or an
+          unverifiable caveat, not a real correctness gap.</li>
+          <li><strong>Outdated pattern as the answer</strong> — the "correct"
+          option recommends a superseded mechanism (e.g. <code>CLAUDE.local.md</code>
+          when <code>@~/.claude/</code> imports are current practice).</li>
+        </ul>
+        <p>Flagging fully discards the question — weights, accuracy, and history
+        stay as if it never appeared. When in doubt, flag: a discarded good
+        question costs one question; an absorbed bad one distorts your practice.</p>
+      </details>
+    </div>
   </aside>
 </div>
 
