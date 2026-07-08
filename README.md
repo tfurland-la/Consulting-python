@@ -60,13 +60,16 @@ file. Without the Claude Code CLI the app still works, drawing from the reviewed
 question bank instead. You can also open [`practice-exam/exam.html`][exam-live]
 directly (or on the live site) with zero setup — bank questions, progress in
 browser storage. Either way, a **Timed exam** mode runs a full 60-question,
-120-minute simulation with the real exam's domain weighting and an approximate
-scaled score against the 720 passing bar — from the bank instantly, or (in the
-desktop app) with **fresh questions generated live** so no two exams repeat:
-the exam starts once the first ten are ready and the rest generate in the
-background while you work. To grow the question bank, run the
-committed `/exam-refill` skill in Claude Code — it walks the
-generate → screen → review → merge pipeline. Design details:
+120-minute simulation matching the real exam's domain weighting (27/18/20/20/15)
+and its 4-of-6 scenario structure, with backward navigation, an end-of-test
+review screen, and an approximate scaled score against the 720 bar. In the
+desktop app, **fresh questions generated live** carry the exam's difficulty
+spread — mostly mid, a quarter harder, a ~15% hard tail — making it the faithful
+readiness gate; the bank exam is instant but a standard-difficulty approximation
+that runs easier. (That difficulty is calibrated to the exam guide's sample
+questions — an inference to recalibrate after a real sitting; see the spec.) To
+grow the question bank, run the committed `/exam-refill` skill in Claude Code —
+it walks the generate → screen → review → merge pipeline. Design details:
 [`practice-exam/local_practice_exam_spec.md`][local-spec].
 
 Prefer a double-clickable app? Build one from the committed spec (binaries are
