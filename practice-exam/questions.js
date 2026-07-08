@@ -2321,15 +2321,15 @@ window.CCAF_BANK = [
     "scenario": "A multi-agent research system investigates a technology policy question over many hours. A coordinator agent delegates to a rotating pool of web-search and document-analysis subagents, each returning findings that the coordinator folds into a running research log before spawning the next subagent. Partway through, the engineering team notices the coordinator's context window is approaching its limit, so they configure automatic conversation compaction to summarize older turns once a token threshold is hit.\n\nAfter compaction runs for the first time, the synthesis agent produces a final report that contradicts an early methodological constraint the user specified at the very start of the session (\"exclude any sources published before 2020\"). Investigation shows the constraint was stated once in an early turn and never restated, and compaction's summary of that turn dropped it while preserving later, less critical search results.",
     "question": "What is the most effective way to prevent this class of failure going forward?",
     "options": {
-      "A": "Extract critical constraints like this one into a structured, persistent artifact (e.g., a standing research-brief section) that is carried forward verbatim and excluded from summarization, rather than relying on generic compaction to retain it.",
-      "B": "Increase the token threshold at which compaction triggers so it runs less frequently.",
+      "A": "Increase the token threshold at which compaction triggers so it runs less frequently.",
+      "B": "Extract critical constraints like this one into a structured, persistent artifact (e.g., a standing research-brief section) that is carried forward verbatim and excluded from summarization, rather than relying on generic compaction to retain it.",
       "C": "Instruct the coordinator's system prompt to \"pay close attention to constraints stated early in the conversation\" so compaction weighs them more heavily.",
       "D": "Disable compaction entirely and let the coordinator operate with the full, uncompacted conversation history for the remainder of the session."
     },
-    "correct": "A",
+    "correct": "B",
     "explanations": {
-      "A": "Correct. Generic summarization cannot reliably distinguish a business-critical constraint from incidental detail. Pulling critical facts into a separate, structured record that persists outside the summarization process guarantees they survive regardless of how compaction handles the rest of the conversation.",
-      "B": "Delays the failure rather than fixing it - compaction will still eventually run and can still drop the same unflagged constraint, and in the meantime the context window risks overflowing.",
+      "A": "Delays the failure rather than fixing it - compaction will still eventually run and can still drop the same unflagged constraint, and in the meantime the context window risks overflowing.",
+      "B": "Correct. Generic summarization cannot reliably distinguish a business-critical constraint from incidental detail. Pulling critical facts into a separate, structured record that persists outside the summarization process guarantees they survive regardless of how compaction handles the rest of the conversation.",
       "C": "Relies on probabilistic compliance from a summarization step to correctly prioritize information it has no structural way of knowing is critical - the same class of unreliable fix as trusting prompt wording for enforcement.",
       "D": "Trades one failure mode for another; without compaction the session will eventually exceed the context window, which is the original problem the team was trying to solve."
     },
@@ -2339,7 +2339,7 @@ window.CCAF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-e13cac0a"
+    "id": "D5.1-c68474ff"
   },
   {
     "taskStatement": "D5.4",
@@ -2659,16 +2659,16 @@ window.CCAF_BANK = [
     "scenario": "A customer support agent handles long multi-issue conversations. Each order lookup returns a record with more than 40 fields (shipping history, warehouse codes, internal flags), of which only a handful matter for the customer's return question. After several lookups, sessions degrade: the agent starts losing track of amounts and dates the customer stated earlier, and context usage balloons.",
     "question": "Which change most directly addresses the degradation?",
     "options": {
-      "A": "Trim each tool result to only the fields relevant to the current issue before it enters conversation context, so lookups stop consuming tokens disproportionate to their relevance.",
+      "A": "Instruct the agent to re-ask the customer for amounts and dates whenever it is unsure.",
       "B": "Switch to a model with a larger context window so the full records fit comfortably.",
-      "C": "Instruct the agent to re-ask the customer for amounts and dates whenever it is unsure.",
+      "C": "Trim each tool result to only the fields relevant to the current issue before it enters conversation context, so lookups stop consuming tokens disproportionate to their relevance.",
       "D": "Reduce the number of order lookups the agent is allowed to make per conversation."
     },
-    "correct": "A",
+    "correct": "C",
     "explanations": {
-      "A": "Correct. Verbose tool results accumulate in context and consume tokens far out of proportion to their relevance; trimming to the relevant fields stops the accumulation at its source and preserves room for the facts the customer actually stated.",
+      "A": "Pushes the cost of context mismanagement onto the customer and erodes trust; the stated amounts were already in the conversation.",
       "B": "A larger window delays the ceiling but does not fix disproportionate accumulation, and recall issues on long inputs remain.",
-      "C": "Pushes the cost of context mismanagement onto the customer and erodes trust; the stated amounts were already in the conversation.",
+      "C": "Correct. Verbose tool results accumulate in context and consume tokens far out of proportion to their relevance; trimming to the relevant fields stops the accumulation at its source and preserves room for the facts the customer actually stated.",
       "D": "Caps a legitimate capability instead of fixing the waste per lookup - the agent may need every one of those lookups in a multi-issue session."
     },
     "provenance": {
@@ -2677,6 +2677,6 @@ window.CCAF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-d8169ff7"
+    "id": "D5.1-bedacc6e"
   }
 ];
