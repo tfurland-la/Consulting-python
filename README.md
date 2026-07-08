@@ -46,9 +46,11 @@ future questions toward the areas where you are weakest. Performance persists
 across sessions. Two ways to run it:
 
 **Local desktop app (recommended).** Runs on your machine with no API key — question
-generation goes through your own authenticated Claude Code CLI:
+generation goes through your own authenticated Claude Code CLI. Run these from the
+repository root (the paths are relative to it):
 
 ```
+cd Consulting-python
 pip install pywebview
 python3 practice-exam/exam_app.py
 ```
@@ -68,10 +70,11 @@ generate → screen → review → merge pipeline. Design details:
 [`practice-exam/local_practice_exam_spec.md`][local-spec].
 
 Prefer a double-clickable app? Build one from the committed spec (binaries are
-not checked in):
+not checked in). Again from the repository root, using the project venv:
 
 ```
-.venv/bin/pip install pyinstaller
+cd Consulting-python
+.venv/bin/pip install pyinstaller   # first build only; skip if already installed
 .venv/bin/pyinstaller practice-exam/exam_app.spec --noconfirm \
     --distpath practice-exam/dist --workpath practice-exam/build
 ```
