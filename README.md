@@ -101,8 +101,9 @@ is the on-ramp — zero-friction, weighted-random discovery — best for your fi
 see perfect standard-difficulty streaks and high-weight statements the random
 draw keeps missing: it adds coverage-first selection and difficulty tiering. The
 handoff carries earned weights via a progress export into the local app's
-`exam_progress.json` — an affordance that's still in progress, so for now
-artifact users switching over begin from seed weights.
+`exam_progress.json` — shipped in the build prompt (Phase 5), so an artifact
+built or rebuilt from the current prompt exports; one built earlier must be
+rebuilt to gain it.
 
 ## Preparation Exercises
 

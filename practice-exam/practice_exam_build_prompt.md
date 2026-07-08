@@ -426,6 +426,76 @@ Requirements:
 Build Phase 4. Then give me a short summary of how to use the tool day to day
 and how a colleague would fork and reseed it.
 
+---
+
+## PHASE 5 — Export progress for the companion CLI app
+
+Add an export so a user can move their progress into the companion local CLI
+app, which imports the same JSON state format. This is purely additive — do
+NOT change any existing selection, scoring, flag, or persistence behaviour.
+Export only reads the stored state and serializes it.
+
+Requirements:
+- Add an "Export progress" control to the dashboard area.
+- On click, serialize the current stored state to a JSON object in EXACTLY
+  this schema (key order not significant, shape is):
+
+  {
+    "version": 1,
+    "weights": { "<taskStatement>": <number>, ... all 30 statements ... },
+    "stats": {
+      "totalAnswered": <number>,
+      "totalCorrect": <number>,
+      "totalFlagged": <number>,
+      "perTask": { "<taskStatement>": { "seen": <n>, "correct": <n> }, ... }
+    },
+    "history": [ { "t": "<taskStatement>", "q": <questionId or null>,
+                   "c": <boolean>, "at": <epoch ms> }, ... ],
+    "seen": { "<questionId>": <epoch ms>, ... },
+    "flagged": [ <questionIds> ],
+    "examHistory": []
+  }
+
+- Field mapping from this tool's storage:
+  - `weights` ← `ccaf:weights` directly. Include ALL 30 task statements even if
+    unseen (export their current stored weight; seeded statements always have
+    one).
+  - `stats` ← `ccaf:stats` directly (totalAnswered, totalCorrect, totalFlagged,
+    and perTask {seen, correct}).
+  - `history` ← `ccaf:history`, mapping each entry to
+    {t: taskStatement, q: null, c: correct, at: timestamp}. This tool's history
+    entries carry no question ID (questions are generated, not banked), so `q`
+    is ALWAYS null — the importer accepts null.
+  - `seen` ← `{}`. This tool tracks repeat-prevention by task statement via
+    history, not a per-question seen map, so there are no question IDs to
+    export. Emit an empty object.
+  - `flagged` ← `[]`. This tool tracks flagged-as-flawed only as the
+    `totalFlagged` counter (flagged questions are discarded, not stored by ID),
+    so there are no IDs to list. Keep `totalFlagged` accurate in `stats`; emit
+    an empty array here.
+  - `examHistory` ← `[]` always. Timed exam mode belongs to the companion app,
+    not this tool.
+
+- Presentation: render the JSON in a copyable code block inside a modal or
+  expandable panel, with a "Copy to clipboard" button (use the clipboard API;
+  wrap in try/catch and fall back to selecting the text if it fails). Do NOT
+  attempt a file download — clipboard copy into a file the user saves as
+  `exam_progress.json` is the reliable path in this environment. Show this
+  one-line instruction above the JSON:
+  "Save this as exam_progress.json and import it into the CLI app."
+
+- Validation before display — a colleague debugging a bad import with no error
+  context is the failure mode to avoid, so if the serialized object fails any
+  check, show the error message in the panel INSTEAD of malformed JSON:
+  - all 30 task statements present as keys in `weights`;
+  - `stats.totalAnswered` equals the sum of `perTask[*].seen`, and
+    `stats.totalCorrect` equals the sum of `perTask[*].correct`;
+  - every `history` entry has a task-statement `t`, boolean `c`, numeric `at`,
+    and `q` null-or-string.
+
+Build Phase 5 only. Then show me the exported JSON from your current state and
+tell me how to test the Copy-to-clipboard flow.
+
 ## END OF PROMPT
 
 ---

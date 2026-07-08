@@ -48,10 +48,12 @@ the random draw keeps failing to land on; the local app answers both with
 coverage-first selection and difficulty tiering, plus a conditional floor so
 earned decay can't suppress the statements you most need to stress-test. The
 handoff is a progress export from the artifact into the local app's
-`exam_progress.json` format, so earned weights carry across instead of resetting
-— though **that export affordance is still in progress**, so until it ships an
-artifact user moving to the local app starts from seed weights rather than
-earned state. The variants differ by design, not drift.
+`exam_progress.json` format, so earned weights carry across instead of resetting.
+That export ships in the artifact build prompt (Phase 5); an artifact built or
+rebuilt from the current prompt has it, while an artifact built before Phase 5
+must be rebuilt (or have the Phase 5 block pasted in) to gain it — until then
+its users start from seed weights rather than earned state. The variants differ
+by design, not drift.
 
 ---
 
@@ -358,9 +360,11 @@ Status of the items gating a broad share (as of this revision):
   103-question local bank (commit `d3c62e9`): the question with a backwards
   correct answer was removed and the fabrication-propped explanations reworked,
   and all 103 entries are marked reviewed. Verify no regression before sharing.
-- **Artifact export-to-JSON bridge — in progress.** So artifact users can carry
-  earned weights into the local app's `exam_progress.json` rather than
-  restarting from seed weights.
+- **Artifact export-to-JSON bridge — done (in the build prompt).** Phase 5 of
+  `practice_exam_build_prompt.md` adds the export that serializes progress to
+  the local app's `exam_progress.json` format. Artifacts built or rebuilt from
+  the current prompt have it; artifacts built earlier must be rebuilt to gain
+  it.
 - **Artifact coverage-first port — planned.** Coverage-first selection only;
   difficulty tiering intentionally stays local-app-only, per the two-stage
   design in "Which variant to use" above.
