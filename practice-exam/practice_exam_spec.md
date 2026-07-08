@@ -4,7 +4,10 @@
 > artifact variant. A local variant — desktop app, no API key, questions via
 > your own Claude Code CLI — is specified in
 > [`local_practice_exam_spec.md`](local_practice_exam_spec.md) and shares this
-> document's exam model and adaptive logic.
+> document's exam model and base adaptive logic (weight multipliers, domain
+> overlay, cooldown). The local variant additionally layers coverage-first
+> selection and difficulty tiering on top; the artifact variant specified here
+> uses weighted-random selection at a single difficulty.
 
 This document specifies an adaptive practice exam tool for the Claude Certified
 Architect – Foundations (CCA-F) exam. It is the durable reference for what the
@@ -28,6 +31,27 @@ a fixed bank, so there is no question-count ceiling.
 After each question, the tool shows whether the answer was correct, explains why
 the correct answer is right, and explains why each distractor is wrong. It
 remembers performance across sessions so the adaptive weighting persists.
+
+---
+
+## Which variant to use
+
+The two variants are two stages of one preparation progression, not competing
+tools. **Start with the Claude.ai artifact** — the zero-friction on-ramp: build
+it from a pasted prompt, seed your known weak areas, and let weighted-random
+selection drive discovery. It is the right tool for roughly your first 30–50
+questions, while every task statement is still under-evidenced and the random
+draw is doing useful work locating your gaps. **Move to the local desktop app
+once your weights have matured** — the signals are perfect streaks at standard
+difficulty (the base tier has stopped discriminating) and high-weight statements
+the random draw keeps failing to land on; the local app answers both with
+coverage-first selection and difficulty tiering, plus a conditional floor so
+earned decay can't suppress the statements you most need to stress-test. The
+handoff is a progress export from the artifact into the local app's
+`exam_progress.json` format, so earned weights carry across instead of resetting
+— though **that export affordance is still in progress**, so until it ships an
+artifact user moving to the local app starts from seed weights rather than
+earned state. The variants differ by design, not drift.
 
 ---
 
@@ -323,3 +347,20 @@ understanding of the rest of the code.
 - Not a timed exam simulator in this version. The focus is adaptive practice
   with immediate feedback, not replicating the 120-minute timed condition. A
   timed full-length mode could be a later addition.
+
+---
+
+## Before broad share-out
+
+Status of the items gating a broad share (as of this revision):
+
+- **Question-bank cleanup — done.** The screening-report review landed with the
+  103-question local bank (commit `d3c62e9`): the question with a backwards
+  correct answer was removed and the fabrication-propped explanations reworked,
+  and all 103 entries are marked reviewed. Verify no regression before sharing.
+- **Artifact export-to-JSON bridge — in progress.** So artifact users can carry
+  earned weights into the local app's `exam_progress.json` rather than
+  restarting from seed weights.
+- **Artifact coverage-first port — planned.** Coverage-first selection only;
+  difficulty tiering intentionally stays local-app-only, per the two-stage
+  design in "Which variant to use" above.

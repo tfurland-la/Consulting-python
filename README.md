@@ -95,6 +95,15 @@ top of the generated artifact. Edit it to keep the author's known weak areas, re
 everything to 1.0 for a blank slate, or set your own. The design rationale is in
 [`practice-exam/practice_exam_spec.md`][exam-spec].
 
+**Which to use, and when.** The two are stages of one progression. The artifact
+is the on-ramp — zero-friction, weighted-random discovery — best for your first
+30–50 questions while weights are still forming. Move to the local app once you
+see perfect standard-difficulty streaks and high-weight statements the random
+draw keeps missing: it adds coverage-first selection and difficulty tiering. The
+handoff carries earned weights via a progress export into the local app's
+`exam_progress.json` — an affordance that's still in progress, so for now
+artifact users switching over begin from seed weights.
+
 ## Preparation Exercises
 
 The [`exercises/`](exercises/README.md) folder expands the exam guide's four
