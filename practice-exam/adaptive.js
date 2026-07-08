@@ -125,6 +125,12 @@ const EXAM_FORM_QUOTAS = { D1: 16, D2: 11, D3: 12, D4: 12, D5: 9 };
 const EXAM_MINUTES = 120;
 const PASSING_SCALED_SCORE = 720;
 
+// Timed-mode difficulty spread over the 60-question form: ~60% standard (mid),
+// 25% harder, 15% hard-tail — reproducing the guide samples' spread, not a
+// uniform hard level. Standard is the remainder (60 - 15 - 9 = 36).
+const EXAM_HARDER = 15;
+const EXAM_HARD_TAIL = 9;
+
 function makeSeedWeights(seed) {
   const weights = {};
   for (const ts of Object.keys(TASK_STATEMENTS)) {
@@ -363,6 +369,44 @@ function drawExamForm(bank, state, opts) {
   return shuffled(form, rng);
 }
 
+// Choose n distinct items from a list, spread-free random. Returns all items
+// (shuffled) when n >= length. Used to draw 4 of the 6 exam scenario types.
+function sampleN(items, n, rng) {
+  return shuffled(items, rng).slice(0, Math.min(n, items.length));
+}
+
+// Pick `count` positions from `positions`, one per evenly-sized bucket, so the
+// choices spread across the range instead of clustering.
+function pickPerBucket(positions, count, rng) {
+  const draw = rng || Math.random;
+  const chosen = [];
+  for (let i = 0; i < count; i++) {
+    const lo = Math.floor((i * positions.length) / count);
+    const hi = Math.floor(((i + 1) * positions.length) / count);
+    const span = Math.max(1, hi - lo);
+    chosen.push(positions[lo + Math.floor(draw() * span)]);
+  }
+  return chosen;
+}
+
+// A per-question difficulty plan for the 60-question timed form: EXAM_HARD_TAIL
+// hard-tail and EXAM_HARDER harder questions, each bucket-spread across the
+// sequence (so the hard tail is distributed, never clustered), the rest
+// standard. Returns an array of 60 labels in presentation order.
+function examDifficultyPlan(rng) {
+  const draw = rng || Math.random;
+  const total = Object.values(EXAM_FORM_QUOTAS).reduce((s, n) => s + n, 0);
+  const labels = new Array(total).fill("standard");
+  const all = Array.from({ length: total }, (_, i) => i);
+  const hardTail = pickPerBucket(all, EXAM_HARD_TAIL, draw);
+  const htSet = new Set(hardTail);
+  const remaining = all.filter((i) => !htSet.has(i));
+  const harder = pickPerBucket(remaining, EXAM_HARDER, draw);
+  for (const i of hardTail) labels[i] = "hard";
+  for (const i of harder) labels[i] = "harder";
+  return labels;
+}
+
 // Draw 60 task statements matching the exam-form quotas — the target list
 // for a freshly GENERATED exam form (no bank questions involved). Round-robin
 // across each domain's statements so every statement appears 1-3 times.
@@ -499,6 +543,8 @@ const CCAF_ADAPTIVE = {
   EXAM_FORM_QUOTAS,
   EXAM_MINUTES,
   PASSING_SCALED_SCORE,
+  EXAM_HARDER,
+  EXAM_HARD_TAIL,
   COVERAGE_WEIGHT_THRESHOLD,
   COVERAGE_TARGET_SEEN,
   HARD_MASTERY_SEEN,
@@ -518,6 +564,8 @@ const CCAF_ADAPTIVE = {
   applyFlag,
   drawExamForm,
   drawExamStatements,
+  examDifficultyPlan,
+  sampleN,
   scoreExam,
   discountedScore,
   applyExamResults,

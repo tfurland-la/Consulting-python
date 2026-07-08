@@ -87,6 +87,18 @@ def test_build_prompt_adds_hard_instructions_only_for_hard_difficulty():
     assert "NOT to invent specific technical facts" in hard
 
 
+def test_build_prompt_harder_tier_is_a_milder_block_than_hard():
+    harder = exam_lib.build_prompt("D1.4", difficulty="harder")
+    hard = exam_lib.build_prompt("D1.4", difficulty="hard")
+    standard = exam_lib.build_prompt("D1.4", difficulty="standard")
+    # harder carries its own instruction, distinct from standard and hard
+    assert "HARDER" in harder and "near-miss" in harder
+    assert harder != standard and harder != hard
+    assert "HARDER" not in hard and "HARDER" not in standard
+    # guardrail binds at the harder tier too
+    assert "NOT to invent specific technical facts" in harder
+
+
 def test_build_prompt_rejects_unknown_difficulty():
     with pytest.raises(ValueError):
         exam_lib.build_prompt("D1.4", difficulty="brutal")

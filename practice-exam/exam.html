@@ -261,6 +261,19 @@ const CCAF_SEED = {
     padding: 3px 12px;
   }
   .exam-timer.low { background: var(--coral); }
+  .review-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+  .review-chip {
+    font: inherit; font-size: 13px; cursor: pointer; text-align: left;
+    background: #fff; border: 1.5px solid var(--paper-warm); border-radius: 7px;
+    padding: 7px 10px;
+  }
+  .review-chip:hover { border-color: var(--teal); }
+  .review-chip .qn { font-family: 'DM Mono', monospace; color: var(--ink-faint); }
+  .review-chip .ans { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--accent); }
+  .score-secondary {
+    margin-top: 10px; font-size: 14px; color: var(--ink-light);
+    border-top: 1px solid var(--paper-warm); padding-top: 10px;
+  }
   .score-banner {
     text-align: center;
     padding: 18px 0 6px;
@@ -315,24 +328,41 @@ const CCAF_SEED = {
       <div id="q-options"></div>
       <div id="q-feedback"></div>
       <div class="controls">
+        <button class="ghost" id="btn-exam-prev" hidden>← Previous</button>
         <button class="primary" id="btn-submit" disabled>Submit answer</button>
         <button class="primary" id="btn-next" hidden>Next question</button>
+        <button class="ghost" id="btn-exam-review" hidden>Review all &amp; submit</button>
         <button class="ghost" id="btn-flag" hidden>Flag — don't count this question</button>
         <button class="ghost" id="btn-abandon" hidden>End exam</button>
         <span class="note" id="status-note"></span>
       </div>
     </div>
 
+    <div class="card" id="exam-review-card" hidden>
+      <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin-bottom:6px">Review &amp; submit</h2>
+      <p class="note" style="margin-bottom:12px">Every question has a committed answer. Tap any to revisit and change it — the clock is still running. Submit when you're ready, or the exam auto-submits at 0:00.</p>
+      <div id="exam-review-list"></div>
+      <div class="controls" style="margin-top:14px">
+        <button class="primary" id="btn-exam-submit">Submit exam for scoring</button>
+        <button class="ghost" id="btn-exam-back">Back to last question</button>
+      </div>
+    </div>
+
     <div class="card" id="setup-card" hidden>
       <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin-bottom:10px">Timed exam</h2>
       <div id="setup-choice">
-        <p class="note" style="margin-bottom:12px">60 questions · 120 minutes · real domain weighting ·
-        answer to advance · no feedback until the end. Results update your adaptive weights.</p>
+        <p class="note" style="margin-bottom:12px">60 questions · 120 minutes · real domain weighting
+        (27/18/20/20/15) · 4 of the 6 exam scenarios · answer to advance, revisit and change any
+        answer, review before submitting · no feedback until scored. Results update your adaptive weights.</p>
         <div class="controls">
-          <button class="primary" id="btn-exam-fresh">Fresh questions (generated live)</button>
+          <button class="primary" id="btn-exam-fresh">Fresh questions (readiness gate)</button>
           <button class="primary" id="btn-exam-bank">From the question bank (instant)</button>
           <button class="ghost" id="btn-exam-cancel">Cancel</button>
         </div>
+        <p class="note" style="margin-top:10px">Fresh questions carry the exam's difficulty spread
+        (mostly mid, a quarter harder, a hard tail) — the faithful readiness gate. The bank exam is
+        instant but a standard-difficulty approximation (the bank is single-tier), so it runs easier
+        than the real thing.</p>
         <p class="note" id="setup-fresh-note" style="margin-top:10px"></p>
       </div>
       <div id="setup-progress" hidden>
@@ -714,17 +744,16 @@ function summarizeForAvoid(question) {
 
 function startFreshExam() {
   const plan = A.drawExamStatements({});
-  const types = app.scenarioTypes || [];
-  const offsets = {};
-  const occurrence = {};
-  const assignments = plan.map((ts) => {
-    if (!(ts in offsets)) offsets[ts] = Math.floor(Math.random() * (types.length || 1));
-    const n = (occurrence[ts] = (occurrence[ts] || 0) + 1);
-    return {
-      ts,
-      scenarioType: types.length ? types[(offsets[ts] + n - 1) % types.length] : null,
-    };
-  });
+  const difficulties = A.examDifficultyPlan(); // 36 standard / 15 harder / 9 hard, spread
+  // Mirror the real exam's 4-of-6 structure: draw 4 scenario types for this
+  // test and assign only from those four (round-robin across the 60).
+  const allTypes = app.scenarioTypes || [];
+  const types = allTypes.length > 4 ? A.sampleN(allTypes, 4) : allTypes;
+  const assignments = plan.map((ts, i) => ({
+    ts,
+    scenarioType: types.length ? types[i % types.length] : null,
+    difficulty: difficulties[i],
+  }));
   const prep = {
     assignments,
     buffer: new Array(assignments.length).fill(null),
@@ -746,12 +775,12 @@ function startFreshExam() {
 async function prepWorker(prep) {
   while (!prep.cancelled && prep.nextSlot < prep.assignments.length) {
     const slot = prep.nextSlot++;
-    const { ts, scenarioType } = prep.assignments[slot];
+    const { ts, scenarioType, difficulty } = prep.assignments[slot];
     let question = null;
     for (let attempt = 0; attempt < 2 && !question && !prep.cancelled; attempt++) {
       try {
         const extraAvoid = (prep.summariesByTs[ts] || []).slice();
-        const res = await app.bridge.generate(ts, extraAvoid, scenarioType);
+        const res = await app.bridge.generate(ts, extraAvoid, scenarioType, difficulty);
         if (res.error) throw new Error(res.detail || res.error);
         question = res.question;
       } catch {
@@ -762,6 +791,7 @@ async function prepWorker(prep) {
     if (question) {
       question.id = `gen-${slot}`;
       question.ephemeral = true;
+      question.difficulty = difficulty; // stamp the intended tier for review/verification
       prep.buffer[slot] = question;
       (prep.summariesByTs[ts] = prep.summariesByTs[ts] || []).push(
         summarizeForAvoid(question)
@@ -849,6 +879,7 @@ function beginExam(form, prep) {
   document.body.classList.add("exam-active");
   el("exam-timer").hidden = false;
   el("results-card").hidden = true;
+  el("exam-review-card").hidden = true;
   el("question-card").hidden = false;
   el("btn-abandon").hidden = false;
   renderExamTimer();
@@ -940,24 +971,95 @@ function renderExamQuestion() {
     });
     container.appendChild(btn);
   }
+  // Pre-select the committed answer when revisiting (backward nav / review jump).
+  const committed = app.exam.answers[question.id];
+  if (committed) {
+    app.selected = committed;
+    const btn = container.querySelector(`.option[data-key="${committed}"]`);
+    if (btn) btn.classList.add("selected");
+  }
+  const isLast = app.exam.index + 1 === app.exam.form.length;
   el("btn-submit").hidden = false;
-  el("btn-submit").disabled = true;
-  el("btn-submit").textContent =
-    app.exam.index + 1 === app.exam.form.length ? "Answer & finish" : "Answer & continue";
+  el("btn-submit").disabled = !app.selected; // forward always needs an answer
+  el("btn-submit").textContent = isLast ? "Answer & review" : "Answer & continue";
+  el("btn-exam-prev").hidden = app.exam.index === 0;
+  // Once nothing is blank, the review/submit screen is reachable from anywhere.
+  el("btn-exam-review").hidden = !examAllAnswered();
   el("btn-next").hidden = true;
   el("btn-flag").hidden = true;
+  el("btn-abandon").hidden = false;
   renderExamTimer();
 }
 
+// True once every question in the form has a committed answer. Forward motion
+// forces an answer, so this becomes true after the last question is answered.
+function examAllAnswered() {
+  return app.exam.form.every((q, i) => {
+    const id = q ? q.id : (app.exam.prep && app.exam.prep.buffer[i] || {}).id;
+    return id && app.exam.answers[id] !== undefined;
+  });
+}
+
+function commitCurrentExamAnswer() {
+  const q = app.exam.form[app.exam.index];
+  if (q && app.selected) app.exam.answers[q.id] = app.selected;
+}
+
 function examAnswer() {
-  if (!app.selected) return;
-  app.exam.answers[app.exam.form[app.exam.index].id] = app.selected;
+  if (!app.selected) return; // no skip-to-blank
+  commitCurrentExamAnswer();
   if (app.exam.index + 1 < app.exam.form.length) {
     app.exam.index += 1;
     renderExamQuestion();
   } else {
-    finishExam();
+    openExamReview(); // last question answered → review, not immediate scoring
   }
+}
+
+function examPrevious() {
+  if (app.exam.index === 0) return;
+  commitCurrentExamAnswer(); // don't lose an in-progress change
+  app.exam.index -= 1;
+  renderExamQuestion();
+}
+
+function openExamReview() {
+  commitCurrentExamAnswer();
+  el("question-card").hidden = true;
+  el("exam-review-card").hidden = false;
+  const list = el("exam-review-list");
+  list.replaceChildren();
+  const grid = document.createElement("div");
+  grid.className = "review-grid";
+  app.exam.form.forEach((q, i) => {
+    const chip = document.createElement("button");
+    chip.className = "review-chip";
+    const qn = document.createElement("span");
+    qn.className = "qn";
+    qn.textContent = `Q${i + 1}`;
+    const ans = document.createElement("span");
+    ans.className = "ans";
+    ans.textContent = "  " + (app.exam.answers[q.id] || "—");
+    chip.append(qn, ans);
+    chip.addEventListener("click", () => jumpToExamQuestion(i));
+    grid.appendChild(chip);
+  });
+  list.appendChild(grid);
+  renderExamTimer();
+}
+
+function jumpToExamQuestion(i) {
+  el("exam-review-card").hidden = true;
+  el("question-card").hidden = false;
+  app.exam.index = i;
+  renderExamQuestion();
+}
+
+// Final submit from the review screen — the only path to scoring besides
+// clock expiry. Every question already has a committed answer by construction.
+function submitExam() {
+  if (!app.exam) return;
+  finishExam();
 }
 
 async function finishExam() {
@@ -975,9 +1077,9 @@ async function finishExam() {
   }
   const at = Date.now();
   exam.recordedAt = at;
-  const score = A.applyExamResults(app.state, exam.form, exam.answers, at);
+  A.applyExamResults(app.state, exam.form, exam.answers, at); // stores the raw score
   await persist();
-  renderResults(exam, score);
+  renderResults(exam);
   renderDashboard();
 }
 
@@ -999,26 +1101,59 @@ function exitExamLayout() {
   document.body.classList.remove("exam-active");
   el("exam-timer").hidden = true;
   el("btn-abandon").hidden = true;
+  el("btn-exam-prev").hidden = true;
+  el("btn-exam-review").hidden = true;
+  el("exam-review-card").hidden = true;
   el("btn-submit").textContent = "Submit answer";
 }
 
-function renderResults(exam, score) {
+function renderResults(exam) {
   exitExamLayout(); // sidebar returns alongside results — weak spots now reflect the exam
   el("question-card").hidden = true;
+  el("exam-review-card").hidden = true;
   el("results-card").hidden = false;
 
-  el("r-scaled").textContent = String(score.scaled);
+  // Raw is the headline and is never inflated by discounts — it's what persists
+  // to examHistory as the readiness signal. Post-discount is shown beside it
+  // (never instead of it) only when the user has discounted flawed questions.
+  const raw = A.scoreExam(exam.form, exam.answers);
+  const discounted = exam.discounted.length
+    ? A.discountedScore(exam.form, exam.answers, exam.discounted)
+    : null;
+
+  el("r-scaled").textContent = String(raw.scaled);
   const verdict = document.createElement("span");
-  verdict.className = `verdict-chip ${score.passed ? "pass" : "fail"}`;
-  verdict.textContent = score.passed
+  verdict.className = `verdict-chip ${raw.passed ? "pass" : "fail"}`;
+  verdict.textContent = raw.passed
     ? `Pass · ${A.PASSING_SCALED_SCORE} needed`
     : `Below the ${A.PASSING_SCALED_SCORE} passing score`;
   el("r-verdict").replaceChildren(verdict);
-  el("r-raw").textContent = `${score.correct} of ${score.total} correct`;
+  el("r-raw").textContent = `raw estimate · ${raw.correct} of ${raw.total} correct (no discounts)`;
+
+  // Secondary, clearly-labeled post-discount estimate — the raw number above
+  // always stays visible so a discount can't quietly inflate the signal.
+  let secondary = el("r-secondary");
+  if (!secondary) {
+    secondary = document.createElement("div");
+    secondary.id = "r-secondary";
+    secondary.className = "score-secondary";
+    el("r-raw").after(secondary);
+  }
+  if (discounted) {
+    secondary.hidden = false;
+    secondary.textContent =
+      `Post-discount estimate: ${discounted.scaled} ` +
+      `(${raw.passed ? "was pass" : "was below"} → ${discounted.passed ? "pass" : "below"}) — ` +
+      `${exam.discounted.length} flawed question(s) removed, scored ` +
+      `${discounted.correct} of ${discounted.total}. The raw estimate above is the ` +
+      `persisted readiness signal and is unchanged.`;
+  } else {
+    secondary.hidden = true;
+  }
 
   const domains = el("r-domains");
   domains.replaceChildren();
-  for (const [domain, counts] of Object.entries(score.byDomain)) {
+  for (const [domain, counts] of Object.entries(raw.byDomain)) {
     const pct = Math.round((100 * counts.correct) / counts.total);
     const row = document.createElement("div");
     row.className = "domain-bar";
@@ -1032,12 +1167,6 @@ function renderResults(exam, score) {
     track.appendChild(fill);
     row.append(text, track);
     domains.appendChild(row);
-  }
-
-  if (exam.discounted.length > 0) {
-    el("r-raw").textContent +=
-      ` · ${exam.discounted.length} flagged question(s) discounted — scored out of ` +
-      `${score.total}. Adaptive weights keep their original update.`;
   }
 
   const review = el("r-review");
@@ -1075,15 +1204,10 @@ function renderResults(exam, score) {
         if (!question.ephemeral && !app.state.flagged.includes(question.id)) {
           app.state.flagged.push(question.id); // flawed bank questions never return
         }
-        const rescored = A.discountedScore(exam.form, exam.answers, exam.discounted);
-        const last = app.state.examHistory[app.state.examHistory.length - 1];
-        if (last && last.at === exam.recordedAt) {
-          last.correct = rescored.correct;
-          last.total = rescored.total;
-          last.scaled = rescored.scaled;
-        }
+        // examHistory keeps the RAW scaled score — discounting is a review-time
+        // view, never a quiet rewrite of the persisted readiness signal.
         await persist();
-        renderResults(exam, rescored);
+        renderResults(exam);
         renderDashboard();
       });
       item.appendChild(flagBtn);
@@ -1447,6 +1571,10 @@ async function init() {
   el("btn-exam-begin").addEventListener("click", beginFreshExam);
   el("btn-exam-abort").addEventListener("click", closeExamSetup);
   el("btn-abandon").addEventListener("click", abandonExam);
+  el("btn-exam-prev").addEventListener("click", examPrevious);
+  el("btn-exam-review").addEventListener("click", openExamReview);
+  el("btn-exam-submit").addEventListener("click", submitExam);
+  el("btn-exam-back").addEventListener("click", () => jumpToExamQuestion(app.exam ? app.exam.index : 0));
   el("btn-return").addEventListener("click", returnToPractice);
   window.addEventListener("beforeunload", (event) => {
     if (app.exam || app.freshPrep) event.preventDefault(); // attempts and prep are in-memory only

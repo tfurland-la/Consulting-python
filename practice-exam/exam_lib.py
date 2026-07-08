@@ -324,14 +324,31 @@ def summarize_for_avoid(question):
     )
 
 
-DIFFICULTIES = ("standard", "hard")
+# Three timed-exam tiers reproduce the guide samples' spread. standard = mid
+# (no block; guide Q1/Q10 register). harder = the graded middle. hard = the
+# hard tail (guide Q9 register). All three bind every guardrail below — hard is
+# a sharper principle distinction, never invented specifics or ambiguity.
+DIFFICULTIES = ("standard", "harder", "hard")
 
-# HARD tier: sharpen the principle distinction, never lean on invented specifics
-# (the fabrication guardrail below still binds). Modeled on the exam guide's
-# hardest sample (Q9, scoped verify_fact): two surface-plausible options where
-# the decision turns on one exam principle.
+# HARDER tier: the graded middle the real exam has — a single strong near-miss
+# distractor, resolved once the candidate applies the right principle.
+HARDER_DIFFICULTY_INSTRUCTIONS = (
+    "- Make this a HARDER question (the graded middle, not the hard tail): "
+    "include exactly ONE strong near-miss distractor that a partially-prepared "
+    "candidate could pick, alongside two clearly-weaker options. The near-miss "
+    "must be resolvable — once the candidate applies the right exam principle "
+    "(e.g., root cause vs. symptom, proportionate first step, programmatic vs. "
+    "probabilistic, scope matched to the problem), the correct answer is clear. "
+    "It should read at the register of a mid-hard guide sample, not the Q9 hard "
+    "tail. The distinction must be a real principle, never invented specifics.\n"
+)
+
+# HARD (hard-tail) tier: sharpen the principle distinction, never lean on
+# invented specifics (the fabrication guardrail below still binds). Modeled on
+# the exam guide's hardest sample (Q9, scoped verify_fact): two surface-
+# plausible options where the decision turns on one exam principle.
 HARD_DIFFICULTY_INSTRUCTIONS = (
-    "- Make this a HARD question. At least TWO of the four options must be "
+    "- Make this a HARD-TAIL question. At least TWO of the four options must be "
     "defensible on the surface to a partially-knowledgeable candidate; the "
     "distinction between the best answer and the strongest distractor must turn "
     "on a single exam principle (e.g., programmatic enforcement vs. "
@@ -339,8 +356,10 @@ HARD_DIFFICULTY_INSTRUCTIONS = (
     "least privilege, the exam-guide framing of the 'most effective FIRST "
     "step'). Model the option style on the official guide's scoped verify_fact "
     "question: plausible near-miss distractors, not obviously-wrong ones. "
-    "Harder means a sharper principle distinction, NOT reliance on invented "
-    "technical specifics.\n"
+    "Hard-tail means a sharper principle distinction, NOT reliance on invented "
+    "technical specifics, ambiguity, or more than one genuinely correct answer "
+    "— if a knowledgeable candidate still can't confidently choose, the "
+    "question is broken, not hard.\n"
 )
 
 
@@ -379,7 +398,10 @@ def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
             "prefer a correct-answer letter that is not already "
             "over-represented in the summaries:\n" + listing + "\n\n"
         )
-    difficulty_block = HARD_DIFFICULTY_INSTRUCTIONS if difficulty == "hard" else ""
+    difficulty_block = {
+        "harder": HARDER_DIFFICULTY_INSTRUCTIONS,
+        "hard": HARD_DIFFICULTY_INSTRUCTIONS,
+    }.get(difficulty, "")
     prompt = PROMPT_PATH.read_text(encoding="utf-8")
     for placeholder, value in (
         ("{{TASK_ID}}", task_statement),

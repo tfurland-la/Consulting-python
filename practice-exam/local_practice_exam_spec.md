@@ -181,10 +181,13 @@ sources, chosen at start:
   that the bank can always fill a form.
 - **Fresh questions** (desktop app with Claude Code only): the same
   quota-matched statement plan (`drawExamStatements`) is filled by live
-  generation instead — never the same exam twice. Two concurrent workers
-  generate through the bridge; each occurrence of a statement is pinned to a
-  different exam scenario type and carries summaries of its within-form
-  siblings, so a statement's 2-3 questions diversify. The exam begins once
+  generation instead — never the same exam twice, and the faithful readiness
+  gate (the bank exam is a standard-difficulty approximation, since the bank is
+  single-tier). Two concurrent workers generate through the bridge. Each test
+  draws a random **4 of the 6 exam scenario types** (`sampleN`) and assigns
+  questions only from those four, mirroring the real 4-of-6 structure; each
+  occurrence of a statement carries summaries of its within-form siblings so a
+  statement's 2-3 questions diversify. The exam begins once
   the first 10 questions are ready (a progress gate; the 120-minute clock
   starts at Begin, not during preparation) and the rest keep generating in
   the background — at ~2 min/question consumption vs ~20 s/question
@@ -195,23 +198,45 @@ sources, chosen at start:
   `seen`, nothing persisted beyond the attempt record. A fresh exam makes
   ~60 Claude Code calls.
 
+**Difficulty spread (fresh exam).** `examDifficultyPlan` assigns each of the 60
+slots a tier — **36 standard / 15 harder / 9 hard-tail** (60/25/15) — with the
+9 hard-tail bucket-spread across the sequence so they never cluster. The tiers
+map to generation instructions: standard = mid (guide Q1/Q10 register); harder
+= one strong near-miss resolved by applying the right principle; hard-tail =
+two-plus surface-defensible options split by a single exam principle (guide Q9
+register). Hard comes only from subtle-but-real discriminators; the fabrication,
+deprecated-pattern, and exam-guide-grounding guardrails bind at every tier and
+hardest at the tail. **Calibration caveat — read before retuning:** this spread
+and the hard-tail register are calibrated to the exam guide v0.2's 12 sample
+questions, which is an *inference*, not a measurement against the real exam. It
+is a known, accepted limitation. After a real exam sitting, the hard tail is
+the first thing to recalibrate against actual difficulty data — treat the
+guide-inferred level as the starting hypothesis, not ground truth.
+
 Because generated questions skip human review, the results screen lets any
-question be **flagged as flawed and discounted**: the attempt is rescored as
-if the question was never on the form (out of 59, 58, …), the `examHistory`
-record is updated, and flawed bank questions additionally join the permanent
-blocklist. Already-applied weight updates are kept (a single ×1.5 on one
-statement self-corrects through drilling) and the review notes this.
+question be **flagged as flawed and discounted**: the attempt is rescored as if
+the question was never on the form (out of 59, 58, …), shown as a clearly-
+labeled post-discount estimate *beside* the raw estimate — never replacing it.
+The persisted `examHistory` record always keeps the **raw** scaled score, so a
+discount cannot quietly inflate the readiness signal. Flawed bank questions
+additionally join the permanent blocklist. Already-applied weight updates are
+kept (a single ×1.5 on one statement self-corrects through drilling).
 
 Delivery, scoring, and state effects (shared by both sources):
-- **Delivery:** 120-minute countdown, forced answer to advance (as on the
-  real exam), no task-statement labels, no feedback until the end. Timer
-  expiry scores the attempt with unanswered questions counted wrong. The
-  attempt lives in memory only — closing the page abandons it (the page
-  warns).
-- **Scoring:** raw correct out of 60 plus an *approximate* scaled score
-  (linear 100–1000 map; the real exam uses equating) against the 720 passing
-  bar, a per-domain breakdown, and a full expandable review with all
-  explanations.
+- **Delivery:** 120-minute countdown, no task-statement labels, no feedback
+  until scored. Forward advance requires a committed answer (no skip-to-blank);
+  backward navigation revisits any earlier question and its answer stays
+  changeable within the window. Answering the last question opens an
+  end-of-test **review screen** (all 60 with committed answers and jump-back
+  links); scoring happens only on final submit or clock expiry (expiry counts
+  any unreached question wrong). The attempt lives in memory only — closing the
+  page abandons it (the page warns).
+- **Scoring:** the headline is the **raw** correct-out-of-60 and an
+  *approximate* scaled score (linear 100–1000 map; the real exam uses
+  equating) against the 720 bar, with a per-domain breakdown and a full
+  expandable review with all explanations. A post-discount estimate appears
+  beside the raw number only when questions have been discounted; raw always
+  stays visible.
 - **State effects:** results update weights, accuracy stats, and seen marks
   exactly like drill answers, and append one record to `examHistory` (capped
   at 20). Drill `history` is deliberately untouched — it drives the cooldown

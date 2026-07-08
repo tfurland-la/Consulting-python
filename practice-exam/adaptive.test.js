@@ -187,6 +187,46 @@ test("EXAM_FORM_QUOTAS mirror the exam's domain weighting over 60 questions", ()
   assert.equal(total, 60);
 });
 
+test("examDifficultyPlan yields the 36/15/9 standard/harder/hard-tail spread", () => {
+  const plan = A.examDifficultyPlan(rngOf(0.5));
+  assert.equal(plan.length, 60);
+  const n = (label) => plan.filter((d) => d === label).length;
+  assert.equal(n("standard"), 36);
+  assert.equal(n("harder"), 15);
+  assert.equal(n("hard"), 9);
+});
+
+test("examDifficultyPlan spreads the 9 hard-tail across the sequence, not clustered", () => {
+  // With one hard-tail per even bucket of ~6.67, every 20-question third of
+  // the exam should hold roughly 3 — and no third should hold more than 4.
+  for (const seed of [0.1, 0.5, 0.9, 0.33]) {
+    const plan = A.examDifficultyPlan(rngOf(seed));
+    const positions = plan.map((d, i) => (d === "hard" ? i : -1)).filter((i) => i >= 0);
+    assert.equal(positions.length, 9);
+    const thirds = [0, 0, 0];
+    for (const p of positions) thirds[Math.floor(p / 20)] += 1;
+    for (const t of thirds) assert.ok(t >= 1 && t <= 4, `third had ${t} hard-tail (seed ${seed})`);
+    // no two hard-tail adjacent
+    for (let i = 1; i < positions.length; i++) {
+      assert.ok(positions[i] - positions[i - 1] >= 2, `adjacent hard-tail at ${positions[i]}`);
+    }
+  }
+});
+
+test("sampleN picks n distinct items, all from the source", () => {
+  const six = ["a", "b", "c", "d", "e", "f"];
+  const four = A.sampleN(six, 4, rngOf(0.2, 0.7, 0.4, 0.9));
+  assert.equal(four.length, 4);
+  assert.equal(new Set(four).size, 4);
+  for (const x of four) assert.ok(six.includes(x));
+});
+
+test("sampleN returns all items (shuffled) when n >= length", () => {
+  const three = ["a", "b", "c"];
+  const out = A.sampleN(three, 5, rngOf(0.5));
+  assert.equal(new Set(out).size, 3);
+});
+
 test("drawExamForm fills every domain quota from the bank", () => {
   const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.42) });
   assert.equal(form.length, 60);
