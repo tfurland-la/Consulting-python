@@ -33,6 +33,14 @@ Requirements:
   in the exam's stated principles (e.g., programmatic enforcement vs.
   probabilistic compliance, tool description quality, structured error
   categories) over one relying on an invented technical detail.
+- Do not present deprecated or superseded patterns as correct answers. If a
+  mechanism exists but has been replaced by a current best practice (e.g.,
+  CLAUDE.local.md superseded by home-directory imports via @~/.claude/ paths),
+  the correct answer must use the current pattern. When uncertain whether a
+  pattern is current, prefer mechanisms explicitly named in the CCA-F exam
+  guide v0.2 (its task statement knowledge and skills lists are the canonical
+  inventory). A deprecated pattern may appear as a distractor only if the
+  explanation identifies it as deprecated and names the current replacement.
 
 {{AVOID}}Here are official sample questions showing the desired style and difficulty.
 Match their tone, scenario realism, and distractor quality:

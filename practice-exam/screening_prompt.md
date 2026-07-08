@@ -44,6 +44,17 @@ For each assigned question:
    explanations. Flag stub/placeholder content. Flag near-duplicates of other
    questions in the file (same premise, option skeleton, or correct-answer
    rationale).
+4. **PATTERN CURRENCY** — does the marked-correct answer rely on a mechanism
+   not present in the exam guide's task-statement knowledge/skills inventory?
+   A real-but-superseded pattern presented as the recommended answer is the
+   failure mode here (e.g., `CLAUDE.local.md`, which functions but is
+   superseded by home-directory imports via `@~/.claude/` paths and is absent
+   from the D3.1 inventory). Annotate such a finding **"verify pattern
+   currency"** and treat it with the same severity as the product-docs
+   divergence category — **not auto-disqualifying**, since the guide's
+   inventory is not exhaustive. A deprecated pattern is acceptable as a
+   distractor when the explanation names it deprecated and gives the current
+   replacement.
 
 Default to **pass** when the question is grounded in the exam's stated
 principles (programmatic enforcement vs. probabilistic compliance, tool
