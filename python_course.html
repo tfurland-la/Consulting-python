@@ -1609,6 +1609,28 @@ Test file names must match the component they test.</pre>
 
         <h3 style="margin-top:32px">/memory Command</h3>
         <p>The <code>/memory</code> command shows which memory files are currently loaded in the session. Use it to diagnose why a new team member isn't receiving the expected project instructions — the cause is almost always that the instructions are in a user-level file (<code>~/.claude/CLAUDE.md</code>) rather than a project-level file (<code>.claude/CLAUDE.md</code> or root <code>CLAUDE.md</code>). User-level files are not shared via version control.</p>
+
+        <h3 style="margin-top:32px">Configuration Loading Reference</h3>
+        <p>This table is the one part of Domain 3 you cannot reason your way to. Every other exam question yields to principle — root cause over symptom, scope matched to problem, additive context over override. This does not: which file loads when, governs what scope, and travels through version control is a set of facts you either know or you don't. Memorize it cold.</p>
+
+        <div class="callout warning"><strong>Brain-dump this on exam day.</strong> If the testing center provides scratch paper or a whiteboard, reproduce this table in the first two minutes, before the clock pressure builds — while it's fresh, out of your head and onto paper. Then reference it for every Domain 3 configuration question instead of reconstructing it under time pressure. This is the single highest-leverage two minutes available on the exam: the recall it protects is the one place principle-reasoning cannot rescue you.</div>
+
+        <table class="ref-table">
+          <tr><th>Mechanism</th><th>Loads when</th><th>Scope</th><th>Shared via VCS?</th></tr>
+          <tr><td>root <code>CLAUDE.md</code></td><td>Every session in the repo</td><td>Whole project</td><td>Yes</td></tr>
+          <tr><td><code>.claude/CLAUDE.md</code></td><td>Every session in the repo</td><td>Whole project</td><td>Yes</td></tr>
+          <tr><td>subdirectory <code>CLAUDE.md</code></td><td>When editing files in that directory</td><td>That directory only</td><td>Yes</td></tr>
+          <tr><td><code>~/.claude/CLAUDE.md</code></td><td>Every session, all repos</td><td>That user, everywhere</td><td>No</td></tr>
+          <tr><td><code>.claude/rules/*.md</code> (glob frontmatter)</td><td>When editing files matching the glob</td><td>Matched paths, any directory</td><td>Yes</td></tr>
+          <tr><td><code>.claude/commands/</code></td><td>On invocation (<code>/command</code>)</td><td>Project, shared</td><td>Yes</td></tr>
+          <tr><td><code>~/.claude/commands/</code></td><td>On invocation (<code>/command</code>)</td><td>Personal</td><td>No</td></tr>
+          <tr><td><code>.claude/skills/</code> (+ frontmatter)</td><td>On invocation or model-initiated match</td><td>Project, shared</td><td>Yes</td></tr>
+          <tr><td><code>~/.claude/skills/</code></td><td>On invocation or model-initiated match</td><td>Personal</td><td>No</td></tr>
+          <tr><td><code>.mcp.json</code></td><td>Connection time</td><td>Project, shared</td><td>Yes</td></tr>
+          <tr><td><code>~/.claude.json</code></td><td>Connection time</td><td>Personal</td><td>No</td></tr>
+        </table>
+
+        <div class="callout"><strong>The two principles that collapse most D3.1 distractors once the table is memorized:</strong> (1) CLAUDE.md context is <em>additive</em> — all applicable files load together and none overrides another, so any answer phrased as "make X take precedence" or "override via a statement" invokes a mechanism that does not exist; the real fix removes the conflict at its source. (2) Scope each rule to where it is actually true — a preference that varies by project belongs in that project's file, and a global default that collides with a project's own config was wrong to be global. Project directory means shared; home directory means personal.</div>
       </div>
 
       <div class="lesson" id="custom-skills">
