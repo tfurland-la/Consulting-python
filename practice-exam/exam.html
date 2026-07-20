@@ -126,6 +126,16 @@ const CCAF_SEED = {
     margin-bottom: 20px;
   }
 
+  #gen-banner {
+    background: var(--coral-soft);
+    border: 1px solid var(--coral);
+    color: var(--coral);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 13.5px;
+  }
+
   .task-tag {
     display: inline-block;
     font-family: 'DM Mono', monospace;
@@ -320,6 +330,7 @@ const CCAF_SEED = {
 
 <div class="layout">
   <main>
+    <div id="gen-banner" hidden></div>
     <div class="card" id="question-card">
       <span class="task-tag" id="q-task"></span>
       <div class="task-label" id="q-task-label"></div>
@@ -564,6 +575,7 @@ const app = {
   firstQuestionServed: false, // session's first question comes from the bank
   exam: null,        // {form, index, answers, deadline, timerId} while a timed exam runs
   progressPath: null, // absolute path the desktop bridge writes progress to
+  genFailStreak: 0,  // consecutive drill generator failures; drives #gen-banner
 };
 
 function validateImportedState(candidate) {
@@ -626,8 +638,17 @@ async function advanceToNextQuestion() {
     el("status-note").textContent = "Generating the next question…";
     try {
       question = await app.generator.take();
+      app.genFailStreak = 0;
+      el("gen-banner").hidden = true;
     } catch (err) {
       note = `Generation failed (${err.message}) — using the question bank instead.`;
+      app.genFailStreak += 1;
+      if (app.genFailStreak >= 2) {
+        el("gen-banner").hidden = false;
+        el("gen-banner").textContent = /limit|rate|usage|overload|429|quota/i.test(err.message)
+          ? "Live generation looks rate-limited — questions are coming from the reviewed bank for now. Try live generation again in a while."
+          : "Live generation is unavailable — questions are coming from the reviewed bank. It'll resume automatically when generation recovers.";
+      }
     }
   }
   if (!question) {
@@ -637,6 +658,8 @@ async function advanceToNextQuestion() {
     try {
       question = await app.generator.take();
       note = null;
+      app.genFailStreak = 0;
+      el("gen-banner").hidden = true;
     } catch (err) {
       note = `Generation failed: ${err.message}`;
     }
@@ -710,6 +733,7 @@ function startExam() {
   el("setup-progress").hidden = true;
   el("question-card").hidden = true;
   el("results-card").hidden = true;
+  el("gen-banner").hidden = true; // drill-only signal; don't let it bleed into exam mode
   el("btn-exam-fresh").disabled = !app.bridge;
   el("setup-fresh-note").textContent = app.bridge
     ? "Fresh questions make ~60 Claude Code calls; the first ten take a few minutes to prepare."
@@ -777,14 +801,14 @@ async function prepWorker(prep) {
     const slot = prep.nextSlot++;
     const { ts, scenarioType, difficulty } = prep.assignments[slot];
     let question = null;
-    for (let attempt = 0; attempt < 2 && !question && !prep.cancelled; attempt++) {
+    if (!prep.cancelled) {
       try {
         const extraAvoid = (prep.summariesByTs[ts] || []).slice();
         const res = await app.bridge.generate(ts, extraAvoid, scenarioType, difficulty);
         if (res.error) throw new Error(res.detail || res.error);
         question = res.question;
       } catch {
-        /* one silent retry; second failure marks the slot */
+        /* single attempt; failure marks the slot for bank substitution */
       }
     }
     if (prep.cancelled) return;
@@ -886,7 +910,7 @@ function beginExam(form, prep) {
   renderExamQuestion();
 }
 
-// A generated slot that failed twice falls back to a bank question for the
+// A generated slot that failed falls back to a bank question for the
 // same statement (same domain as last resort), never reusing a question
 // already on this form.
 function substituteFromBank(exam, slot) {
@@ -1149,6 +1173,27 @@ function renderResults(exam) {
       `persisted readiness signal and is unchanged.`;
   } else {
     secondary.hidden = true;
+  }
+
+  // Disclosure for bank-substituted slots (live generation failed for them) —
+  // distinct from the raw and post-discount lines above.
+  let substituted = el("r-substituted");
+  if (!substituted) {
+    substituted = document.createElement("div");
+    substituted.id = "r-substituted";
+    substituted.className = "score-secondary";
+    secondary.after(substituted);
+  }
+  const subCount = exam.form.filter((q) => q && q.substituted).length;
+  if (subCount > 0) {
+    substituted.hidden = false;
+    substituted.textContent =
+      `${subCount} of ${exam.form.length} questions came from the bank — live generation failed ` +
+      `for those, so their difficulty was standard rather than the exam's harder/hard-tail spread. ` +
+      `This run therefore ran easier than a full live exam; treat the score as a floor on your ` +
+      `readiness, not a clean signal.`;
+  } else {
+    substituted.hidden = true;
   }
 
   const domains = el("r-domains");
