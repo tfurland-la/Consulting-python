@@ -316,7 +316,16 @@ const CCAF_SEED = {
   details.review-item summary .mark { font-weight: 600; }
   details.review-item summary .mark.good { color: var(--teal); }
   details.review-item summary .mark.bad { color: var(--coral); }
+  details.review-item summary .q-time {
+    font-size: 12.5px; color: var(--ink-faint); font-family: 'DM Mono', monospace;
+  }
   details.review-item .scenario { margin-top: 12px; }
+  .timing-summary .timing-grid {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 4px 24px; margin-top: 6px;
+  }
+  .timing-summary .timing-grid > div { min-width: 150px; }
+  .timing-summary .tv { font-family: 'DM Mono', monospace; color: var(--ink); }
 </style>
 </head>
 <body>
@@ -894,6 +903,14 @@ function beginExam(form, prep) {
     index: 0,
     answers: {},
     discounted: [],
+    // Timing is a parallel map keyed by question id, deliberately separate from
+    // `answers` (a bare letter per id) so the scoring functions that read
+    // `answers` are untouched. Values are CUMULATIVE DWELL TIME — total time the
+    // question was on screen across every visit, not time-to-first-answer —
+    // because backward navigation and review jumps can revisit any question.
+    elapsed: {},
+    dwellId: null,
+    dwellStart: null,
     waitingIndex: null,
     waitingSince: null,
     recordedAt: null,
@@ -941,8 +958,37 @@ function renderExamTimer() {
   if (remaining <= 0) finishExam();
 }
 
+// ── Per-question dwell timing (diagnostic only) ──────────────────────────
+// Closes the open dwell segment and adds it to the question's cumulative
+// total. Safe to call repeatedly: it is a no-op with nothing open. A timing
+// failure must never block an answer, so everything here is best-effort.
+function accumulateExamDwell() {
+  const exam = app.exam;
+  if (!exam || !exam.dwellId || exam.dwellStart === null) return;
+  const delta = Date.now() - exam.dwellStart;
+  if (delta >= 0) {
+    const prior = exam.elapsed[exam.dwellId];
+    exam.elapsed[exam.dwellId] = (typeof prior === "number" ? prior : 0) + delta;
+  }
+  exam.dwellId = null;
+  exam.dwellStart = null;
+}
+
+// Opens a dwell segment for a question now on screen. Never called on the
+// generation-wait path, so a paused clock accrues no dwell — consistent with
+// the deadline refund in onPrepProgress.
+function startExamDwell(questionId) {
+  const exam = app.exam;
+  if (!exam || !questionId) return;
+  exam.dwellId = questionId;
+  exam.dwellStart = Date.now();
+}
+
 function renderExamQuestion() {
   const exam = app.exam;
+  // Any question leaving the screen closes its segment first — this single
+  // call covers forward, backward, review-jump, and generation-wait paths.
+  accumulateExamDwell();
   let question = exam.form[exam.index];
   if (!question && exam.prep) {
     if (exam.prep.buffer[exam.index]) {
@@ -1002,6 +1048,7 @@ function renderExamQuestion() {
     const btn = container.querySelector(`.option[data-key="${committed}"]`);
     if (btn) btn.classList.add("selected");
   }
+  startExamDwell(question.id); // question is now on screen
   const isLast = app.exam.index + 1 === app.exam.form.length;
   el("btn-submit").hidden = false;
   el("btn-submit").disabled = !app.selected; // forward always needs an answer
@@ -1049,6 +1096,7 @@ function examPrevious() {
 
 function openExamReview() {
   commitCurrentExamAnswer();
+  accumulateExamDwell(); // the question leaves the screen for the review grid
   el("question-card").hidden = true;
   el("exam-review-card").hidden = false;
   const list = el("exam-review-list");
@@ -1089,6 +1137,9 @@ function submitExam() {
 async function finishExam() {
   const exam = app.exam;
   if (!exam) return;
+  // Clock expiry can land here with a question still on screen; flush before
+  // app.exam is cleared or that final segment is lost.
+  accumulateExamDwell();
   clearInterval(exam.timerId);
   app.exam = null;
   if (exam.prep) {
@@ -1101,7 +1152,13 @@ async function finishExam() {
   }
   const at = Date.now();
   exam.recordedAt = at;
-  A.applyExamResults(app.state, exam.form, exam.answers, at); // stores the raw score
+  // Run-level total only (nothing discounted yet at finish time); per-question
+  // times stay in-memory for this results screen.
+  const runTiming = A.summarizeExamTiming(exam.form, exam.answers, exam.elapsed, []);
+  A.applyExamResults(
+    app.state, exam.form, exam.answers, at,
+    runTiming.counted ? runTiming.totalMs : null
+  ); // stores the raw score
   await persist();
   renderResults(exam);
   renderDashboard();
@@ -1129,6 +1186,16 @@ function exitExamLayout() {
   el("btn-exam-review").hidden = true;
   el("exam-review-card").hidden = true;
   el("btn-submit").textContent = "Submit answer";
+}
+
+// Compact durations for the review rows and timing summary: "1m 12s" / "48s".
+// null/absent timing renders as an em dash, never NaN.
+function formatDuration(ms) {
+  if (typeof ms !== "number" || !isFinite(ms)) return "—";
+  const total = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 
 function renderResults(exam) {
@@ -1196,6 +1263,49 @@ function renderResults(exam) {
     substituted.hidden = true;
   }
 
+  // Timing summary — diagnostic only, and excluded-question handling matches
+  // discountedScore. Created lazily because renderResults re-runs on every
+  // discount click (same idiom as #r-secondary / #r-substituted above).
+  let timing = el("r-timing");
+  if (!timing) {
+    timing = document.createElement("div");
+    timing.id = "r-timing";
+    timing.className = "score-secondary timing-summary";
+    substituted.after(timing);
+  }
+  const t = A.summarizeExamTiming(exam.form, exam.answers, exam.elapsed, exam.discounted);
+  timing.replaceChildren();
+  if (t.counted) {
+    const grid = document.createElement("div");
+    grid.className = "timing-grid";
+    const rows = [
+      ["Total time", formatDuration(t.totalMs)],
+      ["Mean per question", formatDuration(t.meanMs)],
+      ["Mean when correct", formatDuration(t.meanCorrectMs)],
+      ["Mean when incorrect", formatDuration(t.meanIncorrectMs)],
+      [`Misses under ${Math.round(A.FAST_INCORRECT_MS / 1000)}s`, String(t.fastIncorrect)],
+    ];
+    for (const [label, value] of rows) {
+      const cell = document.createElement("div");
+      cell.appendChild(document.createTextNode(`${label}: `));
+      const val = document.createElement("span");
+      val.className = "tv";
+      val.textContent = value;
+      cell.appendChild(val);
+      grid.appendChild(cell);
+    }
+    const caption = document.createElement("div");
+    caption.className = "note";
+    caption.style.marginTop = "6px";
+    caption.textContent =
+      "Timing is diagnostic only; it does not affect scoring." +
+      (t.untimed ? ` ${t.untimed} question(s) had no timing recorded.` : "");
+    timing.append(grid, caption);
+    timing.hidden = false;
+  } else {
+    timing.hidden = true; // no timing data (e.g. an imported or pre-timing run)
+  }
+
   const domains = el("r-domains");
   domains.replaceChildren();
   for (const [domain, counts] of Object.entries(raw.byDomain)) {
@@ -1238,6 +1348,11 @@ function renderResults(exam) {
           `your answer ${chosen || "—"}, correct ${question.correct}`)
       )
     );
+    // Cumulative dwell time, visually secondary to the mark and labels above.
+    const qTime = document.createElement("span");
+    qTime.className = "q-time";
+    qTime.textContent = `  · ${formatDuration(exam.elapsed[question.id])}`;
+    summary.appendChild(qTime);
     item.appendChild(summary);
     if (!discounted) {
       const flagBtn = document.createElement("button");

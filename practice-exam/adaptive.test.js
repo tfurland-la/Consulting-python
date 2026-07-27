@@ -370,6 +370,109 @@ test("discountedScore with nothing excluded matches scoreExam", () => {
   assert.deepEqual(A.discountedScore(form, answers, []), A.scoreExam(form, answers));
 });
 
+// ── Per-question timing (diagnostic only — never affects scoring) ────────
+
+test("summarizeExamTiming totals and means over answered questions", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.5) });
+  const answers = {};
+  const elapsed = {};
+  form.forEach((q, i) => {
+    answers[q.id] = i < 40 ? "B" : "A"; // 40 correct, 20 incorrect
+    elapsed[q.id] = i < 40 ? 60000 : 30000; // correct slower than incorrect
+  });
+  const t = A.summarizeExamTiming(form, answers, elapsed, []);
+  assert.equal(t.totalMs, 40 * 60000 + 20 * 30000);
+  assert.equal(t.counted, 60);
+  assert.equal(t.meanMs, t.totalMs / 60);
+  assert.equal(t.meanCorrectMs, 60000);
+  assert.equal(t.meanIncorrectMs, 30000);
+});
+
+test("summarizeExamTiming counts fast misses under the 45s threshold", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.3) });
+  const answers = {};
+  const elapsed = {};
+  form.forEach((q, i) => {
+    answers[q.id] = "A"; // every one wrong (bank fixture's correct is "B")
+    elapsed[q.id] = i < 5 ? 20000 : 90000; // 5 rushed, rest deliberate
+  });
+  const t = A.summarizeExamTiming(form, answers, elapsed, []);
+  assert.equal(t.fastIncorrect, 5);
+  assert.equal(A.FAST_INCORRECT_MS, 45000);
+});
+
+test("summarizeExamTiming excludes discounted questions from every aggregate", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.7) });
+  const answers = {};
+  const elapsed = {};
+  form.forEach((q) => {
+    answers[q.id] = "A"; // wrong
+    elapsed[q.id] = 10000; // fast miss
+  });
+  const excluded = [form[0].id, form[1].id];
+  const t = A.summarizeExamTiming(form, answers, elapsed, excluded);
+  assert.equal(t.counted, 58);
+  assert.equal(t.totalMs, 58 * 10000);
+  assert.equal(t.fastIncorrect, 58);
+});
+
+test("summarizeExamTiming returns null means when a side has no questions", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.5) });
+  const answers = {};
+  const elapsed = {};
+  form.forEach((q) => {
+    answers[q.id] = "B"; // all correct — no incorrect side
+    elapsed[q.id] = 5000;
+  });
+  const t = A.summarizeExamTiming(form, answers, elapsed, []);
+  assert.equal(t.meanCorrectMs, 5000);
+  assert.equal(t.meanIncorrectMs, null); // dash in the UI, never NaN
+  assert.equal(t.fastIncorrect, 0);
+});
+
+test("summarizeExamTiming tolerates missing and null elapsed entries", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.5) });
+  const answers = {};
+  form.forEach((q) => { answers[q.id] = "B"; });
+  const elapsed = { [form[0].id]: 12000, [form[1].id]: null }; // rest absent
+  const t = A.summarizeExamTiming(form, answers, elapsed, []);
+  assert.equal(t.counted, 1); // only the timed one participates
+  assert.equal(t.totalMs, 12000);
+  assert.equal(t.meanMs, 12000);
+  assert.equal(t.untimed, 59);
+});
+
+test("summarizeExamTiming with no timing data at all yields nulls, not NaN", () => {
+  const form = A.drawExamForm(syntheticBank(), freshState(), { rng: rngOf(0.5) });
+  const answers = {};
+  form.forEach((q) => { answers[q.id] = "B"; });
+  const t = A.summarizeExamTiming(form, answers, {}, []);
+  assert.equal(t.counted, 0);
+  assert.equal(t.totalMs, 0);
+  assert.equal(t.meanMs, null);
+  assert.equal(t.meanCorrectMs, null);
+  assert.equal(t.meanIncorrectMs, null);
+});
+
+test("applyExamResults stores the run's total elapsed on the examHistory entry", () => {
+  const state = freshState();
+  const form = A.drawExamForm(syntheticBank(), state, { rng: rngOf(0.5) });
+  const answers = {};
+  form.forEach((q) => { answers[q.id] = "B"; });
+  A.applyExamResults(state, form, answers, 4242, 123456);
+  assert.equal(state.examHistory[0].elapsedMs, 123456);
+});
+
+test("applyExamResults leaves elapsedMs null when timing is unavailable", () => {
+  const state = freshState();
+  const form = A.drawExamForm(syntheticBank(), state, { rng: rngOf(0.5) });
+  const answers = {};
+  form.forEach((q) => { answers[q.id] = "B"; });
+  A.applyExamResults(state, form, answers, 4242); // pre-timing call shape
+  assert.equal(state.examHistory[0].elapsedMs, null);
+  assert.equal(state.examHistory[0].scaled, A.scoreExam(form, answers).scaled);
+});
+
 test("applyFlag fully discards the last answer", () => {
   const state = freshState({ "D4.3": 3.0 });
   const prevWeight = state.weights["D4.3"];

@@ -461,11 +461,63 @@ function discountedScore(form, answers, excludedIds) {
   return scoreExam(form.filter((q) => !excluded.has(q.id)), answers);
 }
 
+// ── Per-question timing (diagnostic only) ────────────────────────────────
+// Timing never touches scoring, selection, or the pass threshold. An incorrect
+// answer under this threshold reads as a rushed miss rather than a knowledge
+// gap — the diagnostic the summary is for.
+const FAST_INCORRECT_MS = 45000;
+
+// elapsed: map of question id -> cumulative dwell ms (may be null/absent when
+// a start stamp was missing, or for runs saved before timing existed).
+// excludedIds: flagged-as-flawed ids, excluded here exactly as they are from
+// discountedScore. Every mean is null rather than NaN when its side is empty.
+function summarizeExamTiming(form, answers, elapsed, excludedIds) {
+  const excluded = new Set(excludedIds || []);
+  const times = elapsed || {};
+  let totalMs = 0;
+  let counted = 0;
+  let untimed = 0;
+  let correctMs = 0;
+  let correctN = 0;
+  let incorrectMs = 0;
+  let incorrectN = 0;
+  let fastIncorrect = 0;
+  for (const question of form) {
+    if (!question || excluded.has(question.id)) continue;
+    const ms = times[question.id];
+    if (typeof ms !== "number" || !isFinite(ms)) {
+      untimed += 1;
+      continue;
+    }
+    totalMs += ms;
+    counted += 1;
+    if (answers[question.id] === question.correct) {
+      correctMs += ms;
+      correctN += 1;
+    } else {
+      incorrectMs += ms;
+      incorrectN += 1;
+      if (ms < FAST_INCORRECT_MS) fastIncorrect += 1;
+    }
+  }
+  return {
+    totalMs,
+    counted,
+    untimed,
+    meanMs: counted ? totalMs / counted : null,
+    meanCorrectMs: correctN ? correctMs / correctN : null,
+    meanIncorrectMs: incorrectN ? incorrectMs / incorrectN : null,
+    fastIncorrect,
+  };
+}
+
 // Fold an exam attempt into the adaptive state: weights, stats, and seen
 // update exactly like drill answers, and the attempt lands in examHistory.
 // Drill `history` is deliberately untouched — it drives the cooldown and
 // trend display, and 60 batch entries would wipe it.
-function applyExamResults(state, form, answers, at) {
+// totalElapsedMs is the run's cumulative dwell time, or null when unavailable
+// (including every run saved before timing existed).
+function applyExamResults(state, form, answers, at, totalElapsedMs) {
   const score = scoreExam(form, answers);
   for (const question of form) {
     const ts = question.taskStatement;
@@ -491,6 +543,7 @@ function applyExamResults(state, form, answers, at) {
     correct: score.correct,
     total: score.total,
     scaled: score.scaled,
+    elapsedMs: typeof totalElapsedMs === "number" ? totalElapsedMs : null,
   });
   if (state.examHistory.length > EXAM_HISTORY_LIMIT) {
     state.examHistory.splice(0, state.examHistory.length - EXAM_HISTORY_LIMIT);
@@ -569,6 +622,8 @@ const CCAF_ADAPTIVE = {
   scoreExam,
   discountedScore,
   applyExamResults,
+  summarizeExamTiming,
+  FAST_INCORRECT_MS,
 };
 
 if (typeof module !== "undefined" && module.exports) {
