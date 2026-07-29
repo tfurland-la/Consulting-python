@@ -61,8 +61,9 @@ question bank instead. You can also open [`practice-exam/exam.html`][exam-live]
 directly (or on the live site) with zero setup — bank questions, progress in
 browser storage. Either way, a **Timed exam** mode runs a full 60-question,
 120-minute simulation matching the real exam's domain weighting (27/18/20/20/15)
-and its 4-of-6 scenario structure, with backward navigation, an end-of-test
-review screen, and an approximate scaled score against the 720 bar. In the
+and its 4-of-6 scenario structure, with question skipping, mark-for-review,
+backward navigation, an always-reachable review screen, and an approximate
+scaled score against the 720 bar. In the
 desktop app, **fresh questions generated live** carry the exam's difficulty
 spread — mostly mid, a quarter harder, a ~15% hard tail — making it the faithful
 readiness gate; the bank exam is instant but a standard-difficulty approximation

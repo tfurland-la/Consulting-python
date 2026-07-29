@@ -5,6 +5,7 @@ end-to-end path is exercised manually via `python3 practice-exam/exam_app.py`.
 """
 
 import json
+import re
 
 import pytest
 
@@ -457,3 +458,100 @@ def test_state_round_trips_through_progress_file(exam_app, monkeypatch, tmp_path
     state = {"version": 1, "weights": {"D1.1": 2.5}}
     api.save_state(state)
     assert api.load_state() == state
+
+
+# ── Exam navigation contract (skip / return / mark for review) ──────────────
+# The real exam lets a candidate leave a question blank, move on, and come back.
+# The pure logic lives in adaptive.js (A.nav, covered by adaptive.test.js); these
+# guard the DOM and packaging side, which no JS test reaches — including the
+# desktop app, whose window loads this same exam.html out of the bundle.
+
+EXAM_HTML = (PRACTICE_EXAM_DIR / "exam.html").read_text(encoding="utf-8")
+EXAM_SPEC = (PRACTICE_EXAM_DIR / "exam_app.spec").read_text(encoding="utf-8")
+
+
+def test_exam_offers_skip_and_mark_controls():
+    for element_id in ("btn-exam-skip", "btn-exam-mark", "btn-exam-next-blank"):
+        assert f'id="{element_id}"' in EXAM_HTML, f"{element_id} missing from markup"
+        assert f'el("{element_id}").addEventListener' in EXAM_HTML, (
+            f"{element_id} exists but is never wired to a handler"
+        )
+
+
+def test_forward_motion_no_longer_requires_an_answer():
+    """The old guard refused to advance on a blank; skipping must be allowed."""
+    assert "no skip-to-blank" not in EXAM_HTML
+    assert "function examSkip()" in EXAM_HTML
+    # Skip must not be gated on a selection the way committing an answer is.
+    # Split on the next top-level `function` rather than a bare "}" so adding a
+    # braced block inside examSkip can't silently truncate the captured body.
+    skip_body = EXAM_HTML.split("function examSkip()")[1].split("\nfunction ")[0]
+    assert "if (!app.selected) return" not in skip_body
+    # But it must refuse to advance off a question that hasn't generated yet —
+    # otherwise a fresh-question exam quietly fills with bank substitutes.
+    assert "A.nav.slotIsResolved" in skip_body
+
+
+def test_review_screen_is_reachable_before_the_form_is_complete():
+    """Review is how you find your skipped questions, so it can't be gated."""
+    assert "examAllAnswered" not in EXAM_HTML, (
+        "the all-answered gate should be gone; use A.nav.examProgress instead"
+    )
+    assert 'el("btn-exam-review").hidden = false;' in EXAM_HTML
+
+
+def test_submit_warns_before_scoring_an_incomplete_form():
+    submit_body = EXAM_HTML.split("function submitExam()")[1].split("\nfunction ")[0]
+    assert "A.nav.needsSubmitConfirmation" in submit_body
+    assert "confirm(" in submit_body
+    assert "still unanswered" in submit_body
+
+
+def test_mark_for_review_is_distinct_from_the_discard_flag():
+    """`marked` is exam-session navigation state; `state.flagged` permanently
+    discards a flawed bank question. Conflating them would silently drop
+    questions a candidate merely wanted to revisit."""
+    mark_body = EXAM_HTML.split("function toggleExamMark()")[1].split("\nfunction ")[0]
+    assert "A.nav.toggleMarked" in mark_body
+    assert "flagged" not in mark_body, "mark-for-review must not touch state.flagged"
+    assert "marked: {}," in EXAM_HTML, "exam state must initialize a marked map"
+
+
+def test_exam_only_controls_are_hidden_when_leaving_exam_mode():
+    """Otherwise the exam's skip/mark buttons leak into the practice drill."""
+    exit_body = EXAM_HTML.split("function exitExamLayout()")[1].split("\n}")[0]
+    for element_id in ("btn-exam-skip", "btn-exam-mark"):
+        assert f'el("{element_id}").hidden = true;' in exit_body
+
+
+def test_spec_bundles_every_script_exam_html_loads():
+    """A <script src> that isn't in the PyInstaller DATAS list loads fine in a
+    browser and silently breaks the frozen desktop app."""
+    sources = set(re.findall(r'<script[^>]*src="([^"]+)"', EXAM_HTML))
+    assert sources, "expected exam.html to load at least one external script"
+    bundled = set(re.findall(r'"([^"]+\.(?:js|html|md))"', EXAM_SPEC))
+    missing = sorted(sources - bundled)
+    assert not missing, f"scripts loaded but not bundled in exam_app.spec: {missing}"
+
+
+def test_every_el_lookup_in_exam_html_resolves():
+    """Catches a typo'd or renamed element id before it reaches the app, where
+    el() returns null and the next property access throws."""
+    static_ids = set(re.findall(r'\bid="([^"]+)"', EXAM_HTML))
+    js_ids = set(re.findall(r'\.id\s*=\s*"([^"]+)"', EXAM_HTML))  # lazily created
+    referenced = set(re.findall(r'\bel\("([^"]+)"\)', EXAM_HTML))
+    missing = sorted(referenced - static_ids - js_ids)
+    assert not missing, f"el() references elements that are never created: {missing}"
+
+
+def test_generation_wait_screen_hides_skip_and_mark():
+    """In fresh-question mode the exam parks on a paused "Generating this
+    question…" screen when the candidate outpaces the generator. Skip and mark
+    must not carry over visible from the previous question's render: skipping
+    there races ahead of the generator and silently fills the form with bank
+    substitutes, defeating the point of the readiness gate."""
+    wait_branch = EXAM_HTML.split("Generating this question")[1].split("return;")[0]
+    for element_id in ("btn-exam-skip", "btn-exam-mark"):
+        assert f'el("{element_id}").hidden = true;' in wait_branch, (
+            f"{element_id} stays visible on the generation-wait screen"
+        )

@@ -224,13 +224,27 @@ kept (a single ×1.5 on one statement self-corrects through drilling).
 
 Delivery, scoring, and state effects (shared by both sources):
 - **Delivery:** 120-minute countdown, no task-statement labels, no feedback
-  until scored. Forward advance requires a committed answer (no skip-to-blank);
-  backward navigation revisits any earlier question and its answer stays
-  changeable within the window. Answering the last question opens an
-  end-of-test **review screen** (all 60 with committed answers and jump-back
-  links); scoring happens only on final submit or clock expiry (expiry counts
-  any unreached question wrong). The attempt lives in memory only — closing the
-  page abandons it (the page warns).
+  until scored. **Skipping is allowed**, matching the real exam: `Skip →` moves
+  on without committing an answer, leaving the question blank. Backward
+  navigation revisits any earlier question and its answer stays changeable
+  within the window. `Mark for review` tags a question as worth revisiting —
+  session-only navigation state, deliberately distinct from the practice-mode
+  "Flag — don't count this question" control, which permanently discards a
+  flawed bank question. The **review screen** is reachable at any time (it is
+  how skipped questions get found), showing all 60 with a dashed border on
+  blanks, a bar on marked questions, an answered/skipped/marked tally, and a
+  "Go to next unanswered" jump that wraps. Scoring happens only on final submit
+  or clock expiry; submitting with blanks remaining asks for confirmation first,
+  and unanswered questions score as incorrect. The attempt lives in memory only
+  — closing the page abandons it (the page warns).
+
+  The pure navigation logic lives in `adaptive.js` under `A.nav` (form-id
+  resolution across a sparse form, unanswered/marked indices, progress summary,
+  next-unanswered search), unit-tested in `adaptive.test.js`. `exam.html` holds
+  only the DOM wiring, guarded by text-level contract tests in
+  `test_practice_exam_app.py` — including one asserting `exam_app.spec` bundles
+  every script `exam.html` loads, since a missing entry there breaks the frozen
+  desktop app while the browser build keeps working.
 - **Scoring:** the headline is the **raw** correct-out-of-60 and an
   *approximate* scaled score (linear 100–1000 map; the real exam uses
   equating) against the 720 bar, with a per-domain breakdown and a full

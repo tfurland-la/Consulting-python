@@ -280,6 +280,13 @@ const CCARF_SEED = {
   .review-chip:hover { border-color: var(--teal); }
   .review-chip .qn { font-family: 'DM Mono', monospace; color: var(--ink-faint); }
   .review-chip .ans { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--accent); }
+  /* Skipped questions must be findable at a glance on the review grid — a
+     dashed border reads as "still open" without relying on colour alone. */
+  .review-chip.is-blank { border-style: dashed; border-color: var(--accent); }
+  .review-chip.is-blank .ans { color: var(--ink-faint); font-weight: 400; }
+  .review-chip.is-marked { box-shadow: inset 3px 0 0 var(--teal); }
+  .review-chip .mark { color: var(--teal); font-weight: 600; }
+  .review-summary { font-size: 13px; color: var(--ink-light); margin-bottom: 10px; }
   .score-secondary {
     margin-top: 10px; font-size: 14px; color: var(--ink-light);
     border-top: 1px solid var(--paper-warm); padding-top: 10px;
@@ -350,6 +357,8 @@ const CCARF_SEED = {
       <div class="controls">
         <button class="ghost" id="btn-exam-prev" hidden>← Previous</button>
         <button class="primary" id="btn-submit" disabled>Submit answer</button>
+        <button class="ghost" id="btn-exam-skip" hidden>Skip →</button>
+        <button class="ghost" id="btn-exam-mark" hidden>Mark for review</button>
         <button class="primary" id="btn-next" hidden>Next question</button>
         <button class="ghost" id="btn-exam-review" hidden>Review all &amp; submit</button>
         <button class="ghost" id="btn-flag" hidden>Flag — don't count this question</button>
@@ -360,10 +369,12 @@ const CCARF_SEED = {
 
     <div class="card" id="exam-review-card" hidden>
       <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin-bottom:6px">Review &amp; submit</h2>
-      <p class="note" style="margin-bottom:12px">Every question has a committed answer. Tap any to revisit and change it — the clock is still running. Submit when you're ready, or the exam auto-submits at 0:00.</p>
+      <p class="note" style="margin-bottom:12px">Tap any question to revisit it — the clock is still running. Skipped questions show a dashed border; ones you marked for review carry a bar. Submit when you're ready, or the exam auto-submits at 0:00.</p>
+      <div class="review-summary" id="exam-review-summary"></div>
       <div id="exam-review-list"></div>
       <div class="controls" style="margin-top:14px">
         <button class="primary" id="btn-exam-submit">Submit exam for scoring</button>
+        <button class="ghost" id="btn-exam-next-blank" hidden>Go to next unanswered</button>
         <button class="ghost" id="btn-exam-back">Back to last question</button>
       </div>
     </div>
@@ -372,8 +383,9 @@ const CCARF_SEED = {
       <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin-bottom:10px">Timed exam</h2>
       <div id="setup-choice">
         <p class="note" style="margin-bottom:12px">60 questions · 120 minutes · real domain weighting
-        (27/18/20/20/15) · 4 of the 6 exam scenarios · answer to advance, revisit and change any
-        answer, review before submitting · no feedback until scored. Results update your adaptive weights.</p>
+        (27/18/20/20/15) · 4 of the 6 exam scenarios · skip and return to any question, mark questions
+        for review, change any answer, review before submitting · no feedback until scored. Results
+        update your adaptive weights.</p>
         <div class="controls">
           <button class="primary" id="btn-exam-fresh">Fresh questions (readiness gate)</button>
           <button class="primary" id="btn-exam-bank">From the question bank (instant)</button>
@@ -906,6 +918,10 @@ function beginExam(form, prep) {
     prep,
     index: 0,
     answers: {},
+    // Mark-for-review is exam-session only and never persisted: it is a
+    // navigation aid, unlike app.state.flagged which permanently discards a
+    // flawed bank question.
+    marked: {},
     discounted: [],
     // Timing is a parallel map keyed by question id, deliberately separate from
     // `answers` (a bare letter per id) so the scoring functions that read
@@ -1011,6 +1027,12 @@ function renderExamQuestion() {
       el("q-stem").textContent = "";
       el("q-options").replaceChildren();
       el("btn-submit").hidden = true;
+      // Skip and mark must not survive from the previous question's render.
+      // Skipping from here would outrun the generator and silently convert a
+      // fresh-question exam into bank substitutes, and there is no stable
+      // question id to mark yet. The clock is paused, so waiting costs nothing.
+      el("btn-exam-skip").hidden = true;
+      el("btn-exam-mark").hidden = true;
       renderExamTimer();
       return;
     }
@@ -1055,24 +1077,52 @@ function renderExamQuestion() {
   startExamDwell(question.id); // question is now on screen
   const isLast = app.exam.index + 1 === app.exam.form.length;
   el("btn-submit").hidden = false;
-  el("btn-submit").disabled = !app.selected; // forward always needs an answer
+  el("btn-submit").disabled = !app.selected; // committing still needs a choice
   el("btn-submit").textContent = isLast ? "Answer & review" : "Answer & continue";
   el("btn-exam-prev").hidden = app.exam.index === 0;
-  // Once nothing is blank, the review/submit screen is reachable from anywhere.
-  el("btn-exam-review").hidden = !examAllAnswered();
+  // Skipping is allowed: the real exam lets a candidate leave a question blank,
+  // move on, and come back. So this is always available, answered or not.
+  el("btn-exam-skip").hidden = false;
+  el("btn-exam-skip").textContent = isLast ? "Skip → review" : "Skip →";
+  // Mark for review is exam-session state, deliberately distinct from the
+  // practice-mode "Flag — don't count this question" button (which discards a
+  // flawed bank question permanently). btn-flag stays hidden during the exam.
+  el("btn-exam-mark").hidden = false;
+  el("btn-exam-mark").textContent = examIsMarked(question.id)
+    ? "✓ Marked for review"
+    : "Mark for review";
+  // Reachable at any time now that blanks are legal — it's how you find them.
+  el("btn-exam-review").hidden = false;
   el("btn-next").hidden = true;
   el("btn-flag").hidden = true;
   el("btn-abandon").hidden = false;
   renderExamTimer();
 }
 
-// True once every question in the form has a committed answer. Forward motion
-// forces an answer, so this becomes true after the last question is answered.
-function examAllAnswered() {
-  return app.exam.form.every((q, i) => {
-    const id = q ? q.id : (app.exam.prep && app.exam.prep.buffer[i] || {}).id;
-    return id && app.exam.answers[id] !== undefined;
-  });
+// Progress over the current form, tolerant of slots still materializing from
+// prep.buffer. Delegates to the tested pure helpers in adaptive.js.
+function examProgressNow() {
+  return A.nav.examProgress(
+    app.exam.form,
+    app.exam.answers,
+    app.exam.marked,
+    app.exam.prep,
+  );
+}
+
+function examIsMarked(id) {
+  return !!(app.exam && app.exam.marked && app.exam.marked[id]);
+}
+
+function toggleExamMark() {
+  if (!app.exam) return;
+  const q = app.exam.form[app.exam.index];
+  const id = q ? q.id : A.nav.resolveFormIds(app.exam.form, app.exam.prep)[app.exam.index];
+  if (!id) return; // slot still loading — nothing stable to mark yet
+  app.exam.marked = A.nav.toggleMarked(app.exam.marked, id);
+  el("btn-exam-mark").textContent = examIsMarked(id)
+    ? "✓ Marked for review"
+    : "Mark for review";
 }
 
 function commitCurrentExamAnswer() {
@@ -1081,13 +1131,29 @@ function commitCurrentExamAnswer() {
 }
 
 function examAnswer() {
-  if (!app.selected) return; // no skip-to-blank
+  if (!app.selected) return; // committing needs a choice; use Skip to leave blank
   commitCurrentExamAnswer();
+  examAdvance();
+}
+
+// Move on without committing an answer. The question stays blank and shows up
+// on the review grid so it can be found and answered later.
+function examSkip() {
+  if (!app.exam) return;
+  // Defence in depth for the generation-wait screen: renderExamQuestion hides
+  // this button there, but a keyboard auto-repeat can still land a click. Never
+  // advance off a slot whose question hasn't resolved.
+  if (!A.nav.slotIsResolved(app.exam.form, app.exam.prep, app.exam.index)) return;
+  commitCurrentExamAnswer(); // keep an in-progress change if one was made
+  examAdvance();
+}
+
+function examAdvance() {
   if (app.exam.index + 1 < app.exam.form.length) {
     app.exam.index += 1;
     renderExamQuestion();
   } else {
-    openExamReview(); // last question answered → review, not immediate scoring
+    openExamReview(); // end of the form → review, never immediate scoring
   }
 }
 
@@ -1105,23 +1171,64 @@ function openExamReview() {
   el("exam-review-card").hidden = false;
   const list = el("exam-review-list");
   list.replaceChildren();
+  const progress = examProgressNow();
+  const blanks = new Set(progress.unanswered);
+  const marked = new Set(progress.marked);
+  const parts = [`${progress.answered} of ${progress.total} answered`];
+  if (progress.unanswered.length) parts.push(`${progress.unanswered.length} skipped`);
+  if (progress.marked.length) parts.push(`${progress.marked.length} marked for review`);
+  el("exam-review-summary").textContent = parts.join(" · ");
+  el("btn-exam-next-blank").hidden = progress.complete;
+
   const grid = document.createElement("div");
   grid.className = "review-grid";
-  app.exam.form.forEach((q, i) => {
+  // Iterate resolved ids, not form entries: with skipping allowed the review
+  // screen is reachable while a slot is still materializing, so form[i] can be
+  // undefined here. Reading q.id directly would throw.
+  A.nav.resolveFormIds(app.exam.form, app.exam.prep).forEach((id, i) => {
     const chip = document.createElement("button");
     chip.className = "review-chip";
+    if (blanks.has(i)) chip.classList.add("is-blank");
+    if (marked.has(i)) chip.classList.add("is-marked");
     const qn = document.createElement("span");
     qn.className = "qn";
     qn.textContent = `Q${i + 1}`;
     const ans = document.createElement("span");
     ans.className = "ans";
-    ans.textContent = "  " + (app.exam.answers[q.id] || "—");
+    const committed = id === null ? undefined : app.exam.answers[id];
+    ans.textContent = "  " + (committed === undefined ? "—" : committed);
     chip.append(qn, ans);
+    if (marked.has(i)) {
+      const star = document.createElement("span");
+      star.className = "mark";
+      star.textContent = " ★";
+      chip.appendChild(star);
+    }
+    // State is conveyed by border style and a star, so it does not depend on
+    // colour alone; the label carries it for screen readers too.
+    chip.setAttribute(
+      "aria-label",
+      `Question ${i + 1}, ` +
+        (committed === undefined ? "unanswered" : `answered ${committed}`) +
+        (marked.has(i) ? ", marked for review" : ""),
+    );
     chip.addEventListener("click", () => jumpToExamQuestion(i));
     grid.appendChild(chip);
   });
   list.appendChild(grid);
   renderExamTimer();
+}
+
+function goToNextUnanswered() {
+  if (!app.exam) return;
+  const i = A.nav.nextUnansweredFrom(
+    app.exam.index,
+    app.exam.form,
+    app.exam.answers,
+    app.exam.prep,
+  );
+  if (i === null) return;
+  jumpToExamQuestion(i);
 }
 
 function jumpToExamQuestion(i) {
@@ -1131,10 +1238,20 @@ function jumpToExamQuestion(i) {
   renderExamQuestion();
 }
 
-// Final submit from the review screen — the only path to scoring besides
-// clock expiry. Every question already has a committed answer by construction.
+// Final submit from the review screen — the only path to scoring besides clock
+// expiry. Blanks are legal now that skipping is allowed, so the old "every
+// question is answered by construction" invariant is gone: warn before scoring.
 function submitExam() {
   if (!app.exam) return;
+  const progress = examProgressNow();
+  if (A.nav.needsSubmitConfirmation(app.exam.form, app.exam.answers, app.exam.prep)) {
+    const n = progress.unanswered.length;
+    const ok = confirm(
+      `${n} question${n === 1 ? "" : "s"} still unanswered. ` +
+        `Unanswered questions are scored as incorrect. Submit anyway?`,
+    );
+    if (!ok) return;
+  }
   finishExam();
 }
 
@@ -1188,6 +1305,8 @@ function exitExamLayout() {
   el("btn-abandon").hidden = true;
   el("btn-exam-prev").hidden = true;
   el("btn-exam-review").hidden = true;
+  el("btn-exam-skip").hidden = true;
+  el("btn-exam-mark").hidden = true;
   el("exam-review-card").hidden = true;
   el("btn-submit").textContent = "Submit answer";
 }
@@ -1736,7 +1855,10 @@ async function init() {
   el("btn-exam-abort").addEventListener("click", closeExamSetup);
   el("btn-abandon").addEventListener("click", abandonExam);
   el("btn-exam-prev").addEventListener("click", examPrevious);
+  el("btn-exam-skip").addEventListener("click", examSkip);
+  el("btn-exam-mark").addEventListener("click", toggleExamMark);
   el("btn-exam-review").addEventListener("click", openExamReview);
+  el("btn-exam-next-blank").addEventListener("click", goToNextUnanswered);
   el("btn-exam-submit").addEventListener("click", submitExam);
   el("btn-exam-back").addEventListener("click", () => jumpToExamQuestion(app.exam ? app.exam.index : 0));
   el("btn-return").addEventListener("click", returnToPractice);

@@ -583,7 +583,110 @@ function applyFlag(state, lastAnswer) {
   return state;
 }
 
+/* ── Exam form navigation ──────────────────────────────────────────────────
+   Pure helpers for moving through a fixed exam form. The real exam lets a
+   candidate leave a question blank, move on, and return to it later, so
+   nothing here requires an answer to advance — the DOM layer calls these to
+   decide what to render and whether a submit needs confirming.
+
+   A form slot can be sparse: form[i] may still be undefined while its question
+   sits in prep.buffer[i], materialized on first render. Every helper resolves
+   ids through both, so a still-loading slot is never mistaken for a blank one
+   that the candidate chose to skip — or worse, for an answered one. */
+
+function resolveFormIds(form, prep) {
+  const buffer = (prep && prep.buffer) || [];
+  return (form || []).map((q, i) => {
+    if (q && q.id != null) return q.id;
+    const buffered = buffer[i];
+    return buffered && buffered.id != null ? buffered.id : null;
+  });
+}
+
+function navIsAnswered(answers, id) {
+  return id != null && !!answers && answers[id] !== undefined;
+}
+
+function unansweredIndices(form, answers, prep) {
+  return resolveFormIds(form, prep).reduce((out, id, i) => {
+    if (!navIsAnswered(answers, id)) out.push(i);
+    return out;
+  }, []);
+}
+
+function markedIndices(form, marked, prep) {
+  return resolveFormIds(form, prep).reduce((out, id, i) => {
+    if (id != null && marked && marked[id]) out.push(i);
+    return out;
+  }, []);
+}
+
+// Returns a new map rather than mutating, so callers can't accidentally share
+// review state between an exam in progress and a restored one.
+function toggleMarked(marked, id) {
+  const next = Object.assign({}, marked);
+  if (next[id]) delete next[id];
+  else next[id] = true;
+  return next;
+}
+
+function examProgress(form, answers, marked, prep) {
+  const ids = resolveFormIds(form, prep);
+  const unanswered = unansweredIndices(form, answers, prep);
+  return {
+    total: ids.length,
+    answered: ids.length - unanswered.length,
+    unanswered,
+    marked: markedIndices(form, marked, prep),
+    complete: unanswered.length === 0,
+  };
+}
+
+function needsSubmitConfirmation(form, answers, prep) {
+  return unansweredIndices(form, answers, prep).length > 0;
+}
+
+// True once a form slot has a real question, or is guaranteed to get one on the
+// next render — either it is already buffered, or generation failed for it and a
+// bank question will be substituted. False only for the paused "still
+// generating" state, where advancing would race ahead of the generator and
+// quietly turn a fresh-question exam into bank substitutes. A bank exam has no
+// prep at all and is always ready.
+function slotIsResolved(form, prep, index) {
+  if ((form || [])[index]) return true;
+  if (!prep) return true;
+  if ((prep.buffer || [])[index]) return true;
+  return !!(prep.failedSlots && prep.failedSlots.has(index));
+}
+
+// Next blank after the cursor, wrapping past the end. The cursor's own slot is
+// checked LAST rather than never: moving elsewhere is preferred, but if the
+// cursor is the only blank left, returning it beats reporting the form complete.
+function nextUnansweredFrom(index, form, answers, prep) {
+  const ids = resolveFormIds(form, prep);
+  const n = ids.length;
+  if (n === 0) return null;
+  for (let step = 1; step <= n; step++) {
+    const i = (index + step) % n;
+    if (!navIsAnswered(answers, ids[i])) return i;
+  }
+  return null;
+}
+
+const NAV = {
+  resolveFormIds,
+  isAnswered: navIsAnswered,
+  unansweredIndices,
+  markedIndices,
+  toggleMarked,
+  examProgress,
+  needsSubmitConfirmation,
+  nextUnansweredFrom,
+  slotIsResolved,
+};
+
 const CCARF_ADAPTIVE = {
+  nav: NAV,
   TASK_STATEMENTS,
   DOMAINS,
   DOMAIN_FACTORS,

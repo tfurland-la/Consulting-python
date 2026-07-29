@@ -646,3 +646,127 @@ test("HARD floor never resurrects a coverage-excluded statement", () => {
   const eff = A.effectiveWeights(s, { availability: { "D4.3": 1 } });
   assert.equal(eff["D1.5"], 0);
 });
+
+// ── Exam form navigation (A.nav) ──────────────────────────────────────────
+// The real exam permits skipping a question and returning to it later, so the
+// form must tolerate blanks mid-exam. These cover the sparse-form case too:
+// a slot can still be materializing from prep.buffer, in which case form[i] is
+// undefined but the question (and its id) already exist in the buffer.
+
+function navForm(n) {
+  return Array.from({ length: n }, (_, i) => ({ id: `q${i}` }));
+}
+
+test("nav.resolveFormIds reads ids from the form", () => {
+  assert.deepEqual(A.nav.resolveFormIds(navForm(3), null), ["q0", "q1", "q2"]);
+});
+
+test("nav.resolveFormIds falls back to prep.buffer for unmaterialized slots", () => {
+  const form = [{ id: "q0" }, undefined, null];
+  const prep = { buffer: [null, { id: "q1" }, { id: "q2" }] };
+  assert.deepEqual(A.nav.resolveFormIds(form, prep), ["q0", "q1", "q2"]);
+});
+
+test("nav.resolveFormIds yields null for a slot with no question anywhere", () => {
+  assert.deepEqual(A.nav.resolveFormIds([undefined], { buffer: [] }), [null]);
+});
+
+test("nav.unansweredIndices lists only the blanks, in order", () => {
+  const answers = { q0: ["B"], q2: ["A"] };
+  assert.deepEqual(A.nav.unansweredIndices(navForm(4), answers, null), [1, 3]);
+});
+
+test("nav.unansweredIndices treats an unmaterialized slot as unanswered", () => {
+  const form = [{ id: "q0" }, undefined];
+  const prep = { buffer: [null, { id: "q1" }] };
+  assert.deepEqual(A.nav.unansweredIndices(form, { q0: ["A"] }, prep), [1]);
+});
+
+test("nav.markedIndices lists slots flagged for review", () => {
+  const marked = { q1: true, q3: true, q0: false };
+  assert.deepEqual(A.nav.markedIndices(navForm(4), marked, null), [1, 3]);
+});
+
+test("nav.toggleMarked flips a question on and off without mutating input", () => {
+  const before = { q1: true };
+  const on = A.nav.toggleMarked(before, "q2");
+  assert.deepEqual(before, { q1: true }, "input must not be mutated");
+  assert.equal(on.q2, true);
+  assert.equal(A.nav.toggleMarked(on, "q2").q2, undefined);
+});
+
+test("nav.examProgress summarizes answered, unanswered and marked", () => {
+  const p = A.nav.examProgress(navForm(5), { q0: ["A"], q4: ["C"] }, { q2: true }, null);
+  assert.equal(p.total, 5);
+  assert.equal(p.answered, 2);
+  assert.deepEqual(p.unanswered, [1, 2, 3]);
+  assert.deepEqual(p.marked, [2]);
+  assert.equal(p.complete, false);
+});
+
+test("nav.examProgress reports complete once nothing is blank", () => {
+  const answers = { q0: ["A"], q1: ["B"], q2: ["C"] };
+  const p = A.nav.examProgress(navForm(3), answers, {}, null);
+  assert.equal(p.complete, true);
+  assert.deepEqual(p.unanswered, []);
+});
+
+test("nav.needsSubmitConfirmation is true only while blanks remain", () => {
+  assert.equal(A.nav.needsSubmitConfirmation(navForm(2), { q0: ["A"] }, null), true);
+  assert.equal(A.nav.needsSubmitConfirmation(navForm(2), { q0: ["A"], q1: ["B"] }, null), false);
+});
+
+test("nav.nextUnansweredFrom finds the next blank after the cursor", () => {
+  const answers = { q0: ["A"], q1: ["B"] };
+  assert.equal(A.nav.nextUnansweredFrom(0, navForm(4), answers, null), 2);
+});
+
+test("nav.nextUnansweredFrom wraps past the end to an earlier blank", () => {
+  // Cursor on the last slot, the only blank is q1 — must wrap, not give up.
+  const answers = { q0: ["A"], q2: ["C"], q3: ["D"] };
+  assert.equal(A.nav.nextUnansweredFrom(3, navForm(4), answers, null), 1);
+});
+
+test("nav.nextUnansweredFrom returns null when the form is complete", () => {
+  const answers = { q0: ["A"], q1: ["B"] };
+  assert.equal(A.nav.nextUnansweredFrom(0, navForm(2), answers, null), null);
+});
+
+test("nav.nextUnansweredFrom skips the cursor's own slot even when blank", () => {
+  // Standing on a blank q1, "next unanswered" should move on to q3, not sit still.
+  const answers = { q0: ["A"], q2: ["C"] };
+  assert.equal(A.nav.nextUnansweredFrom(1, navForm(4), answers, null), 3);
+});
+
+test("nav.slotIsResolved: a populated form slot is ready", () => {
+  assert.equal(A.nav.slotIsResolved(navForm(2), null, 0), true);
+});
+
+test("nav.slotIsResolved: a bank exam with no prep is always ready", () => {
+  assert.equal(A.nav.slotIsResolved(navForm(2), undefined, 1), true);
+});
+
+test("nav.slotIsResolved: a buffered question counts as ready", () => {
+  // renderExamQuestion materializes form[i] from the buffer on arrival.
+  const prep = { buffer: [null, { id: "q1" }], failedSlots: new Set() };
+  assert.equal(A.nav.slotIsResolved([{ id: "q0" }, undefined], prep, 1), true);
+});
+
+test("nav.slotIsResolved: a failed slot counts as ready (bank substitutes it)", () => {
+  const prep = { buffer: [null, null], failedSlots: new Set([1]) };
+  assert.equal(A.nav.slotIsResolved([{ id: "q0" }, undefined], prep, 1), true);
+});
+
+test("nav.slotIsResolved: false while the generator is still working", () => {
+  // This is the paused "Generating this question…" state. Advancing off it
+  // would race ahead of the generator and quietly draw bank substitutes.
+  const prep = { buffer: [null, null], failedSlots: new Set() };
+  assert.equal(A.nav.slotIsResolved([{ id: "q0" }, undefined], prep, 1), false);
+});
+
+test("nav.nextUnansweredFrom returns the cursor itself when it is the last blank", () => {
+  // The cursor's slot is checked last, not never: if it is the only blank left,
+  // returning null would wrongly report the form complete.
+  const answers = { q0: ["A"], q2: ["C"] };
+  assert.equal(A.nav.nextUnansweredFrom(1, navForm(3), answers, null), 1);
+});
