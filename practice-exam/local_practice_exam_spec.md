@@ -354,6 +354,25 @@ future guide revision, or a first-hand account of the item format after a real
 sitting. With that in hand the change is contained: `correct` becomes an array
 normalized at bank load, a `selectCount` field drives a "Select N" stem and an
 N-selection gate in the UI, and the equality check becomes set equality.
+
+*Two traps, learned from implementing this in the Associate repo.* Both come from
+changing the answer's data shape and missing a consumer, and neither is caught by
+any existing test — the option-count one in particular is invisible while every
+item still has four options:
+
+1. **Four loops hard-code `["A", "B", "C", "D"]`** — the practice-mode option
+   render, the exam-mode option render, the results review's explanation list, and
+   the immediate-reveal explanation list. A five-option item silently loses option
+   E: never rendered, never selectable, explanation never shown. Drive all four
+   from the item's own option keys.
+2. **Three sites compare against a bare answer string** — `key === chosen` in the
+   results review, and the review grid's `"  " + committed` and
+   `` `answered ${committed}` ``. Once an answer is an array these break
+   *for single-answer items too*: a string is never `===` an array, and `+`
+   coercion prints `"D,B"` in click order rather than a sorted, spaced label.
+
+Ship the shape change and every consumer together, and add a test asserting a
+five-option item actually renders five options.
 (The adjacent CCAO-F exam has the same item format, and one observed authored
 practice set for it runs ~17% multiple-response with 5 options on those items —
 but that is a different exam and a third party's inference, so it is calibration
