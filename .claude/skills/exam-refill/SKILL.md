@@ -1,6 +1,6 @@
 ---
 name: exam-refill
-description: Grow the CCA-F practice exam question bank. Use when the user asks to refill the exam bank, add or regenerate practice questions, or top up thin task statements. Runs the generate → screen → human review → merge pipeline around practice-exam/generate_bank.py.
+description: Grow the CCAR-F practice exam question bank. Use when the user asks to refill the exam bank, add or regenerate practice questions, or top up thin task statements. Runs the generate → screen → human review → merge pipeline around practice-exam/generate_bank.py.
 ---
 
 # Exam Bank Refill
@@ -34,7 +34,7 @@ in gitignored `questions_pending.json` (resumable — rerun after failures).
 
 Apply `practice-exam/screening_prompt.md` to every pending candidate — via
 subagents for large batches, or directly for a handful. Honor its grounding
-rule: the CCA-F exam guide is authoritative; product-docs divergence is an
+rule: the CCAR-F exam guide is authoritative; product-docs divergence is an
 annotation, not a disqualifier; invented flags/env-vars/limits disqualify.
 Known failure modes to hunt: near-duplicates of existing same-statement
 questions (compare premise, option skeleton, correct-answer rationale — not

@@ -1,6 +1,6 @@
-// CCA-F practice exam question bank - machine-written by exam_lib.render_bank().
+// CCAR-F practice exam question bank - machine-written by exam_lib.render_bank().
 // Do not hand-edit; add or change questions via generate_bank.py.
-window.CCAF_BANK = [
+window.CCARF_BANK = [
   {
     "taskStatement": "D1.4",
     "domain": "D1",

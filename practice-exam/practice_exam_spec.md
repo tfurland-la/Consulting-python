@@ -1,4 +1,4 @@
-# CCA-F Adaptive Practice Exam — Specification
+# CCAR-F Adaptive Practice Exam — Specification
 
 > **Two variants exist.** This document specifies the original Claude.ai
 > artifact variant. A local variant — desktop app, no API key, questions via
@@ -10,7 +10,7 @@
 > uses weighted-random selection at a single difficulty.
 
 This document specifies an adaptive practice exam tool for the Claude Certified
-Architect – Foundations (CCA-F) exam. It is the durable reference for what the
+Architect – Foundations (CCAR-F) exam. It is the durable reference for what the
 tool does and why. The companion build prompt (`practice_exam_build_prompt.md`)
 is what you paste into Claude to generate the working tool as a React artifact.
 
@@ -23,7 +23,7 @@ key handling or infrastructure.
 ## What the tool does
 
 The tool presents scenario-based multiple-choice questions in the format of the
-real CCA-F exam, tracks performance at the level of individual task statements,
+real CCAR-F exam, tracks performance at the level of individual task statements,
 and weights future questions toward the areas where the user is weakest. It
 generates questions dynamically using the Anthropic API rather than drawing from
 a fixed bank, so there is no question-count ceiling.
@@ -59,7 +59,7 @@ by design, not drift.
 
 ## The exam being modeled
 
-The CCA-F exam is 60 scenario-based multiple-choice questions, 120 minutes,
+The CCAR-F exam is 60 scenario-based multiple-choice questions, 120 minutes,
 passing score 720 of 1000. Each question has one correct answer and three
 distractors. Questions are grounded in production scenarios.
 
@@ -331,7 +331,7 @@ see any of these:
 
 1. **Invented specifics.** The marked-correct answer or an explanation relies
    on a flag, environment variable, configuration behavior, or API constraint
-   you cannot find in the CCA-F exam guide or the course material. (Real
+   you cannot find in the CCAR-F exam guide or the course material. (Real
    example: a question that marked `--non-interactive` correct when the
    documented flag is `-p`/`--print`.)
 2. **Two defensible answers.** After reading the explanations, a second option

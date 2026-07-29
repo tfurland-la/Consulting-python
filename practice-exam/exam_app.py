@@ -1,4 +1,4 @@
-"""Desktop app for the CCA-F practice exam.
+"""Desktop app for the CCAR-F practice exam.
 
 Opens exam.html in a native window (pywebview) and exposes a small Python API
 to the page: question generation through the local Claude Code CLI, and
@@ -19,7 +19,7 @@ import webview
 
 import exam_lib
 
-WINDOW_TITLE = "CCA-F Adaptive Practice Exam"
+WINDOW_TITLE = "CCAR-F Adaptive Practice Exam"
 
 
 def _user_data_dir():
@@ -30,6 +30,9 @@ def _user_data_dir():
         base = Path(os.environ.get("APPDATA", str(home)))
     else:
         base = Path(os.environ.get("XDG_DATA_HOME", str(home / ".local" / "share")))
+    # Deliberately still "ccaf" after the CCA-F → CCAR-F rename: this directory
+    # holds exam_progress.json. Renaming it would orphan saved progress. The
+    # bundle_identifier in exam_app.spec is retained for the same reason.
     return base / "ccaf-practice-exam"
 
 
@@ -131,7 +134,7 @@ def window_url():
 
     Two independent traps produce the exact same silent white window, so both
     are handled here: (1) a packaged .app's bundle name commonly contains
-    spaces ("CCA-F Practice Exam.app"), which naive f-string interpolation
+    spaces ("CCAR-F Practice Exam.app"), which naive f-string interpolation
     leaves unencoded — Path.as_uri() percent-encodes them; (2) PyInstaller's
     .app BUNDLE step places real files under Contents/Resources and symlinks
     them from Contents/Frameworks per Apple's bundle convention, but WKWebView's

@@ -169,10 +169,10 @@ def test_progress_path_moves_to_user_data_dir_when_frozen(exam_app, monkeypatch,
 
 def test_window_url_percent_encodes_spaces_in_the_bundle_path(exam_app, monkeypatch, tmp_path):
     # Reproduces the packaged-app white screen: a bundle name with spaces
-    # (e.g. "CCA-F Practice Exam.app") produces an invalid file:// URI if
+    # (e.g. "CCAR-F Practice Exam.app") produces an invalid file:// URI if
     # built by naive string interpolation. WKWebView fails to load it
     # silently — no exception, no console output, just a blank window.
-    spaced_dir = tmp_path / "CCA-F Practice Exam.app" / "Contents" / "Frameworks"
+    spaced_dir = tmp_path / "CCAR-F Practice Exam.app" / "Contents" / "Frameworks"
     spaced_dir.mkdir(parents=True)
     monkeypatch.setattr(exam_app.exam_lib, "RESOURCE_DIR", spaced_dir)
     url = exam_app.window_url()
@@ -221,20 +221,20 @@ def test_selfcheck_prints_parseable_json(exam_app, capsys):
 def test_find_claude_env_override_wins(monkeypatch, tmp_path):
     fake = tmp_path / "claude"
     fake.touch()
-    monkeypatch.setenv("CCAF_CLAUDE", str(fake))
+    monkeypatch.setenv("CCARF_CLAUDE", str(fake))
     assert exam_lib.find_claude() == str(fake)
-    monkeypatch.setenv("CCAF_CLAUDE", str(tmp_path / "missing"))
+    monkeypatch.setenv("CCARF_CLAUDE", str(tmp_path / "missing"))
     assert exam_lib.find_claude() is None  # explicit override never falls through
 
 
 def test_find_claude_uses_path_lookup_first(monkeypatch):
-    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.delenv("CCARF_CLAUDE", raising=False)
     monkeypatch.setattr(exam_lib.shutil, "which", lambda name: "/somewhere/claude")
     assert exam_lib.find_claude() == "/somewhere/claude"
 
 
 def test_find_claude_probes_known_install_locations(monkeypatch, tmp_path):
-    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.delenv("CCARF_CLAUDE", raising=False)
     monkeypatch.setattr(exam_lib.shutil, "which", lambda name: None)
     fake = tmp_path / "claude"
     fake.touch()
@@ -243,7 +243,7 @@ def test_find_claude_probes_known_install_locations(monkeypatch, tmp_path):
 
 
 def test_find_claude_falls_back_to_login_shell(monkeypatch, tmp_path):
-    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.delenv("CCARF_CLAUDE", raising=False)
     monkeypatch.setattr(exam_lib.shutil, "which", lambda name: None)
     monkeypatch.setattr(exam_lib, "CLAUDE_PROBE_PATHS", ())
 
@@ -256,7 +256,7 @@ def test_find_claude_falls_back_to_login_shell(monkeypatch, tmp_path):
 
 
 def test_find_claude_returns_none_when_nothing_works(monkeypatch):
-    monkeypatch.delenv("CCAF_CLAUDE", raising=False)
+    monkeypatch.delenv("CCARF_CLAUDE", raising=False)
     monkeypatch.setattr(exam_lib.shutil, "which", lambda name: None)
     monkeypatch.setattr(exam_lib, "CLAUDE_PROBE_PATHS", ())
 

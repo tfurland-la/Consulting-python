@@ -1,6 +1,6 @@
-# CCA-F Preparation Exercises
+# CCAR-F Preparation Exercises
 
-The four hands-on exercises recommended by the CCA-F Exam Guide (v0.2),
+The four hands-on exercises recommended by the CCAR-F Exam Guide (v0.2),
 expanded into phased, testable builds. Each folder scaffolds one exercise:
 fixtures, mocks, stub signatures, and skeleton tests are provided; **the
 learner writes everything the exam actually tests**. The friction is the
@@ -77,7 +77,7 @@ Notes:
 ## The debrief loop
 
 After each exercise, fill in a copy of [DEBRIEF_TEMPLATE.md](DEBRIEF_TEMPLATE.md).
-The last step is the payoff: hand-lower the `CCAF_SEED` weights in
+The last step is the payoff: hand-lower the `CCARF_SEED` weights in
 [../practice-exam/exam.html](../practice-exam/exam.html) for the task
 statements the build settled. Building is the fastest way to move a
 statement from "recognized" to "reasoned" — make the adaptive tool believe

@@ -10,7 +10,7 @@ human pass — it never replaces it, and it cannot merge anything
 
 ## Grounding rule — which source wins
 
-**The CCA-F exam guide (v0.2) is the authoritative grounding source for
+**The CCAR-F exam guide (v0.2) is the authoritative grounding source for
 correctness.** Current Anthropic product docs are the secondary source. Apply
 them in this order:
 

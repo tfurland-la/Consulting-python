@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CCA-F Adaptive Practice Exam</title>
+<title>CCAR-F Adaptive Practice Exam</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
    SEED CONFIGURATION — the only thing you need to edit to make this yours.
 
-   Every CCA-F task statement carries a starting weight that controls how
+   Every CCAR-F task statement carries a starting weight that controls how
    often it is drawn before your own answers take over. Three ways to use it:
 
    1. AS-IS ............ keep the defaults below (the original author's known
@@ -26,7 +26,7 @@
    miss (cap 5.0), so the seed matters most for the first couple dozen
    questions. Nothing else in this file needs to change.
    ═══════════════════════════════════════════════════════════════════════ */
-const CCAF_SEED = {
+const CCARF_SEED = {
   // High priority — test heavily from the start
   "D4.3": 3.0, // structured output: json_schema wrapper, additionalProperties, required lists
   "D1.1": 3.0, // agentic loops
@@ -331,7 +331,7 @@ const CCAF_SEED = {
 <body>
 
 <header>
-  <h1>CCA-F Adaptive Practice Exam</h1>
+  <h1>CCAR-F Adaptive Practice Exam</h1>
   <span class="badge" id="mode-badge">loading…</span>
   <span class="exam-timer" id="exam-timer" hidden></span>
   <span class="session" id="session-counter"></span>
@@ -441,7 +441,7 @@ const CCAF_SEED = {
     <div class="card">
       <details class="how">
         <summary>How this works</summary>
-        <p>Every CCA-F task statement carries a weight. Miss a question and its
+        <p>Every CCAR-F task statement carries a weight. Miss a question and its
         statement's weight rises (&times;1.5, capped at 5.0); get it right and the
         weight falls (&times;0.7, floored at 0.5). The next question is drawn at
         random, biased by those weights and by the real exam's domain mix — so
@@ -486,8 +486,12 @@ const CCAF_SEED = {
 <script>
 "use strict";
 
-const A = window.CCAF_ADAPTIVE;
-const BANK = window.CCAF_BANK || [];
+const A = window.CCARF_ADAPTIVE;
+const BANK = window.CCARF_BANK || [];
+/* Deliberately still "ccaf" after the CCA-F → CCAR-F rename: this is a
+   localStorage key, not display text. Renaming it would orphan every earned
+   task-statement weight already in the browser. Same for probeKey below and
+   the desktop app's data dir in exam_app.py. */
 const STORAGE_KEY = "ccaf.state.v1";
 const STATE_VERSION = 1;
 
@@ -1546,14 +1550,14 @@ function exportProgress() {
     return;
   }
   const payload = JSON.stringify(
-    { app: "ccaf-local", exportedAt: new Date().toISOString(), ...app.state },
+    { app: "ccarf-local", exportedAt: new Date().toISOString(), ...app.state },
     null,
     2
   );
   const blob = new Blob([payload], { type: "application/json" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `ccaf-progress-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `ccarf-progress-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(link.href);
 }
@@ -1589,7 +1593,7 @@ async function resetEverything() {
     "Reset ALL progress — weights, accuracy, history — back to the seed? This cannot be undone."
   );
   if (!ok) return;
-  app.state = A.initialState(CCAF_SEED);
+  app.state = A.initialState(CCARF_SEED);
   app.answeredThisSession = 0;
   await persist();
   renderDashboard();
@@ -1639,7 +1643,7 @@ async function enableBridge(bridge) {
       if (stored) {
         app.state = validateImportedState(stored);
       } else {
-        app.state = app.state || A.initialState(CCAF_SEED);
+        app.state = app.state || A.initialState(CCARF_SEED);
         await persist(); // adopt the fresh seed state into the progress file
       }
     } catch (err) {
@@ -1715,7 +1719,7 @@ async function init() {
     } catch {
       stored = null;
     }
-    app.state = stored ? validateImportedState(stored) : A.initialState(CCAF_SEED);
+    app.state = stored ? validateImportedState(stored) : A.initialState(CCARF_SEED);
 
     renderModeBadge();
     watchForBridge(); // after app.state exists — enableBridge persists/replaces it

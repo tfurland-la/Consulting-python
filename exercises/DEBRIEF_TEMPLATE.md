@@ -29,7 +29,7 @@ now *reason away* rather than merely recognize?
 
 ## Seed weight adjustments
 
-Task statements this exercise settled — hand-lower their `CCAF_SEED` weight
+Task statements this exercise settled — hand-lower their `CCARF_SEED` weight
 in `practice-exam/exam.html` (or leave/raise the ones that still wobble):
 
 | Task statement | Before | After | Why |

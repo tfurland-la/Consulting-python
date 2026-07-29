@@ -1,4 +1,4 @@
-# CCA-F Practice Exam — Local Variant Specification
+# CCAR-F Practice Exam — Local Variant Specification
 
 This document specifies the **local** practice exam: the version that runs on
 your own computer, outside Claude Chat, with no API key anywhere. It is a
@@ -73,7 +73,7 @@ platform user-data directory instead of the bundle
 (`~/Library/Application Support/ccaf-practice-exam/` on macOS). Dynamic
 generation is unaffected: the claude CLI is never bundled — `find_claude()`
 locates the system installation (PATH → known install dirs → login shell →
-`CCAF_CLAUDE` override) even under the minimal PATH GUI launches receive.
+`CCARF_CLAUDE` override) even under the minimal PATH GUI launches receive.
 `--selfcheck` prints bundle/environment diagnostics as JSON for verification
 without opening the window. Builds are unsigned (Gatekeeper: right-click →
 Open on first launch), per-platform, gitignored, and freeze the bank at build
@@ -81,7 +81,7 @@ time — the Python script stays the primary, always-current way to run.
 
 Two traps produce an identical symptom — a permanently blank white window,
 no exception, nothing in stderr — so `window_url()` guards against both:
-(1) a bundle name with spaces (e.g. "CCA-F Practice Exam.app") left unencoded
+(1) a bundle name with spaces (e.g. "CCAR-F Practice Exam.app") left unencoded
 by naive f-string interpolation makes an invalid `file://` URI; (2)
 PyInstaller's `.app` BUNDLE step places real files under `Contents/Resources`
 and symlinks them from `Contents/Frameworks` per Apple's bundle convention,
@@ -96,7 +96,7 @@ tests construct both failure shapes directly (`test_practice_exam_app.py`).
 
 ```
 practice-exam/
-  exam.html             UI + mode detection; CCAF_SEED config object at the top
+  exam.html             UI + mode detection; CCARF_SEED config object at the top
   adaptive.js           pure adaptive core (browser global + node-testable)
   questions.js          committed question bank — machine-written, human-reviewed
   generation_prompt.md  the single source of the generation prompt (placeholders)
@@ -117,7 +117,7 @@ Key implementation constraints, and why:
   result is validated locally as well, and one retry with the validation error
   fed back (the exam's own D4.4 pattern) precedes a friendly failure. On
   generation failure the app falls back to the bank.
-- The model defaults to `claude-sonnet-5`; override with the `CCAF_MODEL`
+- The model defaults to `claude-sonnet-5`; override with the `CCARF_MODEL`
   environment variable.
 
 ---
@@ -153,7 +153,7 @@ that statement's existing questions (premise, option skeleton, correct-answer
 rationale) with instructions not to reuse them — preventing the
 template-reskinning failure mode observed in the first seed run.
 `screening_prompt.md` is the standing prompt for the pre-review screening
-pass; its grounding rule makes the CCA-F exam guide authoritative over
+pass; its grounding rule makes the CCAR-F exam guide authoritative over
 product docs, with genuine fabrications (facts in neither source) remaining
 disqualifying.
 

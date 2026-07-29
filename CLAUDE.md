@@ -3,7 +3,7 @@
 ## What this repo is
 
 A learning repository for Python fundamentals and the Anthropic Claude SDK, built
-as preparation for the Claude Certified Architect (CCA-F) exam. It is designed to
+as preparation for the Claude Certified Architect (CCAR-F) exam. It is designed to
 work as a **responsive study companion alongside the official Anthropic Skilljar
 course** — a supplement, not a replacement.
 
@@ -58,10 +58,10 @@ https://docs.claude.com rather than relying on training data.
 - `test_lesson1/3/4/5.py`, `test_consulting_assistant.py` — tests (`pytest -v`)
 - `consulting_assistant.py` — a worked assistant: system prompt + multi-turn loop + prompt caching
 - `output.json` — sample JSON output
-- `practice-exam/` — CCA-F adaptive practice exam: local desktop app (`exam_app.py`,
+- `practice-exam/` — CCAR-F adaptive practice exam: local desktop app (`exam_app.py`,
   `exam.html`, reviewed question bank in `questions.js`) plus the Claude.ai artifact
   recipe; design in `practice-exam/local_practice_exam_spec.md`
-- `exercises/` — hands-on CCA-F preparation exercises (start at `exercises/README.md`).
+- `exercises/` — hands-on CCAR-F preparation exercises (start at `exercises/README.md`).
   Scaffolding follows the role-split contract in that README: Claude must never
   implement the exam-tested logic there — stubs, assertions, and prompts are the
   learner's work by design.

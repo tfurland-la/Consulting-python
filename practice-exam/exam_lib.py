@@ -1,4 +1,4 @@
-"""Shared library for the CCA-F local practice exam.
+"""Shared library for the CCAR-F local practice exam.
 
 Owns the question bank format (questions.js), question validation, and
 question generation through the local Claude Code CLI (`claude -p`). The bank
@@ -32,10 +32,10 @@ BANK_PATH = RESOURCE_DIR / "questions.js"
 PROMPT_PATH = RESOURCE_DIR / "generation_prompt.md"
 
 BANK_HEADER = (
-    "// CCA-F practice exam question bank - machine-written by exam_lib.render_bank().\n"
+    "// CCAR-F practice exam question bank - machine-written by exam_lib.render_bank().\n"
     "// Do not hand-edit; add or change questions via generate_bank.py.\n"
 )
-BANK_MARKER = "window.CCAF_BANK ="
+BANK_MARKER = "window.CCARF_BANK ="
 
 # Minimum committed questions per task statement, enforced by pytest so bank
 # coverage cannot silently regress below three questions per statement.
@@ -268,7 +268,7 @@ class ClaudeUnavailableError(Exception):
 # PATH — on macOS they get launchd's /usr/bin:/bin:… — so a plain PATH lookup
 # misses the common ~/.local/bin install. Discovery order: explicit override,
 # PATH, known install locations, then a login shell as the last resort.
-CLAUDE_PATH_ENV = "CCAF_CLAUDE"
+CLAUDE_PATH_ENV = "CCARF_CLAUDE"
 CLAUDE_PROBE_PATHS = (
     Path.home() / ".local" / "bin" / "claude",
     Path("/opt/homebrew/bin/claude"),
@@ -447,7 +447,7 @@ def run_claude(prompt):
             "the `claude` CLI could not be found — install Claude Code, or "
             f"set {CLAUDE_PATH_ENV} to its full path"
         )
-    model = os.environ.get("CCAF_MODEL", DEFAULT_MODEL)
+    model = os.environ.get("CCARF_MODEL", DEFAULT_MODEL)
     try:
         completed = subprocess.run(
             [

@@ -1,5 +1,5 @@
 You are generating one practice question for the Claude Certified Architect –
-Foundations (CCA-F) exam. Produce a single scenario-based multiple-choice
+Foundations (CCAR-F) exam. Produce a single scenario-based multiple-choice
 question targeting exactly this task statement:
 
 - Task statement: {{TASK_ID}} — {{TASK_LABEL}}
@@ -24,7 +24,7 @@ Requirements:
   distractor is wrong.
 {{DIFFICULTY}}- You are NOT to invent specific technical facts — flag names, environment
   variables, configuration behaviors, or claims about how a feature depends on
-  configuration or deployment — unless grounded in the documented CCA-F exam
+  configuration or deployment — unless grounded in the documented CCAR-F exam
   content provided in this prompt (the task statement descriptions and the
   example questions below). If an explanation needs a technical detail to
   justify why an option is correct or incorrect, it must use only facts
@@ -37,7 +37,7 @@ Requirements:
   mechanism exists but has been replaced by a current best practice (e.g.,
   CLAUDE.local.md superseded by home-directory imports via @~/.claude/ paths),
   the correct answer must use the current pattern. When uncertain whether a
-  pattern is current, prefer mechanisms explicitly named in the CCA-F exam
+  pattern is current, prefer mechanisms explicitly named in the CCAR-F exam
   guide v0.2 (its task statement knowledge and skills lists are the canonical
   inventory). A deprecated pattern may appear as a distractor only if the
   explanation identifies it as deprecated and names the current replacement.

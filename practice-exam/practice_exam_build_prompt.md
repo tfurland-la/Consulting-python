@@ -1,4 +1,4 @@
-# CCA-F Adaptive Practice Exam — Build Prompt
+# CCAR-F Adaptive Practice Exam — Build Prompt
 
 Paste this entire document into a new conversation with Claude (Claude.ai, where
 artifacts run). It instructs Claude to build the adaptive practice exam as a
@@ -14,7 +14,7 @@ if you want to understand a design decision or change the seed.
 ## START OF PROMPT — paste everything below into Claude
 
 I want you to build an adaptive practice exam tool for the Claude Certified
-Architect – Foundations (CCA-F) exam, as a single React artifact. We will build
+Architect – Foundations (CCAR-F) exam, as a single React artifact. We will build
 it in four phases. Build only the phase I ask for, then stop and let me confirm
 it works before continuing. Do not jump ahead.
 
@@ -367,7 +367,7 @@ Requirements:
   - Instruct the model NOT to invent specific technical facts — flag names,
     environment variables, configuration behaviors, or claims about how a
     feature depends on configuration or deployment — unless grounded in the
-    documented CCA-F exam content provided in the prompt (the task statement
+    documented CCAR-F exam content provided in the prompt (the task statement
     descriptions and few-shot examples). If an explanation needs a technical
     detail to justify why an option is correct or incorrect, it must use only
     facts established in the provided exam content rather than fabricating
@@ -420,7 +420,7 @@ Requirements:
 - A "when to flag" note (in that panel, or near the flag control) giving the
   three signs a generated question is flawed and should be flagged rather than
   answered: (1) invented specifics — a flag, environment variable, or config
-  behaviour not in the CCA-F exam guide or course (e.g. `--non-interactive`
+  behaviour not in the CCAR-F exam guide or course (e.g. `--non-interactive`
   when the documented flag is `-p`/`--print`); (2) two defensible answers —
   another option still looks correct and the explanation against it rests on a
   preference or an unverifiable caveat, not a real correctness gap; (3) an
@@ -526,7 +526,7 @@ tell me how to test the Copy-to-clipboard flow.
   to prop up their marked-correct answer: one invented a nonexistent CLI flag
   (--non-interactive), and another invented an unfounded claim that "strict
   JSON mode availability depends on deployment configuration." Neither was
-  grounded in the actual CCA-F exam content. The fix is a generation-prompt
+  grounded in the actual CCAR-F exam content. The fix is a generation-prompt
   instruction rather than a post-hoc filter — preventing fabrication at
   generation time is more reliable than trying to detect it after the fact.
 - The generation prompt's scenario type list explicitly includes "Structured

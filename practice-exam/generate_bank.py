@@ -75,7 +75,7 @@ def generate(per_task, tasks, workers):
     bank_ids = {entry["id"] for entry in bank}
     pending = load_pending()
     lock = threading.Lock()
-    model = os.environ.get("CCAF_MODEL", exam_lib.DEFAULT_MODEL)
+    model = os.environ.get("CCARF_MODEL", exam_lib.DEFAULT_MODEL)
     today = datetime.date.today().isoformat()
 
     targets = remaining_targets(pending, per_task, tasks)

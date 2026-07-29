@@ -1,4 +1,4 @@
-"""Tests for the CCA-F practice exam question bank (practice-exam/questions.js).
+"""Tests for the CCAR-F practice exam question bank (practice-exam/questions.js).
 
 The practice-exam directory name is hyphenated, so it cannot be imported as a
 package; modules are loaded by file path instead (with the directory placed on

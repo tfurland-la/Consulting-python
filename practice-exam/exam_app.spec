@@ -1,4 +1,4 @@
-# PyInstaller spec for the CCA-F practice exam desktop app.
+# PyInstaller spec for the CCAR-F practice exam desktop app.
 #
 # Build (from the repo root, with pyinstaller installed in the venv):
 #
@@ -6,10 +6,10 @@
 #   .venv/bin/pyinstaller practice-exam/exam_app.spec --noconfirm \
 #       --distpath practice-exam/dist --workpath practice-exam/build
 #
-# Output on macOS: "practice-exam/dist/CCA-F Practice Exam.app". The bundle
+# Output on macOS: "practice-exam/dist/CCAR-F Practice Exam.app". The bundle
 # ships the question bank frozen at build time; the claude CLI is NOT bundled
 # — dynamic generation uses the system-installed Claude Code via find_claude()
-# (PATH, known install locations, login shell, or the CCAF_CLAUDE override).
+# (PATH, known install locations, login shell, or the CCARF_CLAUDE override).
 # First launch of an unsigned build needs right-click -> Open past Gatekeeper.
 # Build artifacts (build/, dist/) are gitignored; don't commit binaries.
 
@@ -52,7 +52,7 @@ coll = COLLECT(
 
 app = BUNDLE(
     coll,
-    name="CCA-F Practice Exam.app",
+    name="CCAR-F Practice Exam.app",
     icon=None,
     bundle_identifier="com.tfurland.ccaf-practice-exam",
     info_plist={

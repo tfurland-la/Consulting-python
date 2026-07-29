@@ -1,5 +1,5 @@
-// Adaptive core for the CCA-F local practice exam. Pure logic, no DOM and no
-// I/O, so the same file runs in the browser (window.CCAF_ADAPTIVE) and under
+// Adaptive core for the CCAR-F local practice exam. Pure logic, no DOM and no
+// I/O, so the same file runs in the browser (window.CCARF_ADAPTIVE) and under
 // `node --test` (module.exports). Numbers mirror practice_exam_spec.md:
 // correct x0.7 (floor 0.5), incorrect x1.5 (cap 5.0), domain overlay, and a
 // cooldown on the last 5 task statements in history.
@@ -583,7 +583,7 @@ function applyFlag(state, lastAnswer) {
   return state;
 }
 
-const CCAF_ADAPTIVE = {
+const CCARF_ADAPTIVE = {
   TASK_STATEMENTS,
   DOMAINS,
   DOMAIN_FACTORS,
@@ -627,8 +627,8 @@ const CCAF_ADAPTIVE = {
 };
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = CCAF_ADAPTIVE;
+  module.exports = CCARF_ADAPTIVE;
 }
 if (typeof window !== "undefined") {
-  window.CCAF_ADAPTIVE = CCAF_ADAPTIVE;
+  window.CCARF_ADAPTIVE = CCARF_ADAPTIVE;
 }

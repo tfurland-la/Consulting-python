@@ -1,7 +1,7 @@
 # Python for AI Consultants
 
 A from-zero on-ramp to Python and the Anthropic Claude SDK, built as preparation
-for the **Claude Certified Architect (CCA-F)** exam. Works as a responsive study
+for the **Claude Certified Architect (CCAR-F)** exam. Works as a responsive study
 companion alongside Anthropic's official Skilljar course.
 
 **[Open the live course][live-course]** · [Wiki][wiki]
@@ -40,7 +40,7 @@ for how to fork and personalize it.
 
 ## Adaptive Practice Exam
 
-An adaptive, scenario-based practice exam for the CCA-F. It tracks performance at
+An adaptive, scenario-based practice exam for the CCAR-F. It tracks performance at
 the individual task-statement level (the 30 skills the exam tests) and weights
 future questions toward the areas where you are weakest. Performance persists
 across sessions. Two ways to run it:
@@ -82,7 +82,7 @@ cd Consulting-python
     --distpath practice-exam/dist --workpath practice-exam/build
 ```
 
-That produces `practice-exam/dist/CCA-F Practice Exam.app` with the question
+That produces `practice-exam/dist/CCAR-F Practice Exam.app` with the question
 bank frozen in and progress stored under your user data directory. Dynamic
 generation still works — the app finds your system-installed Claude Code CLI
 at runtime. Because the build is unsigned, macOS Gatekeeper blocks the first
