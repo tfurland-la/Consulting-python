@@ -63,7 +63,11 @@ browser storage. Either way, a **Timed exam** mode runs a full 60-question,
 120-minute simulation matching the real exam's domain weighting (27/18/20/20/15)
 and its 4-of-6 scenario structure, with question skipping, mark-for-review,
 backward navigation, an always-reachable review screen, and an approximate
-scaled score against the 720 bar. In the
+scaled score against the 720 bar. **Known gap:** the real exam also includes
+multiple-response items ("select how many responses" questions); every question
+here is single-answer, because the guide publishes no worked multiple-response
+example to calibrate against. Read a score as a floor, not a prediction — see
+[Known fidelity gaps][fidelity]. In the
 desktop app, **fresh questions generated live** carry the exam's difficulty
 spread — mostly mid, a quarter harder, a ~15% hard tail — making it the faithful
 readiness gate; the bank exam is instant but a standard-difficulty approximation
@@ -138,3 +142,4 @@ test assertion). Start at `exercises/README.md`; recommended order 1 → 4 →
 [exam-spec]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/practice_exam_spec.md
 [exam-live]: https://tfurland-la.github.io/Consulting-python/practice-exam/exam.html
 [local-spec]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/local_practice_exam_spec.md
+[fidelity]: https://github.com/tfurland-la/Consulting-python/blob/main/practice-exam/local_practice_exam_spec.md#known-fidelity-gaps

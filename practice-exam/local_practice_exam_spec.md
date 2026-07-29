@@ -326,6 +326,41 @@ the seed configuration, no code edit required).
 
 ---
 
+## Known fidelity gaps
+
+Places where this tool knowingly diverges from the real exam. Each is recorded
+with what would close it, so a gap is never mistaken for a bug or for fidelity.
+
+**Multiple-response items are not modeled.** Exam guide v1.0 §3 states the item
+format is "multiple-choice and multiple-response items; each item states how many
+responses to select." Every question in this tool is single-answer: `correct` is
+one option key, options render mutually exclusive, and scoring is an equality
+check. All 103 banked questions are single-answer, and `generation_prompt.md`
+asks for one correct answer and three distractors by design.
+
+*Why it is not built:* the guide publishes no worked multiple-response example —
+all 12 sample questions in §9 are single-answer — so three parameters are simply
+unknown: how many options such items carry, how many are correct, and whether
+scoring is all-or-nothing or partial credit. An implementation would have to
+invent all three, and a practice exam that invents its own scoring
+misrepresents readiness in the one direction that matters.
+
+*Effect on you:* a scored result here reflects single-answer performance only.
+Treat it as a floor rather than a calibrated prediction, since multiple-response
+items are usually harder than single-answer ones on the same content.
+
+*What would close it:* an authoritative example — a multiple-response sample in a
+future guide revision, or a first-hand account of the item format after a real
+sitting. With that in hand the change is contained: `correct` becomes an array
+normalized at bank load, a `selectCount` field drives a "Select N" stem and an
+N-selection gate in the UI, and the equality check becomes set equality.
+(The adjacent CCAO-F exam has the same item format, and one observed authored
+practice set for it runs ~17% multiple-response with 5 options on those items —
+but that is a different exam and a third party's inference, so it is calibration
+input for CCAO-F, not evidence about CCAR-F.)
+
+---
+
 ## Testing
 
 `pytest -v` covers the bank format and validation (`test_practice_exam_bank.py`),

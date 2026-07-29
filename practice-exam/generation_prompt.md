@@ -20,6 +20,11 @@ Requirements:
 - Provide exactly one correct answer and three plausible distractors. The
   distractors must represent the kinds of mistakes a candidate with incomplete
   knowledge would make.
+  (Single-answer is a deliberate constraint, not exam fidelity: the real exam
+  also has multiple-response items, but the guide publishes no worked example of
+  one, so their option count and scoring are unknown. Do not invent
+  multiple-response items. See "Known fidelity gaps" in
+  local_practice_exam_spec.md.)
 - Provide an explanation of why the correct answer is right and why each
   distractor is wrong.
 {{DIFFICULTY}}- You are NOT to invent specific technical facts — flag names, environment

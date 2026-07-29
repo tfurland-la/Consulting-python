@@ -360,6 +360,11 @@ Requirements:
     cases, integrating with downstream systems).
   - Require exactly one correct answer and three plausible distractors that
     represent mistakes a partially-knowledgeable candidate would make.
+    Single-answer is a deliberate constraint, not exam fidelity: the real exam
+    also has multiple-response items, but the guide publishes no worked example
+    of one, so their option count and scoring are unknown. Do not generate
+    multiple-response items. Surface this as a known gap in the built artifact
+    so a score is read as a floor, not a prediction.
   - Require an explanation for why the correct answer is right and why each
     distractor is wrong.
   - Include the ten Phase 1 sample questions as few-shot examples of the
