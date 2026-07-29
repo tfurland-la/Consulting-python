@@ -1,6 +1,6 @@
 # CCAR-F Preparation Exercises
 
-The four hands-on exercises recommended by the CCAR-F Exam Guide (v0.2),
+The four hands-on exercises recommended by the CCAR-F Exam Guide (v1.0),
 expanded into phased, testable builds. Each folder scaffolds one exercise:
 fixtures, mocks, stub signatures, and skeleton tests are provided; **the
 learner writes everything the exam actually tests**. The friction is the

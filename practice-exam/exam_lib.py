@@ -195,7 +195,7 @@ def render_bank(bank, path=None):
 DEFAULT_MODEL = "claude-sonnet-5"
 GENERATION_TIMEOUT_SECONDS = 120
 
-# The exam's six scenario types (exam guide v0.2, "Exam Scenarios"). When
+# The exam's six scenario types (exam guide v1.0, "Exam Scenarios"). When
 # generating several questions for one task statement, rotating through these
 # prevents template reskinning.
 SCENARIO_TYPES = (

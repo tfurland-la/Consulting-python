@@ -38,7 +38,7 @@ Requirements:
   CLAUDE.local.md superseded by home-directory imports via @~/.claude/ paths),
   the correct answer must use the current pattern. When uncertain whether a
   pattern is current, prefer mechanisms explicitly named in the CCAR-F exam
-  guide v0.2 (its task statement knowledge and skills lists are the canonical
+  guide v1.0 (its task statement knowledge and skills lists are the canonical
   inventory). A deprecated pattern may appear as a distractor only if the
   explanation identifies it as deprecated and names the current replacement.
 

@@ -207,7 +207,7 @@ two-plus surface-defensible options split by a single exam principle (guide Q9
 register). Hard comes only from subtle-but-real discriminators; the fabrication,
 deprecated-pattern, and exam-guide-grounding guardrails bind at every tier and
 hardest at the tail. **Calibration caveat — read before retuning:** this spread
-and the hard-tail register are calibrated to the exam guide v0.2's 12 sample
+and the hard-tail register are calibrated to the exam guide v1.0's 12 sample
 questions, which is an *inference*, not a measurement against the real exam. It
 is a known, accepted limitation. After a real exam sitting, the hard tail is
 the first thing to recalibrate against actual difficulty data — treat the
