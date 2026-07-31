@@ -264,6 +264,40 @@ class ClaudeUnavailableError(Exception):
     """The `claude` CLI could not be located; generation cannot run at all."""
 
 
+class RateLimitedError(Exception):
+    """The account's usage window is exhausted — not a problem with the question.
+
+    Separated from GenerationError because the two need opposite handling. A bad
+    answer is worth retrying with the error fed back into the prompt; a usage cap is
+    not. Retrying spends a second call to be told the same thing, and the feedback
+    loop is meaningless because nothing about the prompt caused it.
+
+    This mattered: of 767 recorded generation calls, 220 came back with the CLI's
+    own "You've hit your session limit" rather than a question, and the code treated
+    every one as a content failure — burning the retry, then dropping the item with
+    no record of why.
+    """
+
+
+# The CLI reports an exhausted usage window in prose, not a status code, so this is
+# a text match. Kept narrow and lowercase-compared: broad terms like "limit" alone
+# would swallow legitimate content failures about rate limiting, which is itself an
+# exam topic here.
+RATE_LIMIT_SIGNALS = (
+    "hit your session limit",
+    "hit your weekly limit",
+    "hit your opus limit",
+    "usage limit reached",
+    "resets at",
+)
+
+
+def looks_rate_limited(text):
+    """True if `text` carries the CLI's usage-cap message."""
+    low = (text or "").lower()
+    return any(signal in low for signal in RATE_LIMIT_SIGNALS)
+
+
 # GUI-launched apps (double-clicked, IDE run buttons) don't inherit the shell
 # PATH — on macOS they get launchd's /usr/bin:/bin:… — so a plain PATH lookup
 # misses the common ~/.local/bin install. Discovery order: explicit override,
@@ -470,6 +504,13 @@ def run_claude(prompt):
         raise GenerationError(
             f"claude -p timed out after {GENERATION_TIMEOUT_SECONDS}s"
         ) from err
+    # A usage cap can surface either way: a non-zero exit with the message on
+    # stderr, or a clean exit whose payload carries the prose instead of a question.
+    # Check both, and check before the returncode branch so the more specific
+    # diagnosis wins.
+    if looks_rate_limited(completed.stderr) or looks_rate_limited(completed.stdout):
+        detail = (completed.stderr.strip() or completed.stdout.strip())[-300:]
+        raise RateLimitedError(f"usage window exhausted: {detail}")
     if completed.returncode != 0:
         raise GenerationError(
             f"claude -p exited {completed.returncode}: {completed.stderr.strip()[-500:]}"
@@ -483,7 +524,9 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
 
     The retry-with-error-feedback loop is the exam's own D4.4 pattern applied
     to this tool. ClaudeUnavailableError propagates immediately — a missing
-    CLI will not fix itself on retry. `avoid` lists summaries of existing
+    CLI will not fix itself on retry, and neither will RateLimitedError: a usage
+    cap is not caused by the prompt, so feeding it back as "error feedback" just
+    spends a second call to learn the same thing. `avoid` lists summaries of existing
     questions for the task statement (see summarize_for_avoid), `scenario_type`
     pins one of SCENARIO_TYPES, and `difficulty` selects the standard or hard
     question tier — so repeated generations diversify instead of converging.

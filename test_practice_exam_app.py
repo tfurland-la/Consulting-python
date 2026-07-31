@@ -555,3 +555,62 @@ def test_generation_wait_screen_hides_skip_and_mark():
         assert f'el("{element_id}").hidden = true;' in wait_branch, (
             f"{element_id} stays visible on the generation-wait screen"
         )
+
+
+# ── Usage limits are not content failures ───────────────────────────────────
+#
+# Of 767 recorded generation calls, 220 returned the CLI's own "You've hit your
+# session limit" instead of a question. The code treated every one as a content
+# failure: it burned the retry feeding the limit message back as "error feedback",
+# then dropped the item with no record of why. These pin the separation.
+
+
+def test_looks_rate_limited_matches_the_real_cli_message():
+    real = "You've hit your session limit · resets 3pm (America/New_York)"
+    assert exam_lib.looks_rate_limited(real)
+
+
+def test_looks_rate_limited_ignores_ordinary_content_about_limits():
+    """Rate limiting is itself an exam topic here, so the matcher must not fire on
+    a legitimately generated question that discusses it."""
+    assert not exam_lib.looks_rate_limited(
+        "Which approach best handles a provider rate limit with exponential backoff?"
+    )
+    assert not exam_lib.looks_rate_limited("The token limit was exceeded.")
+    assert not exam_lib.looks_rate_limited("")
+    assert not exam_lib.looks_rate_limited(None)
+
+
+def test_rate_limit_does_not_consume_a_retry(monkeypatch):
+    """The whole point: a cap must propagate on the FIRST call, not be retried."""
+    calls = []
+
+    def fake_run(prompt):
+        calls.append(prompt)
+        raise exam_lib.RateLimitedError("usage window exhausted: hit your session limit")
+
+    with pytest.raises(exam_lib.RateLimitedError):
+        exam_lib.generate_question("D1.4", run=fake_run)
+    assert len(calls) == 1, "a usage cap must not spend a second call to be told twice"
+
+
+def test_content_failure_still_retries_once(monkeypatch):
+    """Guard the other side: the retry loop must still work for real content errors."""
+    calls = []
+
+    def fake_run(prompt):
+        calls.append(prompt)
+        if len(calls) == 1:
+            # wrong task statement — generate_question rejects this explicitly
+            return {"structured_output": make_candidate("D2.2")}
+        return {"structured_output": make_candidate("D1.4")}
+
+    got = exam_lib.generate_question("D1.4", run=fake_run)
+    assert len(calls) == 2, "a content failure should still get its one retry"
+    assert got["taskStatement"] == "D1.4"
+
+
+def test_rate_limited_error_is_not_a_generation_error():
+    """If it ever subclassed GenerationError it would be swallowed by the retry
+    tuple in generate_question and this whole separation would silently revert."""
+    assert not issubclass(exam_lib.RateLimitedError, exam_lib.GenerationError)

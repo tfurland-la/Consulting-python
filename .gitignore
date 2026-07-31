@@ -15,6 +15,7 @@ pyproject.toml
 *.code-workspace
 practice-exam/exam_progress.json
 practice-exam/questions_pending.json
+practice-exam/questions_failed.json
 practice-exam/questions_pending_review.md
 practice-exam/build/
 practice-exam/dist/

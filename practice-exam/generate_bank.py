@@ -23,6 +23,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import exam_lib
 
 PENDING_PATH = exam_lib.PRACTICE_EXAM_DIR / "questions_pending.json"
+FAILURES_PATH = exam_lib.PRACTICE_EXAM_DIR / "questions_failed.json"
 
 
 def load_pending():
@@ -34,6 +35,17 @@ def load_pending():
 def save_pending(pending):
     PENDING_PATH.write_text(
         json.dumps(pending, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+
+def save_failures(failed):
+    """Record the items a run did not produce, and why.
+
+    Overwritten per run, not appended: the useful question is "what did THIS run
+    fail to produce", and a growing file of stale entries answers a different one.
+    """
+    FAILURES_PATH.write_text(
+        json.dumps(failed, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
 
 
@@ -115,18 +127,57 @@ def generate(per_task, tasks, workers):
             save_pending(pending)  # written after every question: resumable
         return f"{ts} ({scenario_type}): ok"
 
-    failures = 0
+    # Failures used to go to stderr and nowhere else, so a batch that lost items
+    # left no record of which ones or why — nothing to resume from, and no way to
+    # tell a content failure from an exhausted usage window after the fact.
+    failed = []
+    rate_limited = False
+    cancelled = set()
+
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(one, item): item for item in work}
         for future in as_completed(futures):
             ts, scenario_type = futures[future]
+
+            # as_completed still yields futures we cancelled, and result() on one
+            # raises CancelledError. Record those here, once, with a reason that
+            # says what actually happened — calling result() would log them a
+            # second time under a meaningless "CancelledError".
+            if future in cancelled:
+                failed.append({"taskStatement": ts, "scenarioType": scenario_type,
+                               "reason": "deferred: usage limit",
+                               "error": "not attempted — batch stopped at the cap"})
+                continue
+
             try:
                 print(" ", future.result())
+            except exam_lib.RateLimitedError as err:
+                # Circuit-breaker: the cap is account-level, so every queued call
+                # will fail the same way. Cancel what has not started rather than
+                # grinding through the rest of the batch to collect identical errors.
+                if not rate_limited:
+                    rate_limited = True
+                    print(f"\n  USAGE LIMIT reached — {err}", file=sys.stderr)
+                    print("  Cancelling queued generations; the cap is account-wide, "
+                          "so retrying now would fail identically.", file=sys.stderr)
+                    cancelled.update(f for f in futures if f.cancel())
+                failed.append({"taskStatement": ts, "scenarioType": scenario_type,
+                               "reason": "rate-limited", "error": str(err)})
             except Exception as err:
-                failures += 1
+                failed.append({"taskStatement": ts, "scenarioType": scenario_type,
+                               "reason": type(err).__name__, "error": str(err)})
                 print(f"  {ts} ({scenario_type}): FAILED — {err}", file=sys.stderr)
 
-    print(f"\nPending file now has {len(pending)} candidates ({failures} failures).")
+    if failed:
+        save_failures(failed)
+
+    print(f"\nPending file now has {len(pending)} candidates ({len(failed)} not produced).")
+    if failed:
+        print(f"  Unproduced items recorded in {FAILURES_PATH.name} — "
+              f"re-run to attempt them again.")
+    if rate_limited:
+        print("  Some were deferred by a usage limit, not by a content problem. "
+              "Re-run once the window resets.")
     print(f"Review {PENDING_PATH.name}, then run: generate_bank.py --merge")
 
 
