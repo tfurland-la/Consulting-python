@@ -294,9 +294,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective change to the design of this agentic loop?",
     "options": {
       "C": "Add a stagnation check that compares the error signature across consecutive iterations and terminates the loop early (e.g., escalating to a human) once the same failure repeats without new progress, rather than relying solely on the fixed iteration cap.",
-      "A": "Raise the iteration cap from 50 to 100 so the agent has more attempts to converge on a fix.",
-      "D": "Switch the loop to a larger, more capable model so it is more likely to produce a correct fix on each attempt.",
-      "B": "Add few-shot examples to the loop's prompt showing successful multi-step test-fix sequences."
+      "A": "Raise the iteration cap from 50 to 100 so the agent has more attempts to converge on a fix, on the assumption that the oscillation between the two candidate patches will eventually resolve itself if the loop is simply allowed to run longer before giving up.",
+      "D": "Switch the loop to a larger, more capable model so it is more likely to produce a correct fix on each attempt, reducing the chance that any single iteration produces a patch that reintroduces the failure the previous iteration had already resolved.",
+      "B": "Add few-shot examples to the loop's prompt showing successful multi-step test-fix sequences, so the model has concrete patterns for what productive progress looks like and is more likely to choose a better edit on each individual iteration of the loop."
     },
     "correct": "C",
     "explanations": {
@@ -311,7 +311,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-9cdad498"
+    "id": "D1.1-552d7619"
   },
   {
     "taskStatement": "D1.1",
@@ -320,9 +320,9 @@ window.CCARF_BANK = [
     "question": "What is the most important structural change needed to make this agent capable of reliable autonomous task execution?",
     "options": {
       "B": "Implement an actual agentic loop: after each tool call, feed the tool result back to the model and let it continue reasoning and calling tools across multiple turns until the task is complete, rather than stopping after one turn.",
-      "C": "Increase the context window so the entire failure history and all possible remediation options can be included in the single prompt.",
-      "D": "Add more detailed few-shot examples to the prompt showing correct diagnosis-then-remediation reasoning chains.",
-      "A": "Switch to a larger, more capable model so it can infer the correct remediation from the initial context without needing tool results."
+      "C": "Increase the context window so the entire failure history and all possible remediation options can be included in the single prompt, giving the model everything it might need upfront instead of discovering it through tool calls.",
+      "D": "Add more detailed few-shot examples to the prompt showing correct diagnosis-then-remediation reasoning chains, so the model reproduces that whole sequence of steps inside its single response rather than stopping after the first tool call.",
+      "A": "Switch to a larger, more capable model so it can infer the correct remediation from the initial context without needing tool results, relying on stronger reasoning to predict what the diagnostic command would most likely have returned."
     },
     "correct": "B",
     "explanations": {
@@ -337,7 +337,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-a151a93b"
+    "id": "D1.1-3e531a08"
   },
   {
     "taskStatement": "D1.2",
@@ -580,9 +580,9 @@ window.CCARF_BANK = [
     "question": "What change would most effectively prevent this failure from recurring?",
     "options": {
       "B": "Add a programmatic gate so the approval agent cannot be invoked unless it receives a verification result object (e.g., a verified credit-check token) produced by the verification agent, with the orchestration layer blocking the handoff if that input is missing.",
-      "C": "Strengthen the orchestrator's system prompt with more explicit, emphatic language mandating that verification must always precede approval.",
-      "D": "Add additional few-shot examples to the orchestrator's prompt demonstrating the correct intake-verification-approval handoff sequence.",
-      "A": "Implement a routing classifier that inspects each incoming application and selects which agent should handle it first."
+      "C": "Strengthen the orchestrator's system prompt with more explicit, emphatic language mandating that verification must always precede approval, restating the compliance requirement and the financial consequences of approving an unverified applicant.",
+      "D": "Add additional few-shot examples to the orchestrator's prompt demonstrating the correct intake-verification-approval handoff sequence, covering both the standard path and cases where an applicant's credit record is already partially populated.",
+      "A": "Implement a routing classifier that inspects each incoming application and selects which agent should handle it first, so that in the normal case applications are directed to the verification agent before they ever reach the approval agent."
     },
     "correct": "B",
     "explanations": {
@@ -597,7 +597,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-6b81e4b8"
+    "id": "D1.4-5d94d864"
   },
   {
     "taskStatement": "D1.4",
@@ -814,9 +814,9 @@ window.CCARF_BANK = [
     "question": "What change to the decomposition strategy would most directly prevent this kind of inconsistency?",
     "options": {
       "D": "Group files by shared dependency/decision context - files containing the same ambiguous call pattern go into the same subtask - so each judgment call is made once, consistently, within a single agent's context, then parallelize across those groups instead of arbitrary file-count batches.",
-      "B": "Reduce the number of parallel batches from 10 to 4 so each agent sees more files, lowering the chance of a conflicting decision.",
-      "C": "Abandon decomposition entirely and process all 200 files sequentially in a single agent to guarantee global consistency.",
-      "A": "Keep the arbitrary file-count batches but add a final consolidation agent that reviews all diffs afterward and reconciles any inconsistent overload resolutions it finds."
+      "B": "Reduce the number of parallel batches from 10 to 4 so each agent sees more files, lowering the chance of a conflicting decision, on the reasoning that a larger share of any given ambiguous call pattern's call sites will then fall inside one agent's context.",
+      "C": "Abandon decomposition entirely and process all 200 files sequentially in a single agent to guarantee global consistency, accepting the much longer runtime in exchange for one continuous context in which every judgment call the agent makes is visible to it.",
+      "A": "Keep the arbitrary file-count batches but add a final consolidation agent that reviews all diffs afterward and reconciles any inconsistent overload resolutions it finds, re-deriving the correct choice for each conflicting call site and rewriting the affected diffs before the change is merged."
     },
     "correct": "D",
     "explanations": {
@@ -831,7 +831,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-2ad09e3a"
+    "id": "D1.6-151e5d7f"
   },
   {
     "taskStatement": "D1.7",
@@ -944,9 +944,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective first step to fix this tool selection problem?",
     "options": {
       "A": "Rewrite both tool descriptions to state their distinct purposes, input expectations, and when to use one versus the other (e.g., parse_document for general text/metadata, extract_line_items specifically for itemized tables with quantities and unit prices), so the agent can distinguish them from the tool description alone.",
-      "C": "Merge parse_document and extract_line_items into a single extract_document_data tool that always returns both generic contents and any line items found.",
-      "D": "Add a JSON schema requiring a line_items field on the billing system's input so malformed records are rejected before reconciliation.",
-      "B": "Add few-shot examples to the agent's system prompt showing invoices with tables being routed to extract_line_items."
+      "C": "Merge parse_document and extract_line_items into a single extract_document_data tool that always returns both generic contents and any line items found, removing the selection decision from the agent entirely so it can no longer choose incorrectly.",
+      "D": "Add a JSON schema requiring a line_items field on the billing system's input so malformed records are rejected before reconciliation, ensuring that extractions missing itemized data are caught at the boundary rather than corrupting downstream totals.",
+      "B": "Add few-shot examples to the agent's system prompt showing invoices with itemized tables being routed to extract_line_items, so the model has concrete precedent for the routing decision it currently gets wrong on table-bearing documents."
     },
     "correct": "A",
     "explanations": {
@@ -961,7 +961,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-ae65d239"
+    "id": "D2.1-5a4c4e2d"
   },
   {
     "taskStatement": "D2.2",
@@ -996,9 +996,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective fix to stop the agent from routing read-only requests to run_migration?",
     "options": {
       "C": "Rewrite each tool's description to state its exact purpose, expected inputs, and explicit boundaries (e.g., query_database is for read-only lookups and must never be used for schema changes; run_migration is only for applying versioned schema changes and must never be used for ad hoc queries).",
-      "D": "Set tool_choice to \"any\" so the model is always required to call one of the two tools rather than answering in free text.",
-      "B": "Add few-shot examples to the system prompt showing read-only questions being answered with query_database.",
-      "A": "Remove run_migration from the agent's toolset and require engineers to run migrations manually outside the agent."
+      "D": "Set tool_choice to \"any\" so the model is always required to call one of the two tools rather than answering in free text, guaranteeing that every request is served by an actual tool invocation instead of an unbacked natural-language answer.",
+      "B": "Add few-shot examples to the system prompt showing read-only questions being answered with query_database, so the model has concrete precedent for the routing decision and is more likely to reproduce it on similar read-only requests.",
+      "A": "Remove run_migration from the agent's toolset and require engineers to run migrations manually outside the agent, eliminating the possibility of a read-only request being routed to a schema-changing tool at the cost of that capability."
     },
     "correct": "C",
     "explanations": {
@@ -1013,7 +1013,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-6d53d29c"
+    "id": "D2.1-50b831cd"
   },
   {
     "taskStatement": "D2.2",
@@ -1438,9 +1438,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective way to refine the script toward full correctness?",
     "options": {
       "A": "Run the script against the full sample set, capture the specific failing records and their error messages, and feed that concrete output back to Claude so it can target fixes for those exact cases, repeating the run-capture-fix cycle until all records pass.",
-      "B": "Ask Claude to re-read the script and identify any bugs it can find on its own, then apply whatever fixes it suggests before re-running.",
-      "C": "Discard the current script and re-prompt Claude from scratch with a more detailed description of the CSV format, hoping the new attempt avoids the same errors.",
-      "D": "Have Claude generate three independent versions of the script in parallel and manually pick whichever one looks cleanest."
+      "B": "Ask Claude to re-read the script and identify any bugs it can find on its own, then apply whatever fixes it suggests before re-running, on the assumption that a careful second reading will surface the date and currency handling gaps.",
+      "C": "Discard the current script and re-prompt Claude from scratch with a more detailed description of the CSV format, including the date and currency variations, in the hope that a fresh attempt avoids the errors the first attempt made.",
+      "D": "Have Claude generate three independent versions of the script in parallel and manually pick whichever one looks cleanest, on the reasoning that at least one of three attempts is likely to handle the remaining edge cases correctly."
     },
     "correct": "A",
     "explanations": {
@@ -1455,7 +1455,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-6ae70eee"
+    "id": "D3.5-795099c7"
   },
   {
     "taskStatement": "D3.5",
@@ -1542,9 +1542,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective change to the prompt to reduce these false positives?",
     "options": {
       "B": "Replace the vague instruction with explicit, enumerated criteria defining exactly what counts as a violation (hate speech, personal attacks on named individuals, spam links), and explicitly state that negative sentiment or brand mentions alone do not qualify.",
-      "D": "Lower the model's temperature to make its flagging decisions more consistent.",
-      "A": "Add an instruction telling the model to \"be less strict\" and \"only flag serious violations.\"",
-      "C": "Ask the model to output a numeric confidence score alongside its flag decision, and only route to manual review when confidence is high."
+      "D": "Lower the model's temperature to make its flagging decisions more consistent, so that the same comment receives the same verdict across runs and the borderline cases stop drifting between flagged and unflagged.",
+      "A": "Add an instruction telling the model to \"be less strict\" and \"only flag serious violations,\" so it applies a higher bar before escalating a comment and stops routing merely negative-sounding posts into the manual review queue.",
+      "C": "Ask the model to output a numeric confidence score alongside its flag decision, and only route to manual review when confidence is high, so that borderline judgments are filtered out before a human ever has to look at them."
     },
     "correct": "B",
     "explanations": {
@@ -1559,7 +1559,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-46c0c4f1"
+    "id": "D4.1-74c41f8c"
   },
   {
     "taskStatement": "D4.1",
@@ -1568,9 +1568,9 @@ window.CCARF_BANK = [
     "question": "What change to the prompt would most directly reduce these false-positive SEVERE classifications?",
     "options": {
       "C": "Replace the vague instruction with explicit criteria defining what qualifies as MILD, MODERATE, and SEVERE (drawn from the human rubric), and instruct the model to select the level supported by explicit textual evidence, flagging genuinely ambiguous cases as \"needs review\" rather than defaulting to SEVERE.",
-      "B": "Lower the model's temperature to 0 so that classifications become more deterministic and repeatable across runs.",
-      "D": "Instruct the model to always err on the side of caution and classify ambiguous cases as SEVERE, since under-flagging a true adverse event is costlier than an unnecessary escalation.",
-      "A": "Add one few-shot example showing a clear-cut SEVERE case so the model has a concrete pattern to match against."
+      "B": "Lower the model's temperature to 0 so that classifications become more deterministic and repeatable across runs, removing the sampling variation that currently lets the same narrative receive different severity levels on different passes.",
+      "D": "Instruct the model to always err on the side of caution and classify ambiguous cases as SEVERE, since under-flagging a true adverse event is costlier than an unnecessary escalation, and a reviewer can downgrade an over-classified case cheaply.",
+      "A": "Add one few-shot example showing a clear-cut SEVERE case so the model has a concrete pattern to match against, giving it at least one anchor for what genuine severity looks like instead of inferring the level from the instruction alone."
     },
     "correct": "C",
     "explanations": {
@@ -1585,7 +1585,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-753d4749"
+    "id": "D4.1-07136340"
   },
   {
     "taskStatement": "D4.1",
@@ -1594,9 +1594,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective change to the prompt to reduce these false positives?",
     "options": {
       "D": "Replace \"seems important\" with explicit, objective criteria defining urgency (e.g., active service outage, data loss, security incident, or revenue-impacting bug affecting multiple customers), paired with examples of tickets that look severe but should NOT be flagged.",
-      "C": "Lower the model's temperature setting so that classification decisions become more deterministic and consistent across similar tickets.",
-      "A": "Add several few-shot examples of correctly flagged urgent tickets, without changing the underlying instruction text.",
-      "B": "Change the instruction to \"only flag a ticket as urgent if you are very confident it truly needs escalation.\""
+      "C": "Lower the model's temperature setting so that classification decisions become more deterministic and consistent across similar tickets, removing the run-to-run variation that currently lets near-identical tickets be routed differently.",
+      "A": "Add several few-shot examples of correctly flagged urgent tickets, without changing the underlying instruction text, so the model has concrete precedent for what has previously warranted escalation and can pattern-match against it.",
+      "B": "Change the instruction to \"only flag a ticket as urgent if you are very confident it truly needs escalation,\" raising the bar the model applies before escalating so that marginal tickets are left for normal-queue handling."
     },
     "correct": "D",
     "explanations": {
@@ -1611,7 +1611,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-dc0c9a76"
+    "id": "D4.1-4d1646e7"
   },
   {
     "taskStatement": "D4.2",
@@ -1672,9 +1672,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective way to reduce the rate of bad extractions reaching accounts payable?",
     "options": {
       "D": "Add a validation stage that checks schema conformance, arithmetic consistency (quantity × unit price = total), and SKU existence against the catalog; on failure, send the document and the specific error back to Claude for a bounded number of retries before routing to human review.",
-      "A": "Expand the system prompt with more detailed instructions and examples emphasizing accuracy on totals and SKUs, so Claude is less likely to make these errors on the first pass.",
-      "B": "Lower the model's temperature to reduce output variance, since inconsistent field values are a sign of excessive randomness in generation.",
-      "C": "Have a second Claude call independently re-extract the same invoice and simply overwrite the first result whenever the two outputs differ."
+      "A": "Expand the system prompt with more detailed instructions and examples emphasizing accuracy on totals and SKUs, so Claude is less likely to make these errors on the first pass and fewer invoices need any downstream correction at all.",
+      "B": "Lower the model's temperature to reduce output variance, since inconsistent field values are a sign of excessive randomness in generation, so that repeated extractions of the same invoice converge on one stable set of totals and SKUs.",
+      "C": "Have a second Claude call independently re-extract the same invoice and simply overwrite the first result whenever the two outputs differ, on the reasoning that the later extraction is the more considered of the two attempts."
     },
     "correct": "D",
     "explanations": {
@@ -1689,7 +1689,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-e8840936"
+    "id": "D4.4-8603b3d1"
   },
   {
     "taskStatement": "D4.4",
@@ -1698,9 +1698,9 @@ window.CCARF_BANK = [
     "question": "The retry success rate on the second attempt is nearly the same as the first (identical failures recur most of the time). What change would most effectively improve extraction quality on retry?",
     "options": {
       "A": "On validation failure, send a follow-up turn that includes the original output, the specific schema validation error (e.g., which field failed and why, such as \"totals field does not equal sum of line items\"), and a request to correct only that issue.",
-      "B": "On validation failure, resend the same extraction prompt up to three times and accept whichever attempt passes validation first.",
-      "C": "Lower the temperature to 0 for all extraction calls so retries are more likely to converge on a valid result.",
-      "D": "Skip retries entirely and route every validation failure to a human reviewer queue for manual correction."
+      "B": "On validation failure, resend the same extraction prompt up to three times and accept whichever attempt passes validation first, relying on sampling variation across attempts to eventually produce an output that satisfies the schema.",
+      "C": "Lower the temperature to 0 for all extraction calls so retries are more likely to converge on a valid result, removing the sampling randomness that lets the same document produce different field values on different attempts.",
+      "D": "Skip retries entirely and route every validation failure to a human reviewer queue for manual correction, accepting the review cost in exchange for a guarantee that no invalid extraction is ever accepted automatically."
     },
     "correct": "A",
     "explanations": {
@@ -1715,7 +1715,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-4e033f39"
+    "id": "D4.4-6a71535b"
   },
   {
     "taskStatement": "D4.5",
@@ -1906,9 +1906,9 @@ window.CCARF_BANK = [
     "question": "What is the most effective way to fix the agent's escalation calibration?",
     "options": {
       "A": "Add explicit escalation criteria to the extraction prompt that distinguish genuine data conflicts (contradictory values for the same field within a document) from merely unfamiliar phrasing of a standard clause, with few-shot examples of each category.",
-      "B": "Have the agent assign a numeric self-reported confidence score to each extracted field and escalate any field scoring below a fixed threshold.",
-      "D": "Train a separate classifier on past human review decisions to pre-filter which contracts are routed to the extraction agent versus straight to human review.",
-      "C": "Lower the overall sensitivity of the flag_for_review logic so fewer contracts are escalated, reducing reviewer workload."
+      "B": "Have the agent assign a numeric self-reported confidence score to each extracted field and escalate any field scoring below a fixed threshold, so that the agent's own uncertainty becomes the trigger for human review.",
+      "D": "Train a separate classifier on past human review decisions to pre-filter which contracts are routed to the extraction agent versus straight to human review, using the reviewers' own historical judgments as the routing signal.",
+      "C": "Lower the overall sensitivity of the flag_for_review logic so fewer contracts are escalated, reducing reviewer workload and keeping the queue focused on the contracts most likely to contain a genuine problem."
     },
     "correct": "A",
     "explanations": {
@@ -1923,7 +1923,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.2-ee682b03"
+    "id": "D5.2-9cdb0bbb"
   },
   {
     "taskStatement": "D5.3",
@@ -1932,9 +1932,9 @@ window.CCARF_BANK = [
     "question": "Because the coordinator receives identical, unstructured error text for both failure types, it cannot decide whether to retry or escalate, so it currently just relays a generic apology to the customer in both cases. What is the most effective way to fix the error propagation between the billing subagent and the coordinator?",
     "options": {
       "A": "Have the billing subagent return structured error information that categorizes each failure as transient/retryable or permanent/non-retryable, so the coordinator can retry transient failures and escalate permanent ones appropriately.",
-      "B": "Wrap the payment-processor tool call in a fixed retry loop that automatically retries every failure up to three times before giving up.",
-      "C": "Have the billing subagent retry internally without ever informing the coordinator, and only report back a final success or failure.",
-      "D": "Update the billing subagent's system prompt to instruct it to phrase error messages to the customer more empathetically."
+      "B": "Wrap the payment-processor tool call in a fixed retry loop that automatically retries every failure up to three times before giving up, so transient processor timeouts clear themselves without the coordinator being involved at all.",
+      "C": "Have the billing subagent retry internally without ever informing the coordinator, and only report back a final success or failure, keeping the retry logic local to the subagent that actually understands the payment processor.",
+      "D": "Update the billing subagent's system prompt to instruct it to phrase error messages to the customer more empathetically, so that the generic apology the coordinator currently relays lands better with the customer receiving it."
     },
     "correct": "A",
     "explanations": {
@@ -1949,7 +1949,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.3-6f1da2f8"
+    "id": "D5.3-6d3a2e5d"
   },
   {
     "taskStatement": "D5.2",
@@ -1957,10 +1957,10 @@ window.CCARF_BANK = [
     "scenario": "An SRE team deploys a Claude Agent SDK-based incident-response agent with MCP tools query_metrics, restart_service, scale_replicas, and page_oncall. The agent is meant to handle routine remediation autonomously and page a human for anything with material blast radius. After a month in production, logs show the opposite pattern: the agent pages on-call engineers at 2 a.m. for well-understood, low-risk issues (e.g., a single pod restart loop with a known fix already documented in the runbook), while for an actual incident — a primary database connection pool exhausting during a traffic spike — it autonomously ran scale_replicas and restart_service against the production database tier without paging anyone, causing a brief but customer-visible outage.",
     "question": "What is the most effective way to fix the agent's escalation calibration?",
     "options": {
-      "D": "Replace human paging with a self-reported confidence score (1-10) from the agent, routing to on-call only when confidence falls below a set threshold.",
+      "D": "Replace human paging with a self-reported confidence score (1-10) from the agent, routing to on-call only when confidence falls below a set threshold, so that the agent escalates precisely the cases it is least sure about.",
       "C": "Define explicit escalation criteria in the system prompt, grounded in the blast radius and reversibility of the action rather than symptom type, with few-shot examples distinguishing routine pre-approved fixes from actions on shared production infrastructure that require paging first.",
-      "A": "Train a separate classifier on historical incident tickets to predict whether a given alert should be auto-remediated or escalated.",
-      "B": "Remove restart_service and scale_replicas from the agent's toolset entirely, so all remediation requires a human to act."
+      "A": "Train a separate classifier on historical incident tickets to predict whether a given alert should be auto-remediated or escalated, using the outcomes of past incidents as the signal for how the current one should be routed.",
+      "B": "Remove restart_service and scale_replicas from the agent's toolset entirely, so all remediation requires a human to act, eliminating the possibility of the agent taking an unsafe action on shared production infrastructure."
     },
     "correct": "C",
     "explanations": {
@@ -1975,7 +1975,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.2-a354a918"
+    "id": "D5.2-b5ce23d0"
   },
   {
     "taskStatement": "D5.3",
@@ -2295,10 +2295,10 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system assigns a document-analysis agent to summarize each source (academic papers, blog posts, press releases) found by the web-search agent before passing summaries to a synthesis agent. QA review finds the summaries are wildly inconsistent: some are three sentences focused only on conclusions, others are dense paragraphs quoting methodology and statistics, and a few omit publication dates or author affiliations entirely. The system prompt tells the agent to \"summarize each source clearly and consistently,\" and a JSON schema already enforces fields for title, summary, and key_findings, but the free-text content inside those fields still varies enormously in depth and framing from one source to the next. The synthesis agent's output quality suffers because it receives summaries that are not comparable to one another.",
     "question": "What change would most directly fix the inconsistency in summary depth and framing?",
     "options": {
-      "A": "Increase the max_tokens parameter for the document-analysis agent so it has room to write longer, more thorough summaries.",
-      "B": "Tighten the JSON schema further by adding more required fields (e.g., methodology, sample_size) so the structure captures more of each source.",
+      "A": "Increase the max_tokens parameter for the document-analysis agent so it has room to write longer, more thorough summaries, removing the output ceiling that may be truncating the denser sources into shallower summaries.",
+      "B": "Tighten the JSON schema further by adding more required fields (e.g., methodology, sample_size) so the structure captures more of each source, forcing the agent to address the same dimensions for every document type.",
       "D": "Add a small set of few-shot examples showing complete summaries for representative source types (a dense academic paper, a short blog post, a press release), each demonstrating the target length, level of technical detail, and framing.",
-      "C": "Set the document-analysis agent's temperature to 0 to make its outputs deterministic across runs."
+      "C": "Set the document-analysis agent's temperature to 0 to make its outputs deterministic across runs, so the same source no longer yields summaries of differing depth and framing on repeated passes over the corpus."
     },
     "correct": "D",
     "explanations": {
@@ -2313,7 +2313,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-2baeaa76"
+    "id": "D4.2-fe2ab52d"
   },
   {
     "taskStatement": "D5.1",
@@ -2321,10 +2321,10 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system investigates a technology policy question over many hours. A coordinator agent delegates to a rotating pool of web-search and document-analysis subagents, each returning findings that the coordinator folds into a running research log before spawning the next subagent. Partway through, the engineering team notices the coordinator's context window is approaching its limit, so they configure automatic conversation compaction to summarize older turns once a token threshold is hit.\n\nAfter compaction runs for the first time, the synthesis agent produces a final report that contradicts an early methodological constraint the user specified at the very start of the session (\"exclude any sources published before 2020\"). Investigation shows the constraint was stated once in an early turn and never restated, and compaction's summary of that turn dropped it while preserving later, less critical search results.",
     "question": "What is the most effective way to prevent this class of failure going forward?",
     "options": {
-      "C": "Increase the token threshold at which compaction triggers so it runs less frequently.",
+      "C": "Increase the token threshold at which compaction triggers so it runs less frequently, leaving the original constraint in the uncompacted conversation history for far longer before any summarization step can drop it.",
       "A": "Extract critical constraints like this one into a structured, persistent artifact (e.g., a standing research-brief section) that is carried forward verbatim and excluded from summarization, rather than relying on generic compaction to retain it.",
-      "B": "Instruct the coordinator's system prompt to \"pay close attention to constraints stated early in the conversation\" so compaction weighs them more heavily.",
-      "D": "Disable compaction entirely and let the coordinator operate with the full, uncompacted conversation history for the remainder of the session."
+      "B": "Instruct the coordinator's system prompt to \"pay close attention to constraints stated early in the conversation\" so compaction weighs them more heavily and is less likely to discard them when it summarizes the earlier turns.",
+      "D": "Disable compaction entirely and let the coordinator operate with the full, uncompacted conversation history for the remainder of the session, so no constraint stated at any point can ever be lost to summarization."
     },
     "correct": "A",
     "explanations": {
@@ -2339,7 +2339,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-4bab22a9"
+    "id": "D5.1-39ac2650"
   },
   {
     "taskStatement": "D5.4",
@@ -2399,10 +2399,10 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system produces investment due-diligence briefs. The synthesis agent tags each claim in its output with a self-reported confidence score (1-100) generated by asking Claude to rate its own certainty. Claims scoring above 70 are published directly to analysts; claims scoring 70 or below are routed to a human reviewer queue. After three months, an audit compares the self-reported scores against analyst-verified outcomes: claims the system rated 85+ were wrong nearly as often as claims rated in the 50s, and several high-confidence claims that turned out to be fabricated financial figures were never queued for review.",
     "question": "What is the most effective fix for the review-routing failure?",
     "options": {
-      "A": "Raise the publish threshold from 70 to 90 so fewer claims bypass human review.",
+      "A": "Raise the publish threshold from 70 to 90 so fewer claims bypass human review, tightening the cutoff so that only the claims the model rates most confidently are published without a reviewer seeing them first.",
       "D": "Replace the self-reported confidence score with routing criteria grounded in objective, verifiable signals (e.g., claim type, presence of corroborating sources, numeric/financial content) rather than the model's own certainty rating.",
-      "C": "Have a second Claude call independently re-score the same claim's confidence and average the two scores before routing.",
-      "B": "Add a system prompt instruction telling the synthesis agent to be more conservative and assign lower confidence scores to financial figures."
+      "C": "Have a second Claude call independently re-score the same claim's confidence and average the two scores before routing, so a single anomalously high self-rating cannot on its own push a claim past the publish threshold.",
+      "B": "Add a system prompt instruction telling the synthesis agent to be more conservative and assign lower confidence scores to financial figures, so numeric claims fall below the publish threshold more often and reach review."
     },
     "correct": "D",
     "explanations": {
@@ -2417,7 +2417,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-891e503b"
+    "id": "D5.5-d3615a68"
   },
   {
     "taskStatement": "D5.5",
@@ -2659,10 +2659,10 @@ window.CCARF_BANK = [
     "scenario": "A customer support agent handles long multi-issue conversations. Each order lookup returns a record with more than 40 fields (shipping history, warehouse codes, internal flags), of which only a handful matter for the customer's return question. After several lookups, sessions degrade: the agent starts losing track of amounts and dates the customer stated earlier, and context usage balloons.",
     "question": "Which change most directly addresses the degradation?",
     "options": {
-      "C": "Instruct the agent to re-ask the customer for amounts and dates whenever it is unsure.",
-      "B": "Switch to a model with a larger context window so the full records fit comfortably.",
+      "C": "Instruct the agent to re-ask the customer for amounts and dates whenever it is unsure, so that any detail lost from context is recovered directly from the customer rather than misremembered.",
+      "B": "Switch to a model with a larger context window so the full records fit comfortably, giving the conversation enough headroom that the accumulated lookups no longer crowd out the earlier turns.",
       "D": "Trim each tool result to only the fields relevant to the current issue before it enters conversation context, so lookups stop consuming tokens disproportionate to their relevance.",
-      "A": "Reduce the number of order lookups the agent is allowed to make per conversation."
+      "A": "Reduce the number of order lookups the agent is allowed to make per conversation, capping how much verbose tool output can accumulate in context over the course of a long multi-issue session."
     },
     "correct": "D",
     "explanations": {
@@ -2677,6 +2677,6 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-b24da4d4"
+    "id": "D5.1-d17564bc"
   }
 ];
