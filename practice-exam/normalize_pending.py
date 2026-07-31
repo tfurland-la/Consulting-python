@@ -96,7 +96,9 @@ def main():
     write = (not args.bank) or args.write
     if write:
         if args.bank:
-            exam_lib.render_bank(items)
+            # render_bank(bank) with no path RETURNS the source and writes nothing —
+            # passing the path is what makes --write actually write.
+            exam_lib.render_bank(items, path=exam_lib.BANK_PATH)
         else:
             target.write_text(
                 json.dumps(items, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

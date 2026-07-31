@@ -41,8 +41,29 @@ PENDING_PATH = exam_lib.PRACTICE_EXAM_DIR / "questions_pending.json"
 # Shape-valid stub content the generator emits when it gives up. Matched on word
 # boundaries: plain substring matching fires on "adoption anywhere" (containing
 # "option a"), and "tbd" would hit inside ordinary words too.
-STUB_MARKERS = ["test scenario", "lorem ipsum", "option a", "placeholder", "tbd",
-                "xxx", "example.com"]
+#
+# A bare "placeholder" was on this list and was removed: it fired on a legitimate
+# explanation — "fills the field with the semantically correct value rather than a
+# placeholder" — which is real content about a real failure mode. That is the same
+# trap the "option a" comment above describes, and the same rule applies: a term an
+# author would plausibly write in ordinary prose does not belong here, however
+# stub-like it sounds. The unambiguous forms are kept.
+STUB_MARKERS = ["test scenario", "lorem ipsum", "option a", "tbd", "xxx",
+                "example.com", "placeholder text", "[placeholder]",
+                "your text here", "insert scenario"]
+
+
+def stub_pattern(marker):
+    r"""Word-boundary match, but only where a boundary is meaningful.
+
+    `\b` asserts a word/non-word transition, so `\b\[placeholder\]\b` can only match
+    if a word character sits immediately before the `[` — which is never. Anchor only
+    the ends that actually start or end with a word character.
+    """
+    body = re.escape(marker)
+    left = r"\b" if marker[:1].isalnum() else ""
+    right = r"\b" if marker[-1:].isalnum() else ""
+    return left + body + right
 
 SKEW_LIMIT = 0.40        # one answer position holding more than this is exploitable
 LENGTH_TELL_RATIO = 1.6  # correct option this much longer than the runner-up
@@ -100,7 +121,7 @@ def screen(items, bank, source):
 
         # 3. Stub / placeholder content.
         stubs = sorted({m for m in STUB_MARKERS
-                        if re.search(r"\b" + re.escape(m) + r"\b", blob)})
+                        if re.search(stub_pattern(m), blob)})
         if stubs:
             findings["STUB CONTENT"].append(f"{tag}: {', '.join(stubs)}")
 
@@ -164,6 +185,31 @@ def screen(items, bank, source):
     missing = [ts for ts in exam_lib.TASK_STATEMENTS if ts not in per_ts]
     print(f"objectives covered : {len(per_ts)}/{len(exam_lib.TASK_STATEMENTS)}"
           + (f"  MISSING: {', '.join(missing)}" if missing else ""))
+
+    # Aggregate: is the correct option systematically the longest? The per-question
+    # LENGTH TELL check above uses a 1.6x threshold and so only catches the extremes.
+    # It reported 19 on a bank where the correct option was the longest in 92 of 103
+    # — a candidate picking the longest option would have scored ~89%. A per-item
+    # threshold cannot see that; only the aggregate can.
+    longest_correct = 0
+    comparable = 0
+    for q in items:
+        lengths = {k: len(v) for k, v in q.get("options", {}).items()}
+        if len(lengths) < 2:
+            continue
+        comparable += 1
+        keys = correct_keys(q)
+        others = [v for k, v in lengths.items() if k not in keys]
+        if others and max(lengths[k] for k in keys if k in lengths) > max(others):
+            longest_correct += 1
+    if comparable:
+        share = longest_correct / comparable
+        print(f"longest-is-correct : {longest_correct}/{comparable} = {share:.0%}"
+              + ("  (chance is ~25%)" if share else ""))
+        if share > 0.50:
+            print(f"  ^ EXPLOITABLE: picking the longest option scores ~{share:.0%} "
+                  f"without reading the material. Fix by giving distractors the same "
+                  f"specificity, not by trimming correct answers.")
 
     positions = Counter(k for q in items for k in correct_keys(q))
     total_keys = sum(positions.values())

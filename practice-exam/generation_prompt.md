@@ -25,6 +25,16 @@ Requirements:
   one, so their option count and scoring are unknown. Do not invent
   multiple-response items. See "Known fidelity gaps" in
   local_practice_exam_spec.md.)
+- Keep all four options within roughly the same length — no option more than about
+  1.3x the longest of the others. This is a scoring-integrity rule, not a style
+  preference: measured on the committed bank, the correct option was the longest in
+  92 of 103 questions, so a candidate who simply picks the longest option scores
+  about 89% without knowing any of the material. The failure mode is writing the
+  correct answer as a fully-qualified statement ("...because X, which ensures Y
+  under condition Z") while the distractors stay short flat assertions. Give the
+  distractors the same specificity and hedging as the correct answer, so length
+  carries no signal. If the correct answer genuinely needs the extra words, add
+  comparable substance to the distractors rather than trimming the correct one.
 - Provide an explanation of why the correct answer is right and why each
   distractor is wrong.
 {{DIFFICULTY}}- You are NOT to invent specific technical facts — flag names, environment
