@@ -19,6 +19,26 @@ This document specifies only what differs, plus the local-only **timed exam
 mode** (the original spec listed it as a possible later addition; it exists
 here).
 
+## Attribution
+
+This tool quotes material from the **Claude Certified Architect – Foundations
+Exam Guide v1.0**, published by Anthropic:
+
+- the **six exam scenarios** (section 5), held verbatim in `EXAM_SCENARIOS` in
+  both `exam_lib.py` and `adaptive.js`;
+- the **twelve sample questions** (section 9), held verbatim as the bank entries
+  tagged `provenance.source == "official-sample"`.
+
+That text is Anthropic's, quoted unaltered and attributed at each site, for
+study and commentary in a personal exam-preparation tool. © Anthropic PBC. This
+tool is **not** an official Anthropic product and is not affiliated with,
+sponsored by or endorsed by Anthropic. Everything else in the bank is generated
+practice material written for this tool and is not exam content.
+
+Fidelity to the quoted text is load-bearing, not incidental — see *the length
+tell* below for what happened when the sample questions were paraphrased rather
+than quoted. Do not paraphrase them back.
+
 ---
 
 ## Why a local variant exists
@@ -56,8 +76,12 @@ difficulty delta.
 
 The samples stayed — they do real work on form and rigour, and dropping them
 would have regressed quality to fix diversity. What changed is what they are
-*for*: exemplars of structure and difficulty, with their phrasing named
-explicitly as a floor to move away from. The register mix (above) is the
+*for*: exemplars of structure and rigour — **not** of difficulty. Someone who
+sat the real exam reports the guide's samples read easy-to-moderate against it,
+and that they name their tools and techniques outright where the exam describes
+mechanisms by behaviour. So the samples set the form; the difficulty tiers and
+the register set the level. Their phrasing is named explicitly as a floor to
+move away from. The register mix (above) is the
 mechanism. The hard constraint is that this varies how a **real** mechanism is
 described, never **which** mechanisms are real — a functional-sounding invented
 mechanism is the fabrication failure mode the guardrails already forbid, which
@@ -241,30 +265,69 @@ one left owed, and `--merge` reports the **realized** mix, not the assigned one
 retry-with-error-feedback loop with the measured lengths.
 
 The threshold is calibrated against the exam guide's own 12 sample questions,
-not invented. There, the correct answer is the longest in **7 of 12** — but
-only ever by a hair (1.01, 1.01, 1.02, 1.02, 1.06, 1.06, 1.18), with a mean
-ratio across all 12 of 0.96. So the real exam has a mild length tell, and a
-bank with *none* is as unrepresentative as one with a strong tell: it would
-teach a candidate that the longest option is never right, which is false where
-it counts. An earlier version rejected the tell outright and drove the rate to
-0/6 — over-corrected in the opposite direction. This is enforced in code because asking failed
-twice: the prompt has carried an option-length rule since the bank was seeded
-and the bank is **85% longest-is-correct** (a candidate who reads nothing and
-picks the longest scores 85%), and restating the rule immediately beside the
-task moved the *margin* (mean ratio 1.24 → 1.08) but not the *ordering* (still
-6/6). The prompt rule was also mis-specified: "no option more than 1.3× the
+not invented. Measured on their **verbatim** text, the correct answer is the
+longest in **7 of 12**, with ratios 0.76, 0.87, 0.89, 0.97, 0.98, 1.01, 1.02,
+1.04, 1.05, 1.06, 1.06, 1.29 and a mean of exactly 1.00. So the real exam has a
+mild length tell, and a bank with *none* is as unrepresentative as one with a
+strong tell: it would teach a candidate that the longest option is never right,
+which is false where it counts. An earlier version rejected the tell outright
+and drove the rate to 0/6 — over-corrected in the opposite direction.
+
+1.20 sits deliberately **below** the guide's worst case, in the empty gap
+between its second-worst (1.06) and its single outlier (1.29), so it admits
+every margin the guide actually exhibits bar one.
+
+> **Why an earlier revision of this section was wrong.** It quoted a guide max
+> of 1.18 and a mean of 0.96. Those were measured on *our transcription* of the
+> samples, which had silently compressed the options — unevenly, distractors
+> harder than correct answers, some to 56% of the guide's length. Since these 12
+> are the few-shot examples every generated question learns from, the
+> transcription was not merely a bad measurement, it was plausibly a **cause** of
+> the generated bank's tell. The options were restored verbatim from the guide
+> (matched by content, not letter — `normalize_pending` permutes letters), which
+> also removed PDF page-footer text that had bled into two options.
+
+This is enforced in code because asking failed twice: the prompt has carried an
+option-length rule since the bank was seeded, and restating the rule immediately
+beside the task moved the *margin* (mean ratio 1.24 → 1.08) but not the
+*ordering*. The prompt rule was also mis-specified: "no option more than 1.3× the
 others" is fully satisfied by a correct answer that is longest by one
 character. Ordering is what the exploit needs, so ordering is what is checked.
+A tie is not a tell — "pick the longest" has no answer at a tie.
 
-What is rejected is the conspicuous case: the committed bank sits at 85%
-longest-is-correct with much larger margins, and that is the defect. A tie is
-not a tell — "pick the longest" has no answer at a tie.
+**The seeded bank was repaired, not just gated.** The gate binds new generation;
+it did nothing for the 111 questions already banked at **81% longest-is-correct**
+(mean 1.20, max 1.59). Each of the 53 over-threshold questions was rewritten by
+adding substance to its *distractors* — never trimming the correct answer, whose
+qualifying clauses are what make it correct — leaving the scenario, the question
+and the correct letter untouched. Result: **34% longest-is-correct, mean 0.97,
+max 1.19, none over threshold.** Chance is 25%, so neither "pick the longest"
+(34%) nor "pick the shortest" (28%) is now worth playing.
+
+> **The trap that repair walks into.** The first attempt padded distractors with
+> the *reason they were wrong* — "…without addressing the overlapping tool
+> descriptions", "…relying on the model rather than a checked result". That trades
+> the length tell for a strictly worse one: the correct answer becomes the only
+> option not arguing against itself. Padding must be concrete detail about what
+> the option would *involve*, written as a confident proposal. A distractor's
+> wrongness belongs in its explanation, never in its option text. The repair
+> script gated on this mechanically as well as instructing it.
+
+One official sample exceeds the threshold at 1.29. That is the guide's own
+wording, so it is left alone; the gate is enforced on generation only.
 
 **Residual, not yet solved:** the threshold bounds the *margin* per question,
-not the *rate* across a batch. Generation tends to land just under the limit,
-so the rate can stay high even when every individual margin is exam-like.
-`screen_mechanical.py` reports the rate; closing the gap to the exam's ~58%
-would need an aggregate control, which does not exist yet.
+not the *rate* across a batch. Generation tends to land just under the limit, so
+the rate drifts up even when every individual margin is exam-like. The repair
+pass reset the committed bank to 34%, but nothing holds it there — it is a
+one-time correction, not a control, and each refill pulls back toward the gate.
+`screen_mechanical.py` reports the rate; an aggregate control does not exist yet.
+
+Note the repaired bank sits *below* the guide's own 58%, not above it, because
+repair targeted a ratio of ≤0.98 rather than the 1.20 gate — landing on the gate
+would have left every repaired question still longest-is-correct, which is the
+tell itself. 34% against a chance rate of 25% is the intended resting place; the
+exam's 58% is a description of the exam, not a target to reproduce.
 
 **`scenarioType` backfill.** `classify_scenarios.py --classify` proposes a
 scenario genre for every unlabelled banked question into a gitignored file for

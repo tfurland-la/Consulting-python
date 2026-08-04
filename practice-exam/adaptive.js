@@ -515,7 +515,9 @@ function pickPerBucket(positions, count, rng) {
 
 // The exam's six scenarios, reproduced verbatim from the Claude Certified
 // Architect – Foundations Exam Guide v1.0, section 5 ("Exam Scenarios"), for
-// personal exam preparation. Anthropic's text, not ours.
+// personal exam preparation. Anthropic's text, not ours. © Anthropic PBC.
+// This tool is not an official Anthropic product and is not affiliated with,
+// sponsored by or endorsed by Anthropic.
 //
 // Mirrors EXAM_SCENARIOS in exam_lib.py — duplicated because the bank exam
 // runs with no bridge and still has to show the scenario. A test asserts the

@@ -64,14 +64,21 @@ Requirements:
   explanation identifies it as deprecated and names the current replacement.
 
 Here are official sample questions from the exam guide. Use them as models of
-structure and difficulty: a well-formed stem, four plausible options, exactly one
+STRUCTURE AND RIGOUR only: a well-formed stem, four plausible options, exactly one
 correct answer per principle, and near-miss distractors a partially-prepared
 candidate would genuinely pick.
 
+They are NOT the difficulty target. Someone who has sat the real exam reports
+these read easy-to-moderate against it. Difficulty comes from the tier
+instruction above and from the register — not from imitating these. Do not treat
+their level as a ceiling.
+
 Their wording is a floor to move away from, not a template to match. They lean on
-the exam guide's official terminology, and a bank that mirrors that wording trains
-candidates to recognise names rather than mechanisms — which is the gap this bank
-exists to close. Match their rigour; do not match their phrasing.
+the exam guide's official terminology and name their tools and techniques
+outright; the real exam far more often describes a mechanism by what it does. A
+bank that mirrors this wording trains candidates to recognise names rather than
+mechanisms — which is the gap this bank exists to close. Match their rigour; do
+not match their phrasing or their level.
 
 {{FEW_SHOT_EXAMPLES}}
 

@@ -71,11 +71,20 @@ example to calibrate against. Read a score as a floor, not a prediction — see
 desktop app, **fresh questions generated live** carry the exam's difficulty
 spread — mostly mid, a quarter harder, a ~15% hard tail — making it the faithful
 readiness gate; the bank exam is instant but a standard-difficulty approximation
-that runs easier. (That difficulty is calibrated to the exam guide's sample
-questions — an inference to recalibrate after a real sitting; see the spec.) To
-grow the question bank, run the committed `/exam-refill` skill in Claude Code —
-it walks the generate → screen → review → merge pipeline. Design details:
-[`practice-exam/local_practice_exam_spec.md`][local-spec].
+that runs easier. (Difficulty is set by the tier mix and by how far a question's
+wording abstracts away from named mechanisms — deliberately *not* by the guide's
+sample questions, which a real sitting found read easy-to-moderate against the
+exam; see the spec.) To grow the question bank, run the committed `/exam-refill`
+skill in Claude Code — it walks the generate → screen → review → merge pipeline.
+Design details: [`practice-exam/local_practice_exam_spec.md`][local-spec].
+
+**Attribution.** This tool quotes the six exam scenarios and the twelve sample
+questions from the Claude Certified Architect – Foundations Exam Guide v1.0
+verbatim, attributed at each site, for study and commentary; that text is
+© Anthropic PBC. Everything else in the question bank is generated practice
+material written for this tool and is not exam content. This is not an official
+Anthropic product and is not affiliated with, sponsored by or endorsed by
+Anthropic.
 
 Prefer a double-clickable app? Build one from the committed spec (binaries are
 not checked in). Again from the repository root, using the project venv:

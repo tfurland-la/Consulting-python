@@ -35,6 +35,15 @@ PROMPT_PATH = RESOURCE_DIR / "generation_prompt.md"
 BANK_HEADER = (
     "// CCAR-F practice exam question bank - machine-written by exam_lib.render_bank().\n"
     "// Do not hand-edit; add or change questions via generate_bank.py.\n"
+    "//\n"
+    "// ATTRIBUTION. Entries whose provenance.source is \"official-sample\" are the\n"
+    "// sample questions published in the Claude Certified Architect - Foundations\n"
+    "// Exam Guide v1.0, section 9 (\"Sample Questions\"). Their scenario, question and\n"
+    "// option text is Anthropic's, quoted verbatim and unaltered, for study and\n"
+    "// commentary in a personal exam-preparation tool. (c) Anthropic PBC. This tool\n"
+    "// is not an official Anthropic product and is not affiliated with, sponsored by\n"
+    "// or endorsed by Anthropic. Every other entry is generated practice material\n"
+    "// written for this tool and is not exam content.\n"
 )
 BANK_MARKER = "window.CCARF_BANK ="
 
@@ -224,7 +233,9 @@ GENERATION_TIMEOUT_SECONDS = 120
 # prevents template reskinning.
 # The exam's six scenarios, reproduced verbatim from the Claude Certified
 # Architect – Foundations Exam Guide v1.0, section 5 ("Exam Scenarios"), for
-# personal exam preparation. Anthropic's text, not ours.
+# personal exam preparation. Anthropic's text, not ours. © Anthropic PBC.
+# This tool is not an official Anthropic product and is not affiliated with,
+# sponsored by or endorsed by Anthropic.
 #
 # These are FIXED. The exam draws 4 of the 6 and shows the chosen scenario as
 # standing context while its questions branch from it — so a practice tool that
@@ -430,17 +441,25 @@ def _few_shot_block(bank):
 
 # How much longer than its longest rival the correct option may be.
 #
-# Calibrated against the exam guide's own 12 sample questions, not invented:
-# the correct answer there is the longest in 7 of 12, but only ever by a hair —
-# ratios of 1.01, 1.01, 1.02, 1.02, 1.06, 1.06, 1.18, and a mean across all 12
-# of 0.96. So the real exam has a mild length tell, and a bank with none is as
-# unrepresentative as a bank with a strong one: it would teach a candidate that
-# the longest option is never right, which is false where it counts.
+# Calibrated against the exam guide's own 12 sample questions, not invented.
+# Measured on their verbatim text: the correct answer is the longest in 7 of 12,
+# ratios 0.76, 0.87, 0.89, 0.97, 0.98, 1.01, 1.02, 1.04, 1.05, 1.06, 1.06, 1.29,
+# mean exactly 1.00. So the real exam has a mild length tell, and a bank with
+# none is as unrepresentative as a bank with a strong one: it would teach a
+# candidate that the longest option is never right, which is false where it
+# counts.
 #
-# The threshold is the guide's own worst case. Our committed bank sits at 85%
-# longest-is-correct with much larger margins — that is the defect. Rejecting
-# only the outsized cases removes the exploit without flattening the
-# distribution the exam actually has.
+# 1.20 is deliberately BELOW the guide's worst case, and sits in the empty gap
+# between its second-worst (1.06) and its single outlier (1.29). It therefore
+# admits every margin the guide actually exhibits bar one. Do not read it as
+# "the guide's maximum" — an earlier revision of this comment did, quoting a max
+# of 1.18 and a mean of 0.96. Those came from our own transcription of the
+# samples, which had silently compressed the options (distractors harder than
+# correct answers) and so understated the guide's spread. The transcription was
+# restored to verbatim; these numbers are from that.
+#
+# Enforced on generation only. The one official sample that exceeds this is the
+# guide's own wording and is left alone.
 LENGTH_TELL_MAX_RATIO = 1.20
 
 

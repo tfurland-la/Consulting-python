@@ -225,9 +225,17 @@ def test_few_shot_examples_are_not_framed_as_a_tone_to_match():
     assert "Match their tone" not in prompt
 
 
-def test_few_shot_examples_are_framed_as_structure_and_difficulty():
-    prompt = exam_lib.build_prompt("D1.4")
-    assert "structure and difficulty" in prompt
+def test_few_shot_examples_are_framed_as_structure_not_a_difficulty_target():
+    """Someone who sat the real exam reports the guide's samples read
+    easy-to-moderate against it, and that they name their tools outright where
+    the exam describes mechanisms by behaviour. So the samples set the FORM;
+    the difficulty tiers and the register set the level. Framing them as a
+    difficulty model would cap generation at the guide's level."""
+    # Whitespace-normalised: the prompt is hard-wrapped, so phrases span lines.
+    prompt = " ".join(exam_lib.build_prompt("D1.4").split())
+    assert "STRUCTURE AND RIGOUR only" in prompt
+    assert "They are NOT the difficulty target" in prompt
+    assert "Do not treat their level as a ceiling" in prompt
 
 
 def test_prompt_names_official_terminology_as_a_floor_to_move_away_from():

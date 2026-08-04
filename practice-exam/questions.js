@@ -1,5 +1,14 @@
 // CCAR-F practice exam question bank - machine-written by exam_lib.render_bank().
 // Do not hand-edit; add or change questions via generate_bank.py.
+//
+// ATTRIBUTION. Entries whose provenance.source is "official-sample" are the
+// sample questions published in the Claude Certified Architect - Foundations
+// Exam Guide v1.0, section 9 ("Sample Questions"). Their scenario, question and
+// option text is Anthropic's, quoted verbatim and unaltered, for study and
+// commentary in a personal exam-preparation tool. (c) Anthropic PBC. This tool
+// is not an official Anthropic product and is not affiliated with, sponsored by
+// or endorsed by Anthropic. Every other entry is generated practice material
+// written for this tool and is not exam content.
 window.CCARF_BANK = [
   {
     "taskStatement": "D1.4",
@@ -7,10 +16,10 @@ window.CCARF_BANK = [
     "scenario": "A customer support agent built on the Claude Agent SDK has MCP tools get_customer, lookup_order, process_refund, and escalate_to_human. Production data shows that in 12% of cases the agent skips get_customer and calls lookup_order using only the customer's stated name, sometimes causing misidentified accounts and incorrect refunds.",
     "question": "What change would most effectively address this reliability issue?",
     "options": {
-      "D": "Add a programmatic prerequisite that blocks lookup_order and process_refund until get_customer has returned a verified customer ID.",
       "C": "Enhance the system prompt to state that customer verification via get_customer is mandatory before any order operations.",
-      "A": "Add few-shot examples showing the agent always calling get_customer first.",
-      "B": "Implement a routing classifier that enables only the subset of tools appropriate for each request type."
+      "D": "Add a programmatic prerequisite that blocks lookup_order and process_refund calls until get_customer has returned a verified customer ID.",
+      "B": "Implement a routing classifier that analyzes each request and enables only the subset of tools appropriate for that request type.",
+      "A": "Add few-shot examples showing the agent always calling get_customer first, even when customers volunteer order details."
     },
     "correct": "D",
     "explanations": {
@@ -25,7 +34,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D1.4-46421424",
+    "id": "D1.4-63729811",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
@@ -34,10 +43,10 @@ window.CCARF_BANK = [
     "scenario": "Production logs show the agent frequently calls get_customer when users ask about orders (e.g., \"check my order #12345\") instead of lookup_order. Both tools have minimal descriptions (\"Retrieves customer information\" / \"Retrieves order details\") and accept similar identifier formats.",
     "question": "What is the most effective first step to improve tool selection reliability?",
     "options": {
-      "C": "Add 5-8 few-shot examples to the system prompt showing order queries routing to lookup_order.",
-      "D": "Expand each tool's description to include input formats, example queries, edge cases, and boundaries explaining when to use it versus similar tools.",
-      "A": "Implement a routing layer that parses input and pre-selects the tool.",
-      "B": "Consolidate both tools into a single lookup_entity tool."
+      "D": "Expand each tool's description to include input formats it handles, example queries, edge cases, and boundaries explaining when to use it versus similar tools.",
+      "C": "Add few-shot examples to the system prompt demonstrating correct tool selection patterns, with 5-8 examples showing order-related queries routing to lookup_order.",
+      "A": "Implement a routing layer that parses user input before each turn and pre-selects the appropriate tool based on detected keywords and identifier patterns.",
+      "B": "Consolidate both tools into a single lookup_entity tool that accepts any identifier and internally determines which backend to query."
     },
     "correct": "D",
     "explanations": {
@@ -52,7 +61,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D2.1-047f8193",
+    "id": "D2.1-84cf013a",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
@@ -61,10 +70,10 @@ window.CCARF_BANK = [
     "scenario": "An agent achieves 55% first-contact resolution against an 80% target. Logs show it escalates straightforward cases (standard damage replacements with photo evidence) while attempting to autonomously handle complex situations requiring policy exceptions.",
     "question": "What is the most effective way to improve escalation calibration?",
     "options": {
-      "B": "Add explicit escalation criteria to the system prompt with few-shot examples demonstrating when to escalate versus resolve.",
-      "D": "Have the agent self-report a 1-10 confidence score and route to humans below a threshold.",
-      "A": "Deploy a separate classifier trained on historical tickets.",
-      "C": "Add sentiment analysis and escalate on negative sentiment."
+      "B": "Add explicit escalation criteria to your system prompt with few-shot examples demonstrating when to escalate versus resolve autonomously.",
+      "D": "Have the agent self-report a confidence score (1-10) before each response and automatically route requests to humans when confidence falls below a threshold.",
+      "A": "Deploy a separate classifier model trained on historical tickets to predict which requests need escalation before the main agent begins processing.",
+      "C": "Implement sentiment analysis to detect customer frustration levels and automatically escalate when negative sentiment exceeds a threshold."
     },
     "correct": "B",
     "explanations": {
@@ -79,7 +88,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D5.2-883dd295",
+    "id": "D5.2-5e1f193c",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
@@ -88,17 +97,17 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system misroutes 45% of requests to the web-search agent's analyze_content tool instead of the document analysis agent's analyze_document tool. Both tools have nearly identical descriptions.",
     "question": "What is the most effective fix?",
     "options": {
-      "B": "Add a pre-routing classifier before the coordinator decides on delegation.",
       "A": "Rename the web-search tool to extract_web_results and update its description to reference web search and URLs specifically.",
-      "C": "Add few-shot examples to the coordinator prompt showing correct routing.",
-      "D": "Expand the document analysis tool description while leaving the web-search tool unchanged."
+      "B": "Insert a pre-routing classifier that reads the incoming request text and predicts the correct agent before the coordinator evaluates tool descriptions.",
+      "C": "Add several few-shot examples to the coordinator's system prompt, pairing sample requests with the correct agent so it can pattern-match new requests.",
+      "D": "Expand the analyze_document tool's description with detail on the document formats, file types, and content it is designed to process."
     },
     "correct": "A",
     "explanations": {
-      "B": "Over-engineered for what is fundamentally a description problem.",
-      "A": "Correct. Renaming removes the semantic overlap at its source.",
-      "C": "Adds overhead without fixing the root cause.",
-      "D": "Fixes only half the problem - the web-search tool's description stays ambiguous."
+      "A": "Correct. Renaming removes the semantic overlap at its source, since routing decisions are driven by tool name and description text — giving the two tools clearly distinct names and descriptions eliminates the ambiguity directly.",
+      "B": "Over-engineered for what is fundamentally a description problem. Adding a separate classification stage introduces a new component to build and maintain, but it doesn't touch why the coordinator confuses the two tools in the first place.",
+      "C": "Adds overhead without fixing the root cause. The coordinator still sees the same two overlapping tool descriptions at decision time, so examples only coach around the ambiguity rather than removing it.",
+      "D": "Fixes only half the problem. The web-search tool's description stays just as ambiguous as before, so the coordinator can still route requests to it by mistake."
     },
     "provenance": {
       "source": "official-sample",
@@ -106,7 +115,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D2.1-8fce064e",
+    "id": "D2.1-9ec6a97f",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -115,10 +124,10 @@ window.CCARF_BANK = [
     "scenario": "A pull request touches 14 files. A single-pass review produces inconsistent depth, missed bugs, and contradictory feedback on identical patterns in different files.",
     "question": "How should you restructure the review?",
     "options": {
-      "C": "Run three independent full-PR passes and flag issues appearing in at least two runs.",
-      "D": "Split into per-file passes for local issues plus a separate integration pass for cross-file data flows.",
-      "A": "Require developers to split large PRs into smaller submissions.",
-      "B": "Switch to a larger model with a bigger context window."
+      "C": "Run three independent review passes on the full PR and only flag issues that appear in at least two of the three runs.",
+      "A": "Require developers to split large PRs into smaller submissions of 3-4 files before the automated review runs.",
+      "D": "Split into focused passes: analyze each file individually for local issues, then run a separate integration-focused pass examining cross-file data flow.",
+      "B": "Switch to a higher-tier model with a larger context window to give all 14 files adequate attention in one pass."
     },
     "correct": "D",
     "explanations": {
@@ -133,7 +142,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D4.6-e7745a0b",
+    "id": "D4.6-b93aa7bc",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -142,10 +151,10 @@ window.CCARF_BANK = [
     "scenario": "A team is restructuring a monolithic application into microservices, involving changes across dozens of files and decisions about service boundaries and module dependencies.",
     "question": "Which approach should you take?",
     "options": {
-      "B": "Enter plan mode to explore the codebase and design before making changes.",
-      "C": "Start with direct execution and let implementation reveal service boundaries.",
-      "D": "Use direct execution with upfront instructions detailing each service.",
-      "A": "Begin in direct execution and switch to plan mode only if unexpected complexity emerges."
+      "C": "Start with direct execution and make changes incrementally, letting the implementation reveal the natural service boundaries.",
+      "A": "Begin in direct execution mode and only switch to plan mode if you encounter unexpected complexity during implementation.",
+      "D": "Use direct execution with comprehensive upfront instructions detailing exactly how each service should be structured.",
+      "B": "Enter plan mode to explore the codebase, understand dependencies, and design an implementation approach before making changes."
     },
     "correct": "B",
     "explanations": {
@@ -160,7 +169,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.4-0f908134",
+    "id": "D3.4-7d83e2d8",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
@@ -169,10 +178,10 @@ window.CCARF_BANK = [
     "scenario": "A codebase has distinct coding conventions for React components, API handlers, and database models. Test files are spread throughout the codebase alongside the code they test (e.g., Button.test.tsx next to Button.tsx). The team wants all test files to follow the same conventions regardless of directory location.",
     "question": "What is the most maintainable way to ensure Claude automatically applies the correct conventions when generating code?",
     "options": {
-      "A": "Create rule files in .claude/rules/ with YAML frontmatter specifying glob patterns to conditionally apply conventions based on file paths.",
-      "D": "Consolidate all conventions in the root CLAUDE.md file under headers for each area, relying on Claude to infer which section applies.",
-      "B": "Create skills in .claude/skills/ for each code type that include the relevant conventions in their SKILL.md files.",
-      "C": "Place a separate CLAUDE.md file in each subdirectory containing that area's specific conventions."
+      "A": "Create rule files in .claude/rules/ with YAML frontmatter specifying glob patterns to conditionally apply conventions based on file paths",
+      "D": "Consolidate all conventions in the root CLAUDE.md file under headers for each area, relying on Claude to infer which section applies",
+      "B": "Create skills in .claude/skills/ for each code type that include the relevant conventions in their SKILL.md files",
+      "C": "Place a separate CLAUDE.md file in each subdirectory containing that area's specific conventions"
     },
     "correct": "A",
     "explanations": {
@@ -187,7 +196,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.3-f575e689",
+    "id": "D3.3-1799f801",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -277,17 +286,17 @@ window.CCARF_BANK = [
     "scenario": "A team builds an autonomous CI/CD agent using Claude Code to fix failing unit tests on pull requests. The agent runs an agentic loop: read the test failure output, edit the relevant source file, re-run the test suite via Bash, and repeat until the tests pass, at which point it commits the fix and reports success. After deployment, engineers notice that roughly 1 in 5 \\\"fixed\\\" pull requests still have failing tests in the actual CI run, even though the agent reported the task as complete and exited its loop.\n\nInvestigation of the agent's transcripts shows that in the failure cases, the agent's final loop iteration edited the code, then reasoned in natural language that \\\"this change should resolve the test failure\\\" and reported success without re-invoking the Bash tool to re-run the test suite and inspect the actual output.",
     "question": "What is the most effective change to the agentic loop's design to prevent this failure mode?",
     "options": {
-      "A": "Require the loop to terminate only after a Bash call re-runs the test suite and the loop code programmatically checks the exit code/output for a pass before allowing a success report.",
-      "B": "Add an instruction to the system prompt stating that the agent must always re-run tests before declaring success.",
-      "D": "Have the agent self-report a confidence score after each edit and only exit the loop once its stated confidence exceeds a fixed threshold.",
-      "C": "Increase the maximum number of loop iterations so the agent has more chances to converge on a passing state."
+      "A": "Require the loop to terminate only after a Bash call re-runs the test suite and the loop code checks the exit code and output for a pass before allowing a success report.",
+      "B": "Add an instruction to the system prompt, placed alongside the tool-use guidelines, directing the agent to always invoke the Bash tool to re-run the full suite and read its output before declaring the fix successful.",
+      "C": "Raise the loop's maximum iteration count so the agent has more read-edit-test cycles and more Bash invocations available before it must produce a final report on the pull request.",
+      "D": "After each edit, have the agent output a numeric confidence score for its fix and change the loop's exit condition to check that score against a fixed threshold before allowing termination."
     },
     "correct": "A",
     "explanations": {
       "A": "Correct. The loop's termination condition should be a programmatic, ground-truth check (actual test suite output) rather than the model's own judgment, giving a deterministic guarantee that success is only reported when tests genuinely pass.",
       "B": "Relies on probabilistic LLM compliance with a prompt instruction; the model can still skip the verification step under the same reasoning pattern that caused the original failures.",
-      "D": "LLM self-reported confidence is poorly calibrated - the agent was already confidently wrong when it judged its own fix would work without evidence.",
-      "C": "Addresses how many attempts the agent gets, not the root cause: the loop is exiting on unverified self-assessment rather than a checked outcome."
+      "C": "Addresses how many attempts the agent gets, not the root cause: the loop is exiting on unverified self-assessment rather than a checked outcome, regardless of how many iterations are available.",
+      "D": "LLM self-reported confidence is poorly calibrated - the agent was already confidently wrong when it judged its own fix would work without evidence, and a numeric score doesn't change what that judgment is based on."
     },
     "provenance": {
       "source": "seed-generated",
@@ -295,7 +304,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-8ec884be",
+    "id": "D1.1-5f4f00b3",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -358,17 +367,17 @@ window.CCARF_BANK = [
     "scenario": "A coordinator agent orchestrates three subagents in a codebase-modernization pipeline: a code-search subagent (using Grep/Glob to locate all usages of a deprecated API), a refactor subagent (using Read/Edit to rewrite call sites), and a test-runner subagent (using Bash to run the test suite and report results). Each subagent currently returns its complete raw output to the coordinator: the code-search subagent returns the full contents of every matching file, and the test-runner subagent returns the entire raw test log, including all passing test output. After only a few files, the coordinator's context window fills up, it loses track of earlier findings, and it starts producing inconsistent refactor plans.",
     "question": "What is the most effective change to fix this problem?",
     "options": {
-      "D": "Have each subagent return a condensed, task-relevant summary of its findings (e.g., file paths and matched line ranges, or a list of failing tests with error messages) rather than its full raw tool output.",
-      "C": "Switch the coordinator to a model with a larger context window so it can hold the full raw output from all three subagents.",
-      "B": "Remove the coordinator and let the code-search, refactor, and test-runner subagents call each other directly in sequence.",
-      "A": "Have the coordinator persist all raw subagent outputs to an external memory store and reload them in full whenever a new decision is needed."
+      "A": "Have the coordinator persist all raw subagent output, including full file contents and the complete test log, to an external memory store and reload it in full before each new decision.",
+      "B": "Remove the coordinator and have the code-search subagent hand its matching files to the refactor subagent, which edits the call sites and passes the code to the test-runner subagent to run the suite.",
+      "C": "Switch the coordinator to a model with a larger context window so it can hold the full file contents from the code-search subagent and the complete test log from the test-runner subagent for every file in the pipeline.",
+      "D": "Have each subagent return a condensed, task-relevant summary of its findings (e.g., file paths and matched line ranges, or a list of failing tests with error messages) rather than its full raw tool output."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. A core benefit of the coordinator-subagent pattern is that each subagent isolates context-heavy work and returns only the distilled, decision-relevant result to the coordinator. Returning condensed findings instead of raw tool output is what keeps the coordinator's context focused on synthesis and cross-subagent tracking, directly addressing the root cause of the context exhaustion and inconsistent planning.",
-      "C": "Treats the symptom, not the cause. Unfiltered raw output from every file and every test run will eventually exhaust any context window as the codebase modernization proceeds - it only delays the failure.",
-      "B": "Removes the coordination layer entirely, eliminating the central agent that tracks overall progress and maintains a consistent plan across subagents - this would make inconsistent planning worse, not better.",
-      "A": "Persisting and reloading full raw outputs still forces the coordinator to process the same context-heavy data at decision time; an external store doesn't reduce what the coordinator has to reason over."
+      "A": "Persisting and reloading full raw outputs still forces the coordinator to process the same context-heavy data at decision time; writing file contents and test logs to an external store and pulling them back in full doesn't reduce what the coordinator has to reason over.",
+      "B": "Removes the coordination layer entirely, eliminating the central agent that tracks overall progress and maintains a consistent plan as findings, edits, and test results pass from subagent to subagent - this would make inconsistent planning worse, not better.",
+      "C": "Treats the symptom, not the cause. Holding the full raw file contents and complete raw test logs for every file processed will eventually exhaust even a larger context window as the codebase modernization proceeds - it only delays the failure.",
+      "D": "Correct. A core benefit of the coordinator-subagent pattern is that each subagent isolates context-heavy work and returns only the distilled, decision-relevant result to the coordinator. Returning condensed findings instead of raw tool output is what keeps the coordinator's context focused on synthesis and cross-subagent tracking, directly addressing the root cause of the context exhaustion and inconsistent planning."
     },
     "provenance": {
       "source": "seed-generated",
@@ -376,7 +385,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-24a735b8",
+    "id": "D1.2-d7fa8b8a",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -385,17 +394,17 @@ window.CCARF_BANK = [
     "scenario": "A coordinator agent orchestrates a legal-document review pipeline with three subagents: a clause-extraction agent, a risk-analysis agent, and a redline-drafting agent. The coordinator delegates each incoming contract to clause-extraction first, then passes its output to risk-analysis, then to redline-drafting, waiting for each subagent to fully complete before invoking the next. Contracts average 40 pages, and each subagent takes 60-90 seconds, so a single contract takes 4-5 minutes end-to-end even though the subagents partly operate on independent sections of the contract (e.g., risk-analysis of standard boilerplate liability clauses doesn't require clause-extraction's output at all, while risk-analysis of custom negotiated terms does depend on it). The team wants to cut latency without changing what each subagent produces.",
     "question": "The team profiles the pipeline and confirms that risk-analysis on standard boilerplate sections does not depend on clause-extraction's output, while risk-analysis on custom negotiated terms does. What is the most effective change to the coordinator's orchestration pattern?",
     "options": {
+      "A": "Have the coordinator dispatch all three subagents concurrently at the start of every contract, sending each subagent the full 40-page contract as input and having the coordinator merge their three completed outputs together before finalizing the review.",
+      "B": "Keep the strict sequential pipeline order intact — clause-extraction, then risk-analysis, then redline-drafting — but shorten each subagent's system prompt and trim its instructions and examples so each of the three steps completes faster.",
       "C": "Have the coordinator split the contract by section type, dispatching clause-extraction and boilerplate risk-analysis concurrently at the start, then running negotiated-terms risk-analysis and redline-drafting once their actual input dependencies are satisfied.",
-      "D": "Merge all three subagents into a single agent with one combined system prompt covering extraction, risk analysis, and drafting, eliminating coordination overhead entirely.",
-      "B": "Keep the strict sequential pipeline but shorten each subagent's system prompt so each step completes faster.",
-      "A": "Have the coordinator dispatch all three subagents concurrently at the start of every contract, since running subagents in parallel always reduces end-to-end latency regardless of data dependencies."
+      "D": "Merge all three subagents into a single agent with one combined system prompt covering clause-extraction, risk-analysis, and redline-drafting instructions, having it read the full 40-page contract once and produce extraction results, risk findings, and redlines together in one pass."
     },
     "correct": "C",
     "explanations": {
+      "A": "Ignores the confirmed dependency: negotiated-terms risk-analysis and redline-drafting need clause-extraction's output, so dispatching all three concurrently and only merging outputs afterward would feed them stale or missing input and produce incorrect results.",
+      "B": "Treats the symptom (slow steps) rather than the cause (unnecessary sequencing of independent work): keeping the same three-step waterfall order and merely trimming each prompt still forces boilerplate risk-analysis to wait on clause-extraction needlessly, and risks degrading each subagent's output quality by cutting its instructions and examples.",
       "C": "Correct. This restructures the orchestration around the true data dependencies: work that doesn't depend on another subagent's output runs concurrently, while work that genuinely depends on prior output still waits for it. This cuts latency without changing what any subagent produces.",
-      "D": "Collapsing distinct responsibilities into one agent trades a latency problem for a separation-of-concerns problem, and does not address the actual bottleneck (unnecessary sequential waiting), since a single agent would still have to perform the steps that depend on each other.",
-      "B": "Treats the symptom (slow steps) rather than the cause (unnecessary sequencing of independent work), and risks degrading each subagent's output quality by trimming its instructions.",
-      "A": "Ignores the confirmed dependency: negotiated-terms risk-analysis and redline-drafting need clause-extraction's output, so running everything concurrently would use stale or missing input and produce incorrect results."
+      "D": "Collapsing distinct responsibilities into one agent trades a latency problem for a separation-of-concerns problem: having a single agent read the contract once and produce extraction, risk analysis, and drafting together does not address the actual bottleneck (unnecessary sequential waiting), since the negotiated-terms-analysis and drafting portions of that single pass would still depend on the extraction portion finishing first."
     },
     "provenance": {
       "source": "seed-generated",
@@ -403,7 +412,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-157d22de",
+    "id": "D1.2-f3a874bc",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -413,16 +422,16 @@ window.CCARF_BANK = [
     "question": "What is the most effective change to reduce latency for tickets that require multiple independent subagents, without compromising reliability?",
     "options": {
       "A": "Modify the coordinator to detect when a ticket requires multiple independent subagents and invoke those subagents concurrently, then synthesize their results once all have returned.",
-      "B": "Merge the billing and technical-troubleshooting agents into a single subagent with a combined toolset so one invocation can handle mixed tickets.",
-      "D": "Add few-shot examples to the coordinator's prompt showing it responding faster on mixed-topic tickets.",
-      "C": "Give the billing agent direct access to the technical-troubleshooting agent's tools so it can resolve mixed tickets without involving the coordinator."
+      "B": "Merge the billing and technical-troubleshooting agents into a single subagent with a combined toolset covering billing records and diagnostic checks, handling mixed tickets in one invocation.",
+      "C": "Give the billing agent direct access to the technical-troubleshooting agent's tools, letting it call diagnostic and sync-repair functions itself and return one combined result straight to the coordinator.",
+      "D": "Add few-shot examples to the coordinator's prompt showing it producing a single fast, combined reply that addresses both the billing and technical parts of a mixed ticket in one pass."
     },
     "correct": "A",
     "explanations": {
       "A": "Correct. When the required subtasks are independent of each other, the coordinator can dispatch them in parallel instead of sequentially, cutting latency while preserving each subagent's scoped tools and the coordinator's role of synthesizing the final response.",
-      "B": "Merging agents collapses the scoped-tool separation that keeps each subagent's responsibilities and permissions narrow, trading a sequencing problem for a broader-permission, harder-to-maintain agent.",
-      "D": "Few-shot examples only influence the model's probabilistic behavior around phrasing and reasoning; they cannot make sequential tool invocations execute faster or concurrently.",
-      "C": "Bypassing the coordinator by granting cross-agent tool access breaks separation of concerns and removes the coordinator's ability to reliably synthesize and reconcile results from multiple domains."
+      "B": "Merging agents so one subagent's toolset covers both billing records and diagnostic checks collapses the scoped-tool separation that keeps each subagent's responsibilities and permissions narrow, trading a sequencing problem for a broader-permission, harder-to-maintain agent.",
+      "C": "Letting the billing agent call the technical agent's diagnostic and sync-repair functions directly bypasses the coordinator, breaking separation of concerns and removing the coordinator's ability to reliably synthesize and reconcile results from multiple domains.",
+      "D": "Few-shot examples only influence the model's probabilistic behavior around phrasing and reasoning; showing the coordinator producing a single fast combined reply in examples cannot make its underlying sequential tool invocations actually execute faster or concurrently."
     },
     "provenance": {
       "source": "seed-generated",
@@ -430,7 +439,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-fec77eaa",
+    "id": "D1.2-f167c6d9",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
@@ -439,17 +448,17 @@ window.CCARF_BANK = [
     "scenario": "A coordinator agent orchestrates a codebase migration assessment by dispatching four subagents in parallel: one to inventory frontend components, one to map backend API routes, one to document the database schema, and one to review infrastructure configs. Each subagent is instructed to \"report everything you find,\" so each returns its full raw output directly into the coordinator's context - complete file contents, unfiltered grep results, and verbose logs. By the time all four subagents finish, the coordinator's context is nearly exhausted, and the final migration plan it produces is noticeably shallow, omitting details that were clearly present in the subagents' raw output.",
     "question": "What change to the coordinator-subagent pattern would most effectively fix this problem?",
     "options": {
-      "D": "Instruct each subagent to return a concise, structured summary of its key findings rather than raw output, so the coordinator's context is used for synthesis rather than storing unprocessed data.",
-      "B": "Switch from parallel to sequential subagent execution so the coordinator only holds one subagent's output in context at a time.",
-      "A": "Have each subagent write its raw output to a shared file and have the coordinator read all four files before synthesizing the plan.",
-      "C": "Remove the subagents and have the coordinator perform the frontend, backend, database, and infrastructure exploration itself."
+      "A": "Have each subagent write its complete raw findings, full file contents and unfiltered grep results, to a shared file, then have the coordinator read all four files before drafting the migration plan.",
+      "B": "Switch from parallel to sequential subagent execution, running the frontend, backend, database, and infrastructure subagents one after another, so the coordinator holds one subagent's raw output at a time.",
+      "C": "Remove the subagents and have the coordinator itself perform the frontend inventory, backend route mapping, schema documentation, and infrastructure review, running each exploration step directly.",
+      "D": "Instruct each subagent to return a concise, structured summary of its key findings rather than raw output, so the coordinator's context is used for synthesis rather than storing unprocessed data."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. The root cause is that subagents are dumping unprocessed data into the coordinator's context. Having each subagent condense its findings into a structured summary before returning preserves the coordinator's limited context for the synthesis work it actually needs to do, which is the core value of the coordinator-subagent pattern.",
-      "B": "Sequential execution reduces how many subagents run at once but does not reduce the total volume of raw data eventually loaded into the coordinator's context - the same unfiltered output still accumulates by the end.",
-      "A": "Moving the raw data to files and having the coordinator read all of them back still floods the coordinator's context with unprocessed data; it just delays when the bloat occurs rather than fixing it.",
-      "C": "Eliminates the context problem by eliminating the coordinator-subagent pattern entirely, discarding the parallelization and separation-of-concerns benefits subagents provide instead of fixing how they report back."
+      "A": "Writing the raw findings, full file contents and unfiltered grep results, to a shared file and then having the coordinator read all four files back still floods the coordinator's context with unprocessed data; it just delays when the bloat occurs rather than fixing it.",
+      "B": "Running the frontend, backend, database, and infrastructure subagents one after another reduces how many subagents run at once but does not reduce the total volume of raw data eventually loaded into the coordinator's context - the same unfiltered output for each area still accumulates by the end.",
+      "C": "Having the coordinator perform the frontend inventory, backend route mapping, schema documentation, and infrastructure review itself eliminates the context problem by eliminating the coordinator-subagent pattern entirely, discarding the parallelization and separation-of-concerns benefits subagents provide instead of fixing how they report back.",
+      "D": "Correct. The root cause is that subagents are dumping unprocessed data into the coordinator's context. Having each subagent condense its findings into a structured summary before returning preserves the coordinator's limited context for the synthesis work it actually needs to do, which is the core value of the coordinator-subagent pattern."
     },
     "provenance": {
       "source": "seed-generated",
@@ -457,7 +466,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-8fdb488a",
+    "id": "D1.2-2178759f",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -493,17 +502,17 @@ window.CCARF_BANK = [
     "scenario": "A developer productivity platform uses a lead Claude agent to triage incoming bug reports. For each report, the lead agent spawns a fresh subagent to reproduce the bug: the subagent receives only the bug report text plus a scoped Bash/Read/Grep toolset, with no memory of other bug reports or prior conversation turns. The team wants the reproduction subagent's findings to feed into a second \"fix-writing\" subagent, but currently the lead agent copies the first subagent's entire raw transcript into the second subagent's prompt. This inflates token usage and occasionally passes along irrelevant exploratory dead-ends, such as files opened and discarded during the search.\n\nEngineering wants every subagent invocation to start with a clean, isolated context, while still carrying forward only the essential findings between the reproduction subagent and the fix-writing subagent.",
     "question": "What is the most effective way to pass context from the reproduction subagent to the fix-writing subagent?",
     "options": {
+      "A": "Give both subagents access to the same shared conversation history by configuring the lead agent to launch the fix-writing subagent inside the reproduction subagent's existing session, so it can read the full transcript directly, including every file opened and command run during the search.",
       "B": "Have the lead agent instruct the reproduction subagent to return a concise, structured summary (root cause, affected files, repro steps) as its final output, and pass only that summary into the fix-writing subagent's prompt.",
-      "A": "Give both subagents access to the same shared conversation history so the fix-writing subagent can read the reproduction subagent's full transcript directly.",
-      "C": "Merge both steps into a single subagent invocation so that no context ever needs to be passed between subagents.",
-      "D": "Have the lead agent forward the full raw transcript every time, since subagents need complete history to avoid missing details."
+      "C": "Merge both steps into a single subagent invocation, combining the Bash/Read/Grep reproduction toolset and the fix-writing step into one Claude call that reproduces the bug and drafts the patch within the same context window, so no context ever needs to be passed between subagents.",
+      "D": "Have the lead agent forward the full raw transcript every time, capturing every tool call, file read, and command output the reproduction subagent produced verbatim, and pasting that complete history into the fix-writing subagent's prompt so it has all available detail."
     },
     "correct": "B",
     "explanations": {
+      "A": "Subagents are designed to run with isolated context, not shared conversation history; keeping both subagents in the same session so one can read the other's full transcript reintroduces the token bloat and irrelevant exploratory detail the team is trying to eliminate.",
       "B": "Correct. Subagents run in isolated context windows and communicate with the orchestrator only through their final output. Directing the subagent to distill its work into a compact, structured result and forwarding just that summary keeps each invocation's context clean while preserving the essential findings needed downstream.",
-      "A": "Subagents are designed to run with isolated context, not shared conversation history; sharing the full transcript reintroduces the token bloat and irrelevant exploratory detail the team is trying to eliminate.",
-      "C": "Collapsing the two roles removes the benefit of a fresh, scoped context for each task and doesn't address the underlying question of how to hand off findings between agent invocations; it also loses the isolation and separation of concerns the two-subagent design was providing.",
-      "D": "This is the current, problematic approach - it inflates token usage and carries forward irrelevant dead-ends instead of the essential findings, which is exactly the issue engineering wants fixed."
+      "C": "Collapsing the two roles into one call that both reproduces the bug and drafts the patch removes the benefit of a fresh, scoped context for each task and doesn't address the underlying question of how to hand off findings between agent invocations; it also loses the isolation and separation of concerns the two-subagent design was providing.",
+      "D": "This is the current, problematic approach - capturing and pasting the reproduction subagent's entire verbatim tool history into the fix-writing subagent's prompt inflates token usage and carries forward irrelevant dead-ends instead of the essential findings, which is exactly the issue engineering wants fixed."
     },
     "provenance": {
       "source": "seed-generated",
@@ -511,7 +520,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-5db05ced",
+    "id": "D1.3-848ef864",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -547,17 +556,17 @@ window.CCARF_BANK = [
     "scenario": "A developer is using Claude Code to refactor a legacy billing module. Over several turns in the main conversation, they explore the codebase, identify that InvoiceCalculator.compute() double-applies a discount when a promo code and a loyalty tier overlap, and confirm the fix should live in discount_engine.py. They then spawn a subagent via the Task tool with the prompt: \"Fix the bug we just found and add a regression test.\" The subagent responds by asking which file contains the bug and what the bug actually is, then starts re-exploring the entire repository from scratch, burning several minutes before it can even locate the relevant code.",
     "question": "What is the root cause of the subagent's behavior, and what should the developer do differently?",
     "options": {
+      "A": "The subagent was spawned via the Task tool without the Read and Grep tools enabled in its configuration; the developer should explicitly grant Read, Grep, and Glob access when invoking the Task tool so the subagent can search file contents and directory listings to locate discount_engine.py.",
       "B": "Subagents start with a fresh, isolated context window and have no access to the parent conversation's history; the invoking prompt must explicitly carry over the necessary context, such as the file path, the specific bug description, and the intended fix location.",
-      "A": "The subagent was spawned without the Read and Grep tools enabled, so it had to fall back on asking clarifying questions instead of exploring the codebase directly.",
-      "D": "The main conversation's context window was full, causing the earlier exploration turns to be silently dropped before the subagent could inherit them.",
-      "C": "The Task tool defaults to routing prompts to a general-purpose subagent type, which lacks the domain knowledge needed to understand references like \"the bug we just found.\""
+      "C": "The Task tool routed the prompt to a general-purpose subagent type; the developer should specify a custom subagent type configured with a domain-specific system prompt covering the billing module and discount logic when invoking the Task tool for this refactor.",
+      "D": "The main conversation's context window had filled up, silently dropping the earlier exploration turns; the developer should compact the conversation and re-run the discovery steps so the discount_engine.py findings are captured fresh before spawning the subagent."
     },
     "correct": "B",
     "explanations": {
+      "A": "Tool availability isn't the issue here — the subagent successfully used its tools (Read, Grep, Glob) to re-explore the repository from scratch; the problem is that it had no starting context telling it where to look or what the bug was, not a missing tool grant.",
       "B": "Correct. Subagent invocation spawns a new, isolated context — it does not automatically inherit the parent conversation's history. Context must be explicitly passed in the invocation prompt (relevant file paths, findings, and the exact task) for the subagent to act without re-deriving what the main thread already knows.",
-      "A": "Tool availability isn't the issue here — the subagent successfully used its tools to re-explore the repository; the problem is that it had no starting context telling it where to look or what the bug was.",
-      "D": "There is no evidence the parent context window was full, and even if it were, the described symptom (subagent asking for basic clarification) is explained directly by context isolation, not by dropped history.",
-      "C": "The subagent's confusion is fully explained by missing context in the prompt; nothing in the scenario indicates a domain-knowledge gap tied to subagent type selection."
+      "C": "The subagent's confusion is fully explained by missing context in the prompt, not by which subagent type handled it; even a subagent configured with a billing-domain system prompt would still need to be told which file and which bug, since 'the bug we just found' carries no information outside the parent conversation.",
+      "D": "There is no evidence the parent context window was full, and even if it were, the described symptom (subagent asking for basic clarification, then re-exploring the whole repo) is explained directly by context isolation between parent and subagent, not by dropped history within the main thread."
     },
     "provenance": {
       "source": "seed-generated",
@@ -565,7 +574,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-eb9ae72e",
+    "id": "D1.3-8b6513bb",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -574,17 +583,17 @@ window.CCARF_BANK = [
     "scenario": "A CI/CD pipeline uses a \"fix\" agent (built on Claude Code with Read/Write/Bash tools) to patch failing unit tests, then hands off to a separate \"deploy\" agent that pushes the change to staging. The orchestrator decides whether to invoke the deploy agent by parsing the fix agent's final natural-language summary for a phrase like \"all tests pass.\" Post-incident review shows that in 8% of runs the deploy agent was invoked even though the test suite had actually failed with a nonzero exit code - the fix agent had read truncated log output and written a summary claiming success.",
     "question": "What is the most effective way to correct the handoff between the fix agent and the deploy agent?",
     "options": {
-      "D": "Have the orchestrator programmatically re-run the test suite and check its exit code or structured test report directly, gating the deploy agent invocation on that result rather than on the fix agent's summary text.",
-      "C": "Update the fix agent's system prompt to instruct it to only claim success when it has verified the full test output before summarizing.",
-      "A": "Have the deploy agent ask the fix agent a follow-up question to confirm the tests passed before proceeding with deployment.",
-      "B": "Add few-shot examples to the fix agent's prompt showing correctly worded pass/fail summaries so its natural-language reporting is more consistent."
+      "A": "Have the deploy agent send the fix agent a follow-up prompt asking it to re-check the test logs line by line and explicitly restate, in its own words, whether every test passed before the orchestrator triggers the deployment step.",
+      "B": "Add a set of few-shot examples to the fix agent's system prompt showing precisely worded pass/fail summaries, including exact phrasing like 'all tests pass' versus failure language, so its natural-language reports become standardized.",
+      "C": "Update the fix agent's system prompt to instruct it to open the full, untruncated test output, count the reported pass and fail totals itself, and only include a success phrase once it has verified those totals directly.",
+      "D": "Have the orchestrator programmatically re-run the test suite and check its exit code or structured test report directly, gating the deploy agent invocation on that result rather than on the fix agent's summary text."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. The handoff decision has real consequences (deploying broken code), so it should rely on a programmatic, deterministic check of the actual test result rather than an LLM-generated summary. This is the enforcement pattern: gate the next step on verifiable system state, not on probabilistic natural-language compliance.",
-      "C": "Still relies on the fix agent correctly self-reporting in natural language, which is exactly the probabilistic mechanism that already failed - a clearer instruction does not guarantee correct behavior on truncated or ambiguous logs.",
-      "A": "Asking the same agent to re-confirm its own claim does not introduce an independent, verifiable check - it just repeats the same probabilistic reporting step that produced the wrong summary.",
-      "B": "Few-shot examples may improve the phrasing of summaries on average but cannot guarantee correctness in every case, which is required when an incorrect handoff leads to deploying broken code to staging."
+      "A": "Asking the fix agent to re-check its own logs and restate its conclusion still routes the decision through the same probabilistic natural-language reporting step that produced the wrong summary in the first place - it does not introduce an independent, verifiable check.",
+      "B": "Few-shot examples of correctly worded summaries may make the fix agent's phrasing more consistent on average, but the agent is still generating a natural-language claim about test results from logs it may have read incorrectly - this cannot guarantee correctness in every case, which is required when an incorrect handoff leads to deploying broken code to staging.",
+      "C": "Instructing the fix agent to count pass/fail totals itself before summarizing still relies on the fix agent correctly self-reporting in natural language, which is exactly the probabilistic mechanism that already failed - a clearer instruction does not guarantee correct behavior on truncated or ambiguous logs.",
+      "D": "Correct. The handoff decision has real consequences (deploying broken code), so it should rely on a programmatic, deterministic check of the actual test result rather than an LLM-generated summary. This is the enforcement pattern: gate the next step on verifiable system state, not on probabilistic natural-language compliance."
     },
     "provenance": {
       "source": "seed-generated",
@@ -592,7 +601,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-d165264d",
+    "id": "D1.4-5316a0d8",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -655,17 +664,17 @@ window.CCARF_BANK = [
     "scenario": "A document-processing pipeline built on the Claude Agent SDK handles insurance claims: an intake agent extracts claim data, a validation agent checks it against policy rules, and a payout agent issues approvals. The workflow requires validation to complete and return an explicit \"status: approved\" before the payout agent may run. During a review of production traces, engineers find that in a small but nonzero number of runs, the payout agent executed even though the validation agent's output contained \"status: pending_review\" rather than \"status: approved\" — the intake agent had passed the claim forward after a timeout, and the orchestration logic relied solely on the payout agent's system prompt instructions (\"only proceed if the prior agent approved the claim\") to catch this.",
     "question": "What is the most effective change to prevent unapproved claims from reaching the payout agent?",
     "options": {
+      "A": "Update the intake agent's system prompt to withhold forwarding until it detects an explicit validation-complete marker, adding a check step before passing the claim along.",
       "B": "Add a programmatic gate in the orchestration layer that checks the validation agent's status field and blocks invocation of the payout agent unless it equals \"approved\".",
-      "C": "Strengthen the payout agent's system prompt with more explicit and emphatic wording about verifying approval status before acting.",
-      "D": "Add few-shot examples to the payout agent's prompt demonstrating refusal when the status is \"pending_review\".",
-      "A": "Instruct the intake agent's system prompt to never forward a claim unless validation is complete."
+      "C": "Strengthen the payout agent's system prompt with more explicit, emphatic wording instructing it to parse the status field and confirm the value is exactly \"approved\" before acting.",
+      "D": "Add few-shot examples to the payout agent's prompt demonstrating refusal whenever the status field reads \"pending_review\", reinforcing recognition of that value."
     },
     "correct": "B",
     "explanations": {
+      "A": "Addresses only one failure path (the intake agent forwarding early) and still depends on the intake agent's probabilistic compliance with a prompt instruction to detect and check for a completion marker; it does not add a deterministic check at the actual handoff point between validation and payout.",
       "B": "Correct. This handoff is a critical business-logic checkpoint with financial consequences. A programmatic check in the orchestration layer that inspects the status field and blocks the handoff unless it is exactly \"approved\" gives a deterministic guarantee, unlike relying on any agent's prompt-based judgment.",
-      "C": "Relies on probabilistic LLM compliance - the payout agent already had an instruction to verify status and it still proceeded incorrectly in some runs; stronger wording only raises the odds, it does not eliminate the failure.",
-      "D": "Few-shot examples also rely on probabilistic compliance; they can improve the payout agent's behavior on similar inputs but cannot guarantee the handoff is blocked when money is at stake.",
-      "A": "Addresses only one failure path (the intake agent forwarding early) and still depends on the intake agent's probabilistic compliance with a prompt instruction; it does not add a deterministic check at the actual handoff point between validation and payout."
+      "C": "Relies on probabilistic LLM compliance - the payout agent already had an instruction to verify status and it still proceeded incorrectly in some runs; more explicit and emphatic wording asking it to parse and confirm the field only raises the odds of correct behavior, it does not eliminate the failure.",
+      "D": "Few-shot examples also rely on probabilistic compliance; demonstrating the refusal pattern can improve the payout agent's behavior on similar inputs but cannot guarantee the handoff is blocked when money is at stake."
     },
     "provenance": {
       "source": "seed-generated",
@@ -673,7 +682,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-002dc7c8",
+    "id": "D1.4-b2cb744a",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -682,17 +691,17 @@ window.CCARF_BANK = [
     "scenario": "A structured data extraction agent built on the Claude Agent SDK reads scanned vendor invoices and calls a submit_to_accounting tool that pushes extracted fields (vendor name, invoice date, line-item amounts) into a downstream accounting system. The downstream system requires invoice_date in strict ISO 8601 format and rejects any payload where it isn't, but the model extracts dates in whatever format appears on the source document (MM/DD/YYYY, DD-MM-YYYY, \\\"March 3, 2026\\\", etc.), and roughly 20% of submissions fail downstream validation or, worse, silently post an ambiguous date (e.g., 03/04/2026) as the wrong calendar date.\n\nThe team wants a fix that guarantees every payload reaching submit_to_accounting has a correctly normalized, schema-valid invoice_date, without depending on the model reliably following formatting instructions.",
     "question": "What is the most effective way to guarantee this?",
     "options": {
-      "D": "Register a PreToolUse hook on submit_to_accounting that parses and normalizes the invoice_date field to ISO 8601 and validates the full payload against a JSON schema, blocking the call if normalization or validation fails.",
-      "A": "Update the system prompt with explicit instructions and a worked example showing invoice dates must be converted to ISO 8601 before calling submit_to_accounting.",
-      "B": "Add several few-shot examples to the prompt demonstrating correct ISO 8601 conversion from various source date formats.",
-      "C": "Register a PostToolUse hook on submit_to_accounting that logs the submitted payload and flags any non-ISO 8601 dates for a human to review afterward."
+      "A": "Update the system prompt with explicit instructions and a worked example showing how MM/DD/YYYY, DD-MM-YYYY, and written dates like March 3, 2026 should each be converted to ISO 8601 before the model calls submit_to_accounting.",
+      "B": "Add several few-shot examples to the prompt demonstrating correct ISO 8601 conversion from ambiguous source formats such as 03/04/2026, plus a reminder to double-check the converted date before calling submit_to_accounting.",
+      "C": "Register a PostToolUse hook on submit_to_accounting that parses the submitted payload, logs any invoice_date that is not valid ISO 8601 against the schema, and flags those entries in a queue for a human reviewer to correct afterward.",
+      "D": "Register a PreToolUse hook on submit_to_accounting that parses and normalizes the invoice_date field to ISO 8601 and validates the full payload against a JSON schema, blocking the call if normalization or validation fails."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. A PreToolUse hook intercepts the tool call before it executes, so date normalization and schema validation can be applied deterministically and the call can be blocked outright if the data doesn't conform - a programmatic guarantee rather than reliance on the model's behavior.",
-      "A": "Relies on probabilistic LLM compliance with formatting instructions; the same ambiguity in source documents that causes today's 20% failure rate will continue to cause misformatted or misread dates.",
-      "B": "Few-shot examples raise the odds of correct formatting but cannot guarantee it, which is insufficient when a wrong calendar date can silently post to accounting.",
-      "C": "A PostToolUse hook runs after the tool call has already executed, so the bad payload has already reached the downstream accounting system by the time it's flagged - this catches problems after the fact rather than preventing them."
+      "A": "Relies on probabilistic LLM compliance with formatting instructions; the same ambiguity in source documents (MM/DD/YYYY vs DD-MM-YYYY vs written dates) that causes today's 20% failure rate will continue to cause misformatted or misread dates no matter how explicit or well-illustrated the instructions are.",
+      "B": "Few-shot examples covering more source formats raise the odds of correct formatting but cannot guarantee it, which is insufficient when a wrong calendar date can silently post to accounting.",
+      "C": "A PostToolUse hook runs after the tool call has already executed, so even with payload parsing and schema logging in place, the bad payload has already reached the downstream accounting system by the time it's flagged for human review - this catches problems after the fact rather than preventing them.",
+      "D": "Correct. A PreToolUse hook intercepts the tool call before it executes, so date normalization and schema validation can be applied deterministically and the call can be blocked outright if the data doesn't conform - a programmatic guarantee rather than reliance on the model's behavior."
     },
     "provenance": {
       "source": "seed-generated",
@@ -700,7 +709,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-d055268d",
+    "id": "D1.5-9f7cd567",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -709,17 +718,17 @@ window.CCARF_BANK = [
     "scenario": "A structured-data-extraction agent built on the Claude Agent SDK uses an MCP tool, fetch_vendor_record, to pull invoice records from twelve different vendor procurement systems. Each vendor returns dates and currency values in a different raw format (e.g., \\\"03/14/2026\\\" vs \\\"14-03-2026\\\" vs \\\"2026-03-14\\\"; \\\"$1,204.50\\\" vs \\\"1204.5 USD\\\" vs \\\"USD 1204,50\\\"). The downstream finance system requires every record to be normalized to ISO 8601 dates and integer USD cents before it is written to the final JSON output.\n\nThe team's current approach is a system prompt instruction telling the agent to \\\"always normalize dates to ISO 8601 and currency to integer cents before including a field in the output.\\\" Post-deployment validation shows 18% of extracted records still contain malformed dates or currency values, concentrated in ambiguous formats like \\\"03/04/2026\\\" where the agent guesses month-first vs day-first inconsistently.",
     "question": "What is the most effective way to fix the normalization failures?",
     "options": {
-      "D": "Implement a PostToolUse hook on fetch_vendor_record that programmatically parses each vendor's known date and currency format and rewrites the tool result into ISO 8601 dates and integer cents before the data ever reaches the agent's context.",
-      "C": "Expand the system prompt with detailed few-shot examples covering each vendor's specific date and currency format.",
-      "A": "Instruct the agent to validate its own extracted output against the JSON schema after extraction and self-correct any fields that look malformed.",
-      "B": "Add a separate normalize_data tool the agent can call on the raw fetch_vendor_record output, and update the system prompt to say this tool must always be invoked before finalizing a record."
+      "A": "Instruct the agent to validate its extracted output against the JSON schema, checking that each date matches the ISO 8601 pattern and each currency value is an integer, and self-correct any malformed fields before finalizing the record.",
+      "B": "Add a separate normalize_data tool that accepts each field's raw date and currency string, parses them per the twelve known vendor formats, and update the system prompt so the agent always invokes this tool before finalizing a record.",
+      "C": "Expand the system prompt with detailed few-shot examples showing the exact raw input and the expected ISO 8601 date and integer-cent output for each of the twelve vendors' specific formats, including examples of the ambiguous month-first and day-first date patterns.",
+      "D": "Implement a PostToolUse hook on fetch_vendor_record that programmatically parses each vendor's known date and currency format and rewrites the tool result into ISO 8601 dates and integer cents before the data ever reaches the agent's context."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Since each vendor's raw format is known in advance, the normalization logic is deterministic and can be enforced programmatically. A PostToolUse hook intercepts the tool call result and rewrites it before the agent ever reasons over it, eliminating the ambiguity the LLM was guessing at (e.g., month-first vs day-first) rather than hoping the model applies the rule correctly every time.",
-      "C": "Still relies on probabilistic LLM compliance. More examples may reduce the error rate somewhat but cannot guarantee correct handling of every ambiguous format, especially truly ambiguous cases like \"03/04/2026\" where no amount of prompting resolves the underlying ambiguity without knowing the source vendor.",
       "A": "Self-review is still performed by the same probabilistic model that made the original normalization error, and a malformed date or currency value can easily still look well-formed to the agent, so this does not provide a reliable fix.",
-      "B": "This introduces a second point of probabilistic failure: the agent must remember to call the normalization tool and must correctly pass the right raw values to it. Nothing prevents the agent from skipping the call or invoking it on the wrong field, so the 18% error rate is unlikely to be resolved."
+      "B": "This introduces a second point of probabilistic failure: the agent must remember to call the normalization tool and must correctly pass the right raw values to it. Nothing prevents the agent from skipping the call or invoking it on the wrong field, so the 18% error rate is unlikely to be resolved.",
+      "C": "Still relies on probabilistic LLM compliance. More examples may reduce the error rate somewhat but cannot guarantee correct handling of every ambiguous format, especially truly ambiguous cases like \"03/04/2026\" where no amount of prompting resolves the underlying ambiguity without knowing the source vendor.",
+      "D": "Correct. Since each vendor's raw format is known in advance, the normalization logic is deterministic and can be enforced programmatically. A PostToolUse hook intercepts the tool call result and rewrites it before the agent ever reasons over it, eliminating the ambiguity the LLM was guessing at (e.g., month-first vs day-first) rather than hoping the model applies the rule correctly every time."
     },
     "provenance": {
       "source": "seed-generated",
@@ -727,7 +736,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-617ed9d4",
+    "id": "D1.5-49aee0ec",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -736,17 +745,17 @@ window.CCARF_BANK = [
     "scenario": "A Claude Agent SDK pipeline extracts structured data from scanned invoices and calls a submit_invoice_record tool to write each record into a downstream accounts-payable database. The database column for invoice_date requires strict ISO 8601 format (YYYY-MM-DD), but the model sometimes emits dates as \"03/14/2026\", \"March 14, 2026\", or \"14-03-2026\" depending on how the date appeared on the source document. These malformed values pass the model's own reasoning but fail the database's schema constraint, causing roughly 8% of submissions to silently fail and get dropped from the accounts-payable queue.",
     "question": "What is the most effective way to eliminate these downstream failures?",
     "options": {
-      "D": "Register a hook that intercepts the submit_invoice_record tool call and deterministically parses/reformats the invoice_date field to ISO 8601 (or blocks the call with a corrective error) before it reaches the database.",
-      "A": "Update the system prompt to explicitly instruct the model to always format dates as YYYY-MM-DD before calling submit_invoice_record.",
-      "C": "Add several few-shot examples to the prompt showing invoices with varied date formats being correctly converted to YYYY-MM-DD in the tool call.",
-      "B": "Lower the model's temperature to make its date formatting more consistent across invoices."
+      "A": "Update the system prompt to explicitly instruct the model to always format dates as YYYY-MM-DD before calling submit_invoice_record, adding a formatting rule with an example conversion and a reminder to double-check the invoice_date field against the ISO 8601 pattern before submission.",
+      "B": "Lower the model's temperature setting so its date formatting becomes more consistent across invoices, reducing sampling randomness in the generation step and applying that same reduced-temperature setting uniformly across every submit_invoice_record tool call the pipeline makes.",
+      "C": "Add several few-shot examples to the prompt showing invoices with varied date formats like MM/DD/YYYY, written month names, and DD-MM-YYYY all being converted to YYYY-MM-DD in the tool call, demonstrating the conversion pattern across a range of source document date styles.",
+      "D": "Register a hook that intercepts the submit_invoice_record tool call and deterministically parses/reformats the invoice_date field to ISO 8601 (or blocks the call with a corrective error) before it reaches the database."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. A tool-call hook intercepts the call before it executes and can programmatically normalize or validate the data, giving a deterministic guarantee that malformed dates never reach the database - something prompt-based instructions cannot guarantee.",
-      "A": "Relies on probabilistic LLM compliance. The model isn't reasoning incorrectly about the date's meaning, it's just inconsistent in output formatting, and restating the instruction doesn't eliminate that inconsistency.",
-      "C": "Few-shot examples raise the odds of correct formatting but still depend on probabilistic compliance, which is insufficient when malformed data breaks a strict downstream schema constraint.",
-      "B": "Temperature affects sampling randomness in general text generation but does not provide a deterministic guarantee on structured field formatting, and does not address the root cause of inconsistent date normalization."
+      "A": "Relies on probabilistic LLM compliance. The model isn't reasoning incorrectly about the date's meaning, it's just inconsistent in output formatting, and restating the instruction (even with an added example and a self-check reminder) doesn't eliminate that inconsistency, since the model still has no deterministic mechanism enforcing the pattern.",
+      "B": "Temperature affects sampling randomness in general text generation but does not provide a deterministic guarantee on structured field formatting. Applying a lower, uniform temperature setting across every tool call may nudge outputs toward more typical phrasings, but it does not address the root cause of inconsistent date normalization.",
+      "C": "Few-shot examples covering multiple source date styles raise the odds of correct formatting by giving the model more patterns to imitate, but the model is still generating the reformatted date from learned patterns rather than a fixed procedure, which remains insufficient when malformed data breaks a strict downstream schema constraint.",
+      "D": "Correct. A tool-call hook intercepts the call before it executes and can programmatically normalize or validate the data, giving a deterministic guarantee that malformed dates never reach the database - something prompt-based instructions cannot guarantee."
     },
     "provenance": {
       "source": "seed-generated",
@@ -754,7 +763,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-7aa3e326",
+    "id": "D1.5-b4b4570b",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -763,17 +772,17 @@ window.CCARF_BANK = [
     "scenario": "A team is building an agentic workflow to process quarterly vendor contract renewals. The single-agent design is given one instruction: \"review the contract packet (terms sheet, redline history, and compliance checklist) and produce a renewal recommendation.\" In testing, the agent produces inconsistent recommendations - sometimes it thoroughly checks compliance but skims the redline history, other times it does the reverse. Output quality varies significantly across runs of the same contract, and the agent occasionally fails to flag known compliance red flags that are clearly present in the checklist.\n\nThe team is deciding how to restructure this into a more reliable workflow before scaling it to hundreds of contracts per quarter.",
     "question": "What is the most effective task decomposition strategy for this workflow?",
     "options": {
+      "A": "Rewrite the single instruction into a longer, more detailed prompt that explicitly lists all three review areas—compliance checklist, redline history, and terms sheet—with guidance for each, while still asking one agent to produce the full recommendation in a single pass.",
+      "B": "Keep the single-agent design but increase the model's output token budget and reasoning space, giving it more room to work through the compliance checklist, redline history, and terms sheet in sequence before producing its final recommendation in one continuous pass.",
       "C": "Decompose the work into discrete subtasks - compliance checklist review, redline history analysis, and terms extraction - each with a clearly scoped objective, then combine their outputs in a final synthesis step that produces the recommendation.",
-      "B": "Keep the single-agent design but increase the model's output token budget so it has more room to reason through all three areas thoroughly in one pass.",
-      "D": "Run the same single, undecomposed instruction three times in parallel and have a fourth agent pick whichever recommendation looks the most complete.",
-      "A": "Rewrite the single instruction into a longer, more detailed prompt that lists all three review areas in one paragraph, without changing the single-pass structure."
+      "D": "Run the same single, undecomposed instruction three times in parallel, each pass covering compliance, redline history, and terms sheet review together, then have a fourth agent compare the three full recommendations and select the one that looks most complete."
     },
     "correct": "C",
     "explanations": {
+      "A": "A longer single-pass prompt still asks one agent to juggle three distinct review concerns simultaneously, even when the prompt spells out each area and offers guidance for it; it does not create the scoped, separable subtasks needed for consistent depth across all three areas.",
+      "B": "A larger token and reasoning budget does not address the root cause - the task still bundles unrelated review concerns (compliance, redline, terms) into one instruction, causing inconsistent attention across runs regardless of how much space the model has to work through them.",
       "C": "Correct. Decomposing the broad, multi-concern task into discrete, well-scoped subtasks prevents attention dilution across dissimilar review areas and ensures each area receives focused effort, with a dedicated synthesis step combining results into a coherent recommendation.",
-      "B": "A larger token budget does not address the root cause - the task bundles unrelated review concerns into one instruction, causing inconsistent attention across runs regardless of how much output space is available.",
-      "D": "Running the identical undecomposed instruction multiple times in parallel does not fix the underlying decomposition problem - each run still suffers from the same attention dilution across compliance, redline, and terms review, so the best of three flawed outputs is still unreliable.",
-      "A": "A longer single-pass prompt still asks one agent to juggle three distinct review concerns simultaneously; it does not create the scoped, separable subtasks needed for consistent depth across all three areas."
+      "D": "Running the identical undecomposed instruction multiple times in parallel, even with a comparison step at the end, does not fix the underlying decomposition problem - each run still suffers from the same attention dilution across compliance, redline, and terms review, so the best of three flawed outputs is still unreliable."
     },
     "provenance": {
       "source": "seed-generated",
@@ -781,7 +790,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-5cdda277",
+    "id": "D1.6-eb866331",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -817,17 +826,17 @@ window.CCARF_BANK = [
     "scenario": "A team is using Claude Code to migrate a 300-file codebase from a legacy ORM to a new one. The migration involves a small set of shared base model classes that many files depend on, plus a long tail of independent leaf files (simple data models with no cross-file dependencies). An engineer's first attempt spawned one subagent per file, all running in parallel with a shared prompt describing the migration rules. The result was chaos: subagents working on leaf files imported from base classes mid-migration, producing files that mixed old and new ORM APIs, and several subagents made conflicting edits to the same shared base class file at once.",
     "question": "What task decomposition strategy would best resolve this failure?",
     "options": {
-      "D": "Decompose along the codebase's dependency structure: migrate the shared base classes first in a sequential (or single-owner) step, then fan out the independent leaf files to parallel subagents once the base classes are stable.",
-      "B": "Keep one subagent per file, but add a shared system prompt instructing subagents to check whether the base classes have already been migrated before editing.",
-      "C": "Abandon decomposition entirely and have a single agent process all 300 files sequentially in one long-running session to avoid any cross-file conflicts.",
-      "A": "Split the 300 files into 10 equal-sized alphabetical batches of 30 files each, assigning one subagent per batch to run in parallel."
+      "A": "Split the 300 files into 10 equal-sized alphabetical batches of 30 files each, assigning one subagent per batch to run in parallel, with each subagent updating the imports, base class references, and ORM method calls across its own batch of files.",
+      "B": "Keep one subagent per file, but add a shared system prompt instructing every subagent to first check whether the base classes have already been migrated, then proceed to update its assigned file's imports and ORM method calls to match the new API.",
+      "C": "Abandon decomposition entirely and have a single agent process all 300 files sequentially in one long-running session, migrating each file's imports, base class references, and ORM method calls one at a time before moving to the next file.",
+      "D": "Decompose along the codebase's dependency structure: migrate the shared base classes first in a sequential (or single-owner) step, then fan out the independent leaf files to parallel subagents once the base classes are stable."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Sound decomposition follows the workflow's actual dependency structure rather than an arbitrary split: components with shared, load-bearing dependencies (the base classes) must be resolved in a controlled sequential or single-owner step before independent work is safely fanned out in parallel. This removes both the race condition on the shared file and the inconsistent partial-migration state in leaf files.",
-      "B": "Relies on probabilistic prompt compliance to enforce an ordering constraint across many concurrently running subagents - it does not prevent the race condition on the shared base class file and does not guarantee subagents check at the right moment.",
-      "C": "Discards decomposition altogether, sacrificing the parallelism available for the genuinely independent leaf files and making the migration far slower than necessary; the problem was the decomposition strategy, not the presence of parallelism itself.",
-      "A": "Batches by an arbitrary criterion (alphabetical order) that ignores the codebase's actual dependency boundaries, so shared base classes can still end up split across batches or edited concurrently by different subagents."
+      "A": "Batches by an arbitrary criterion (alphabetical order) that ignores the codebase's actual dependency boundaries, so shared base classes can still end up split across batches or edited concurrently by different subagents even though each subagent is diligently updating imports and ORM calls within its own batch.",
+      "B": "Relies on probabilistic prompt compliance to enforce an ordering constraint across many concurrently running subagents - having each subagent check base-class status before updating its own file's imports and ORM calls does not prevent the race condition on the shared base class file and does not guarantee the check happens at the right moment relative to other subagents.",
+      "C": "Discards decomposition altogether, sacrificing the parallelism available for the genuinely independent leaf files and making the migration far slower than necessary, since every file's imports, base class references, and ORM calls must be updated one at a time by a single agent; the problem was the decomposition strategy, not the presence of parallelism itself.",
+      "D": "Correct. Sound decomposition follows the workflow's actual dependency structure rather than an arbitrary split: components with shared, load-bearing dependencies (the base classes) must be resolved in a controlled sequential or single-owner step before independent work is safely fanned out in parallel. This removes both the race condition on the shared file and the inconsistent partial-migration state in leaf files."
     },
     "provenance": {
       "source": "seed-generated",
@@ -835,7 +844,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-fb53c603",
+    "id": "D1.6-95e49d0b",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
@@ -898,17 +907,17 @@ window.CCARF_BANK = [
     "scenario": "A developer productivity team uses the Claude Agent SDK to build an internal \"migration assistant\" agent for a legacy monolith. Each session begins with a costly 20-minute exploration phase: the agent reads dozens of files with Read/Grep/Glob, maps module dependencies, and builds up conversational context before proposing any changes. After this exploration phase completes for a given module, an engineer wants to try two different migration strategies (e.g., extracting a service vs. wrapping the module with an adapter) starting from that same explored state, without paying the exploration cost twice.\n\nThe team also wants to guarantee that if both strategies turn out to be dead ends, they can still return to the original session exactly as it stood right after exploration, rather than losing that context or having it polluted by either strategy's changes.",
     "question": "What is the most effective way to structure session state management for this workflow?",
     "options": {
-      "D": "Fork the session at the checkpoint immediately after exploration, producing two independent session copies that each proceed with a different migration strategy, while the original session remains untouched and resumable.",
-      "C": "Resume the original session and have the agent attempt both migration strategies sequentially within the same conversation history, then compare the two outcomes at the end.",
-      "A": "Use session resumption twice on the same session ID, running one strategy after the other, and re-run the exploration phase each time to reset the agent's context.",
-      "B": "Manually export the conversation transcript to a text file after exploration, then paste it into two newly started sessions to seed each strategy."
+      "A": "Use the SDK's session resumption feature to reload the same session ID for each strategy attempt, re-running the Read/Grep/Glob exploration and dependency mapping each time so the agent rebuilds context before proposing either approach.",
+      "B": "Have the agent summarize its exploration findings into a transcript, then start two fresh SDK sessions and paste that transcript as the opening message in each, directing one toward service extraction and the other toward the adapter wrapper.",
+      "C": "Resume the original session once and, within that same conversation, have the agent implement the service-extraction strategy, evaluate it, then implement the adapter-wrapping strategy in turn, keeping both attempts in one continuous history.",
+      "D": "Fork the session at the checkpoint immediately after exploration, producing two independent session copies that each proceed with a different migration strategy, while the original session remains untouched and resumable."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Forking a session at a specific checkpoint creates independent copies that inherit the accumulated state up to that point, so each branch can pursue a different strategy in isolation without re-doing the exploration work, while the original session is left unmodified and can still be resumed later.",
-      "C": "Running both strategies in a single conversation history mixes their state together - later decisions and file changes from one strategy become part of the context the other strategy reasons over, and the original pre-branch state is no longer separately recoverable.",
       "A": "Re-running the expensive exploration phase for each strategy defeats the goal of avoiding duplicated work, and reusing the same session ID sequentially still leaves only one linear history rather than two isolated, independently resumable branches.",
-      "B": "Manually copying a transcript is a brittle, unnecessary workaround - it does not reliably reconstruct the agent's internal session state, and it still requires re-establishing two sessions by hand instead of using a mechanism designed to branch state at a specific point."
+      "B": "Manually copying a transcript is a brittle, unnecessary workaround - it does not reliably reconstruct the agent's internal session state, and it still requires re-establishing two sessions by hand instead of using a mechanism designed to branch state at a specific point.",
+      "C": "Running both strategies in a single conversation history mixes their state together - later decisions and file changes from one strategy become part of the context the other strategy reasons over, and the original pre-branch state is no longer separately recoverable.",
+      "D": "Correct. Forking a session at a specific checkpoint creates independent copies that inherit the accumulated state up to that point, so each branch can pursue a different strategy in isolation without re-doing the exploration work, while the original session is left unmodified and can still be resumed later."
     },
     "provenance": {
       "source": "seed-generated",
@@ -916,7 +925,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-090f3fec",
+    "id": "D1.7-34af8de6",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -925,17 +934,17 @@ window.CCARF_BANK = [
     "scenario": "A developer productivity agent built on the Claude Agent SDK has two MCP tools for locating code: search_codebase (\"Searches the codebase\") and grep_files (\"Searches files for matches\"). In production usage, the agent calls search_codebase for nearly every lookup, including simple, exact-string searches like finding a specific function name or config key. search_codebase performs a slower semantic embedding search, so these calls add unnecessary latency and cost for tasks a fast literal grep_files match would resolve in milliseconds.",
     "question": "What is the most effective first step to fix this tool selection problem?",
     "options": {
+      "A": "Insert a pre-processing classifier that labels each incoming query as \"exact\" or \"semantic\" by checking for quoted literals, identifier casing such as camelCase or snake_case, or file-path syntax, then exposes only the matching tool to the agent for that call.",
+      "B": "Remove search_codebase entirely from the MCP server's tool registry so every lookup, whether a config key, a function name, or a broader conceptual question about the codebase's design, is routed through grep_files's literal pattern matching.",
       "C": "Rewrite both tool descriptions to specify what each tool does well, the input types it expects, and explicit boundaries distinguishing exact/literal matching (grep_files) from conceptual/semantic queries (search_codebase).",
-      "B": "Remove search_codebase entirely so the agent has no choice but to use grep_files for all lookups.",
-      "D": "Add several few-shot examples to the system prompt showing exact-string queries being paired with grep_files calls.",
-      "A": "Insert a pre-processing classifier that labels each query as \"exact\" or \"semantic\" before the agent sees it, and exposes only the matching tool."
+      "D": "Add several few-shot examples to the system prompt showing exact-string queries, such as function names and configuration keys, being paired with grep_files calls, alongside conceptual queries paired with search_codebase calls."
     },
     "correct": "C",
     "explanations": {
+      "A": "Over-engineered for what is fundamentally a description problem: building a separate pattern-based classifier to detect quoted literals, identifier casing, or file-path syntax bypasses the model's own language understanding by hard-coding a classification step outside the agent's reasoning.",
+      "B": "Eliminates the misuse but also removes semantic search capability entirely, which the agent legitimately needs for conceptual queries about the codebase's design - routing every lookup through grep_files's literal matching is an overcorrection that discards functionality instead of fixing the underlying description problem.",
       "C": "Correct. The root cause is that both descriptions are minimal and fail to communicate each tool's strengths, expected inputs, and boundaries relative to the other. Rewriting the descriptions to make those boundaries explicit is the low-effort, high-leverage fix that lets the model choose correctly on its own.",
-      "B": "Eliminates the misuse but also removes semantic search capability entirely, which the agent legitimately needs for conceptual queries - an overcorrection that discards functionality instead of fixing the underlying description problem.",
-      "D": "Few-shot examples rely on probabilistic compliance and add token overhead on every call without fixing the ambiguous descriptions that caused the misrouting in the first place.",
-      "A": "Over-engineered for what is fundamentally a description problem, and bypasses the model's own language understanding by hard-coding a classification step outside the agent's reasoning."
+      "D": "Pairing exact-string queries with grep_files and conceptual queries with search_codebase in few-shot examples relies on probabilistic compliance and adds token overhead on every call, without fixing the ambiguous descriptions that caused the misrouting in the first place."
     },
     "provenance": {
       "source": "seed-generated",
@@ -943,7 +952,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-bbffcc45",
+    "id": "D2.1-f5bf1d6d",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -952,17 +961,17 @@ window.CCARF_BANK = [
     "scenario": "A structured data extraction pipeline processes scanned vendor documents using two MCP tools, extract_purchase_order and extract_invoice, each returning JSON matching a schema required by the downstream accounts-payable system. Their descriptions read \"Extracts structured data from a purchase order\" and \"Extracts structured data from an invoice,\" with no further guidance. Production monitoring shows the agent frequently calls extract_invoice on scanned purchase orders that lack a clear header, and downstream schema validation rejects roughly 18% of records because the extracted schema's document_type field doesn't match what the accounts system expects for that document.",
     "question": "What is the most effective first step to reduce these tool-selection errors?",
     "options": {
-      "D": "Expand both tool descriptions to name the distinguishing document features (e.g., PO number vs. invoice number, presence of payment terms) and give explicit guidance on which tool to use when a document is ambiguous.",
-      "B": "Add several few-shot examples to the system prompt showing correct routing between the two tools on ambiguous scans.",
-      "C": "Merge both tools into a single extract_document tool fronted by an upstream routing classifier that pre-selects document type before extraction.",
-      "A": "Add a downstream JSON schema validation step that automatically retries with the other extraction tool whenever the first attempt's output fails validation."
+      "A": "Add a downstream JSON schema validation step keyed on the document_type field that automatically detects a mismatch and retries the extraction by invoking the other tool, logging each correction for the monitoring dashboard.",
+      "B": "Add several few-shot examples to the system prompt that walk through selecting between extract_purchase_order and extract_invoice based on visible cues like a PO number or invoice number on ambiguous scans.",
+      "C": "Merge both tools into a single extract_document tool fronted by an upstream routing classifier that inspects layout features like header text and line-item structure to pre-select the document type before extraction runs.",
+      "D": "Expand both tool descriptions to name the distinguishing document features (e.g., PO number vs. invoice number, presence of payment terms) and give explicit guidance on which tool to use when a document is ambiguous."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. The tool descriptions are ambiguous and give the model no way to distinguish the two document types on hard cases; this is the low-effort, high-leverage root-cause fix and the appropriate first step before considering heavier changes.",
+      "A": "Treats the symptom rather than the cause - it masks misrouted calls with retries, adding latency and cost on every ambiguous document instead of improving the agent's ability to select the right tool.",
       "B": "Adds token overhead and relies on probabilistic compliance rather than fixing the ambiguous descriptions that are the root cause.",
       "C": "A valid architecture for a harder version of this problem, but over-engineered as a first step when a simpler fix (better descriptions and boundaries) hasn't been tried.",
-      "A": "Treats the symptom rather than the cause - it masks misrouted calls with retries, adding latency and cost on every ambiguous document instead of improving the agent's ability to select the right tool."
+      "D": "Correct. The tool descriptions are ambiguous and give the model no way to distinguish the two document types on hard cases; this is the low-effort, high-leverage root-cause fix and the appropriate first step before considering heavier changes."
     },
     "provenance": {
       "source": "seed-generated",
@@ -970,7 +979,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-8ba66414",
+    "id": "D2.1-2c2ffc44",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -980,16 +989,16 @@ window.CCARF_BANK = [
     "question": "What is the most effective first step to fix this tool selection problem?",
     "options": {
       "A": "Rewrite both tool descriptions to state their distinct purposes, input expectations, and when to use one versus the other (e.g., parse_document for general text/metadata, extract_line_items specifically for itemized tables with quantities and unit prices), so the agent can distinguish them from the tool description alone.",
-      "C": "Merge parse_document and extract_line_items into a single extract_document_data tool that always returns both generic contents and any line items found, removing the selection decision from the agent entirely so it can no longer choose incorrectly.",
-      "D": "Add a JSON schema requiring a line_items field on the billing system's input so malformed records are rejected before reconciliation, ensuring that extractions missing itemized data are caught at the boundary rather than corrupting downstream totals.",
-      "B": "Add few-shot examples to the agent's system prompt showing invoices with itemized tables being routed to extract_line_items, so the model has concrete precedent for the routing decision it currently gets wrong on table-bearing documents."
+      "B": "Add a set of few-shot examples to the agent's system prompt, each pairing a sample multi-page itemized invoice with the correct tool call to extract_line_items and its expected JSON output containing per-item quantities and unit prices, giving the model concrete precedent to follow the next time it encounters a table-bearing document.",
+      "C": "Merge parse_document and extract_line_items into a single extract_document_data tool that accepts the same raw document string and always returns both a generic contents field and a line_items array populated with any quantities and unit prices detected, removing the selection decision from the agent entirely so it always produces both outputs in one call.",
+      "D": "Add a JSON schema to the billing system's input contract requiring a line_items array with quantity and unit_price fields on every record, validated at the point of ingestion, with any record failing the check routed to an error queue for manual correction before it reaches reconciliation."
     },
     "correct": "A",
     "explanations": {
       "A": "Correct. The root cause is that both tool descriptions are minimal and don't explain their distinct purpose, inputs, or when to use one over the other. Rewriting the descriptions to state clear boundaries is the low-effort, high-leverage fix that lets the agent select correctly from the tool interface alone.",
-      "C": "A valid architecture change, but heavier than a first step warrants, and it papers over the real problem (ambiguous, undifferentiated tool descriptions) rather than fixing it.",
-      "D": "Addresses the downstream symptom (bad billing records) by rejecting them, not the root cause of why the agent chose the wrong tool during extraction.",
-      "B": "Few-shot examples rely on probabilistic compliance and add token overhead without resolving the underlying ambiguity in the tool descriptions themselves."
+      "B": "Few-shot examples rely on probabilistic compliance and add token overhead without resolving the underlying ambiguity in the tool descriptions themselves — the model can still generalize incorrectly on invoice layouts unlike the examples shown.",
+      "C": "A valid architecture change, but heavier than a first step warrants, and it papers over the real problem (ambiguous, undifferentiated tool descriptions) rather than fixing it — it also changes tool interfaces the rest of the pipeline may depend on.",
+      "D": "Addresses the downstream symptom (bad billing records) by rejecting them, not the root cause of why the agent chose the wrong tool during extraction — invoices would still fail validation and require rework instead of being extracted correctly the first time."
     },
     "provenance": {
       "source": "seed-generated",
@@ -997,7 +1006,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-5a4c4e2d",
+    "id": "D2.1-f6ab28ff",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1006,17 +1015,17 @@ window.CCARF_BANK = [
     "scenario": "A Developer Productivity agent uses an MCP tool run_migration to apply database schema migrations during automated task execution. When a migration fails, the tool currently returns a bare string: \"Error: exit code 1\". Logs show the agent's downstream behavior is inconsistent — sometimes it retries the same failing migration in a loop, sometimes it tells the user the database is unreachable when the real cause was a syntax error in the migration file, and sometimes it silently proceeds to the next task as if the migration succeeded.\n\nThe team wants the agent to reliably distinguish between transient failures (worth retrying), user-fixable errors (like SQL syntax mistakes, which should stop and surface a clear message), and permission errors (which should escalate rather than retry), without relying on the model to infer intent from a free-text string.",
     "question": "What is the most effective change to the run_migration tool's error handling to fix this?",
     "options": {
-      "D": "Return a structured error response with a machine-readable category field (e.g., transient, validation, permission) plus a human-readable message, so the agent's next action is determined by the category rather than by interpreting free text.",
-      "C": "Keep the string-based error format but make the message longer and more descriptive, including the full stack trace, so the model has more context to reason from.",
-      "A": "Add a line to the system prompt instructing the agent to classify migration errors as transient, validation, or permission issues before deciding whether to retry.",
-      "B": "Have the tool automatically retry failed migrations up to three times internally before returning any result to the agent, so the agent never sees a raw failure."
+      "A": "Add a line to the system prompt instructing the agent to classify migration errors as transient, validation, or permission issues by scanning the returned error string for keywords such as timeout, syntax, or denied, then choosing to retry, stop, or escalate based on that inferred category.",
+      "B": "Have the tool automatically retry any failed migration up to three times internally, re-invoking the same migration file against the database and only returning a result to the agent once the retries are exhausted or the migration succeeds, so the agent never sees a raw failure or intermediate attempts.",
+      "C": "Keep the string-based error format but make the message longer and more descriptive, appending the full stack trace, the database connection details, and the exact SQL statement that failed, so the model has substantially more context to reason from when deciding its next action.",
+      "D": "Return a structured error response with a machine-readable category field (e.g., transient, validation, permission) plus a human-readable message, so the agent's next action is determined by the category rather than by interpreting free text."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. A structured error category field gives the agent a deterministic, machine-readable signal to branch on (retry vs. stop vs. escalate), rather than requiring it to probabilistically infer intent from prose - the same programmatic-enforcement principle that makes structured tool outputs more reliable than free text.",
-      "C": "Adds token overhead without fixing the root cause - the agent still has to infer the error category from unstructured prose, so misclassification remains just as likely.",
-      "A": "Relies on probabilistic LLM compliance to correctly parse and classify a free-text string every time; this is the same failure mode already occurring and does not guarantee consistent behavior.",
-      "B": "Masks the underlying problem: a validation error (like bad SQL syntax) is not transient and will fail identically on every retry, wasting three attempts before the agent ever learns the real cause, and permission errors still need to escalate rather than be retried."
+      "A": "Relies on probabilistic LLM compliance to correctly parse and classify a free-text string every time by pattern-matching keywords; this is the same failure mode already occurring in the logs and does not guarantee consistent behavior across different phrasings of the same underlying error.",
+      "B": "Masks the underlying problem: a validation error (like bad SQL syntax) is not transient and will fail identically on every re-invocation of the same migration file, wasting three attempts before the agent ever learns the real cause, and permission errors still need to escalate rather than be retried.",
+      "C": "Adds token overhead without fixing the root cause - even with a stack trace, connection details, and the failing SQL statement included, the agent still has to infer the error category from unstructured prose, so misclassification remains just as likely.",
+      "D": "Correct. A structured error category field gives the agent a deterministic, machine-readable signal to branch on (retry vs. stop vs. escalate), rather than requiring it to probabilistically infer intent from prose - the same programmatic-enforcement principle that makes structured tool outputs more reliable than free text."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1024,7 +1033,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-d26ba11e",
+    "id": "D2.2-eb7207fa",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -1033,17 +1042,17 @@ window.CCARF_BANK = [
     "scenario": "A Claude Code agent used for developer productivity has two MCP database tools: query_database and run_migration. Both descriptions simply read \"Executes SQL against the application database.\" Logs show that when engineers ask things like \"how many rows are in the orders table right now?\" or \"check if the users table has a status column,\" the agent sometimes calls run_migration instead of query_database, running schema-inspection statements through the migration pathway. No data has been lost yet, but the migration tool logs each call as a schema change event, corrupting the migration history and once triggering a lock on the orders table during a deploy window. A human-approval gate already fronts every run_migration call - which is how these stray calls keep getting caught before damage is done - but the misrouted attempts continue.",
     "question": "What is the most effective fix to stop the agent from routing read-only requests to run_migration?",
     "options": {
+      "A": "Remove run_migration from the agent's toolset and require engineers to run migrations manually outside the agent, using the deploy pipeline's existing schema-migration command so every schema change still goes through version control and the human-approval gate before touching the application database.",
+      "B": "Add few-shot examples to the system prompt showing read-only questions like row counts and column checks being answered by invoking query_database with the matching SQL statement, giving the model concrete precedent it can pattern-match against when routing similar read-only requests to a tool.",
       "C": "Rewrite each tool's description to state its exact purpose, expected inputs, and explicit boundaries (e.g., query_database is for read-only lookups and must never be used for schema changes; run_migration is only for applying versioned schema changes and must never be used for ad hoc queries).",
-      "D": "Set tool_choice to \"any\" so the model is always required to call one of the two tools rather than answering in free text, guaranteeing that every request is served by an actual tool invocation instead of an unbacked natural-language answer.",
-      "B": "Add few-shot examples to the system prompt showing read-only questions being answered with query_database, so the model has concrete precedent for the routing decision and is more likely to reproduce it on similar read-only requests.",
-      "A": "Remove run_migration from the agent's toolset and require engineers to run migrations manually outside the agent, eliminating the possibility of a read-only request being routed to a schema-changing tool at the cost of that capability."
+      "D": "Set tool_choice to \"any\" on every request so the model must invoke either query_database or run_migration for each incoming question, pairing that setting with a fixed evaluation order that checks the query_database branch first before falling through to run_migration for schema requests."
     },
     "correct": "C",
     "explanations": {
+      "A": "Over-corrects by eliminating a needed capability instead of fixing the tool descriptions that caused the misrouting; routing manual migrations through the deploy pipeline's own command preserves version control and approval, but at the cost of the agent's ability to run migrations at all.",
+      "B": "Few-shot examples rely on probabilistic compliance and add token overhead without fixing the ambiguous descriptions that are the actual root cause; the model can still generalize incorrectly to phrasings the examples didn't cover.",
       "C": "Correct. The root cause is that both tool descriptions are generic and don't distinguish purpose or boundaries. Rewriting them to clearly state what each tool is for, and explicitly is not for, gives the model the information it needs to select correctly, and is the low-effort, high-leverage first step.",
-      "D": "tool_choice \"any\" forces some tool call on every turn but has no effect on which tool gets selected - the misrouting between query_database and run_migration is untouched.",
-      "B": "Few-shot examples rely on probabilistic compliance and add token overhead without fixing the ambiguous descriptions that are the actual root cause.",
-      "A": "Over-corrects by eliminating a needed capability instead of fixing the tool descriptions that caused the misrouting."
+      "D": "tool_choice \"any\" forces some tool call on every turn, and a fixed evaluation order is not a real control over which tool the model selects internally - the misrouting between query_database and run_migration is untouched."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1051,7 +1060,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-50b831cd",
+    "id": "D2.1-2c007212",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -1060,17 +1069,17 @@ window.CCARF_BANK = [
     "scenario": "An insurance claims agent uses an MCP tool, lookup_policy, to retrieve policy details before processing a claim. Currently, any failure in the tool — an invalid policy ID format, a policy that doesn't exist, or a timeout from the backend policy database — returns the same plain-text string: \"Error: could not complete request.\" Logs show the agent behaves inconsistently across these cases: sometimes it tells the customer their policy doesn't exist when the real cause was a transient database timeout, sometimes it asks the customer to resubmit a validly formatted ID because it misreads a not-found error as a formatting issue, and sometimes it retries indefinitely on a permanent not-found error.\n\nThe team wants the agent to react appropriately and consistently to each distinct failure mode without guessing at the cause from a generic message.",
     "question": "What is the most effective way to fix this?",
     "options": {
-      "D": "Update the tool to return structured error responses with distinct machine-readable categories (e.g., invalid_input, not_found, transient_error) so the agent can deterministically select the correct next action for each case.",
-      "C": "Add a system prompt instruction telling the agent to infer the likely cause of a lookup_policy failure from the wording of the error message before deciding how to respond.",
-      "A": "Wrap all tool failures in a single friendly message, \"Something went wrong, please try again,\" so the agent always gives the customer a consistent response.",
-      "B": "Add automatic retry logic inside the tool so it retries up to three times before returning any error to the agent."
+      "A": "Wrap all tool failures in a single friendly JSON payload with one message field, \"Something went wrong, please try again,\" produced by a catch-all exception handler in the tool's response layer so every invalid-input, not-found, and timeout case returns identical text to the agent and customer.",
+      "B": "Add automatic retry logic inside the tool's request handler so it retries the backend policy database lookup up to three times with a short delay between attempts before returning any error string to the agent, regardless of whether the original failure was a formatting issue or a missing record.",
+      "C": "Add a system prompt instruction telling the agent to infer the likely cause of a lookup_policy failure from the wording of the error message, then choose among asking for a corrected ID, retrying the call, or telling the customer the policy was not found based on keywords it detects in that text.",
+      "D": "Update the tool to return structured error responses with distinct machine-readable categories (e.g., invalid_input, not_found, transient_error) so the agent can deterministically select the correct next action for each case."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Distinct, structured error categories give the agent the information it needs to deterministically branch its behavior - surface not_found to the customer, retry or wait on transient_error, request corrected input on invalid_input - instead of guessing at the failure mode from free text.",
-      "C": "Relies on the agent probabilistically parsing an ambiguous string rather than receiving an explicit, structured signal - this is the same root cause that produced the inconsistent behavior in the first place.",
-      "A": "Makes the response uniform but destroys the information needed to act correctly - the agent (and the customer) can no longer distinguish a permanent not-found from a transient timeout.",
-      "B": "Only addresses the transient-error case and does so by masking failures inside the tool; it does nothing to help the agent distinguish invalid_input from not_found, and retrying a permanent not-found error wastes calls without resolving the underlying ambiguity."
+      "A": "A catch-all handler that collapses every exception into one message field makes the response uniform but destroys the information needed to act correctly - the agent (and the customer) can no longer distinguish a permanent not-found from a transient timeout.",
+      "B": "Automatic retries inside the tool's request handler only address the transient-error case, and do so by masking failures before the agent ever sees them; it does nothing to help the agent distinguish invalid_input from not_found, and retrying a permanent not-found error wastes calls without resolving the underlying ambiguity.",
+      "C": "Having the agent infer the cause from keywords in the error message relies on probabilistically parsing an ambiguous string rather than receiving an explicit, structured signal - this is the same root cause that produced the inconsistent behavior in the first place.",
+      "D": "Correct. Distinct, structured error categories give the agent the information it needs to deterministically branch its behavior - surface not_found to the customer, retry or wait on transient_error, request corrected input on invalid_input - instead of guessing at the failure mode from free text."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1078,7 +1087,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-32f16274",
+    "id": "D2.2-1d55e0be",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
@@ -1141,17 +1150,17 @@ window.CCARF_BANK = [
     "scenario": "A Structured Data Extraction pipeline uses an MCP tool submit_invoice to push validated invoice records to an accounting system. Currently, any failure - a malformed field, an expired auth token, or a downstream service timeout - is returned to the agent as the same generic string: \\\"Error: could not submit invoice.\\\" Production logs show the agent responds inconsistently: sometimes it retries a permission failure a dozen times (which can never succeed without human intervention), and sometimes it gives up immediately on a transient timeout that a simple retry would have resolved.\n\nThe team wants the agent to make the correct decision - fix the input, retry, or escalate to a human - based on the type of failure, without a person manually reading logs for every case.",
     "question": "What is the most effective way to fix submit_invoice so the agent can reliably choose the right recovery action?",
     "options": {
+      "A": "Wrap every failure in a single generic \"Tool execution failed\" message, and add system prompt instructions telling the agent to retry a fixed number of times before escalating any unresolved failure to a human.",
+      "B": "Keep detailed error information - failure category, downstream service response, and request timestamp - in server-side logs only, and return a simple boolean success/failure flag to the agent to keep the tool response minimal.",
       "C": "Return a structured error response with a distinct category (e.g., validation_error, auth_error, transient_error) plus a descriptive message, so the agent can programmatically map each category to the appropriate action.",
-      "A": "Wrap every failure in a single generic \"Tool execution failed\" message and rely on system prompt instructions telling the agent how to generally handle tool failures.",
-      "D": "Have the tool itself automatically retry every failure up to three times internally, and only report an error to the agent after retries are exhausted.",
-      "B": "Keep detailed error information in server-side logs only, and return a simple boolean success/failure flag to the agent to keep the tool response minimal."
+      "D": "Have the tool itself automatically retry every failure up to three times internally, using exponential backoff between attempts, and only report an error to the agent after all three retries are exhausted."
     },
     "correct": "C",
     "explanations": {
+      "A": "Relies on the agent probabilistically inferring the right response from a generic message and prompt wording - even with a fixed retry-then-escalate rule, it cannot reliably distinguish a permission failure from a transient one, which is exactly the failure mode observed.",
+      "B": "Removes the very information the agent needs to decide how to proceed; a bare boolean cannot distinguish a fixable input error from a permission problem or a transient outage, no matter how much detail is captured in the logs the agent never sees.",
       "C": "Correct. Structured error categories give the agent the machine-readable signal it needs to deterministically choose between fixing input, retrying, or escalating, instead of guessing from an opaque message.",
-      "A": "Relies on the agent probabilistically inferring the right response from a generic message and prompt wording - it cannot reliably distinguish a permission failure from a transient one, which is exactly the failure mode observed.",
-      "D": "Masks the distinction between transient and permanent failures inside the tool itself - a non-retryable auth error would still be retried three times before failing, wasting calls, while the agent never learns why it failed.",
-      "B": "Removes the very information the agent needs to decide how to proceed; a bare boolean cannot distinguish a fixable input error from a permission problem or a transient outage."
+      "D": "Masks the distinction between transient and permanent failures inside the tool itself - a non-retryable auth error would still be retried three times with backoff before failing, wasting calls, while the agent never learns why it failed."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1159,7 +1168,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-ac3d1213",
+    "id": "D2.2-5da90b32",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1303,17 +1312,17 @@ window.CCARF_BANK = [
     "scenario": "A developer productivity team configures Claude Code with three MCP servers — GitHub, Jira, and Confluence — to support engineers doing codebase exploration, ticket triage, and documentation lookups. Every engineer's Claude Code session and every subagent spawned in multi-agent workflows is given access to all tools from all three servers by default, regardless of the task at hand. Engineers report that Claude increasingly hesitates or picks the wrong tool when several servers expose similarly named actions (e.g., search_issues from Jira vs. search_content from Confluence), and that simple codebase-exploration tasks now involve unnecessary tool-selection overhead.",
     "question": "What is the most effective way to address this tool-selection problem?",
     "options": {
+      "A": "Add few-shot examples to the system prompt showing which server's tool to use for each type of request, pairing example queries with the correct tool name across GitHub, Jira, and Confluence so Claude can pattern-match before calling it.",
       "B": "Scope each session or subagent's available MCP tools to only the servers relevant to its current task (e.g., GitHub tools only for codebase exploration), rather than exposing every connected server's tools by default.",
-      "D": "Consolidate the GitHub, Jira, and Confluence MCP servers into a single combined server so there is only one set of tool names to choose from.",
-      "A": "Add few-shot examples to the system prompt showing which server's tool to use for each type of request.",
-      "C": "Switch to a larger-context model so Claude can reason more carefully before selecting among the larger combined tool set."
+      "C": "Switch every session to a larger-context model, giving Claude more tokens to reason step by step through the full list of GitHub, Jira, and Confluence tool descriptions before committing to a tool call.",
+      "D": "Consolidate the GitHub, Jira, and Confluence MCP servers into a single combined server with one unified namespace, merging their tool definitions so engineers and subagents query one consistent set of tool names."
     },
     "correct": "B",
     "explanations": {
+      "A": "Few-shot examples rely on probabilistic compliance and add token overhead to every session's system prompt without removing the unnecessary tools causing the ambiguity in the first place.",
       "B": "Correct. This applies the principle of least privilege to MCP integration: granting a session or subagent only the tools relevant to its task removes the ambiguity and overhead caused by unrelated, similarly named tools being available at once, and is a low-effort, high-leverage fix.",
-      "D": "Merging external servers is a heavy, often infeasible restructuring that doesn't address the root cause — over-provisioning unrelated tools to every task — and naming collisions could still arise within a merged server.",
-      "A": "Few-shot examples rely on probabilistic compliance and add token overhead without removing the unnecessary tools causing the ambiguity in the first place.",
-      "C": "Misdiagnoses the problem as a context-capacity limitation rather than tool-selection overhead caused by over-scoped access; a larger model does not resolve ambiguity between similarly named tools it shouldn't have been offered."
+      "C": "Misdiagnoses the problem as a context-capacity limitation rather than tool-selection overhead caused by over-scoped access; a larger model with more tokens to reason over the same combined tool list does not resolve ambiguity between similarly named tools it shouldn't have been offered.",
+      "D": "Merging external servers into a single namespace is a heavy, often infeasible restructuring that doesn't address the root cause — over-provisioning unrelated tools to every task — and naming collisions could still arise within the merged tool definitions."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1321,7 +1330,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-0be0b411",
+    "id": "D2.4-f2636ca0",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -1330,17 +1339,17 @@ window.CCARF_BANK = [
     "scenario": "A platform engineering team maintains a monorepo containing a Python backend (services/api), a React frontend (apps/web), and a shared component library (packages/ui). Each area has distinct conventions: the API uses a strict internal error-handling pattern, the frontend follows a specific state-management approach, and the UI library has its own accessibility and prop-naming standards. There is also a small set of organization-wide rules (commit message format, license header, security review requirements) that must apply no matter which part of the repo Claude is working in.\n\nCurrently there is a single root-level CLAUDE.md that tries to describe all three areas' conventions in one long file. Engineers report that Claude frequently applies frontend state-management conventions when editing backend code, and misses the org-wide commit and license rules when working deep inside packages/ui.",
     "question": "What is the most maintainable way to restructure the CLAUDE.md configuration to fix these cross-contamination and coverage problems?",
     "options": {
+      "A": "Keep the single root CLAUDE.md but reorganize its content into clearly labeled sections (API, Web, UI, Org-Wide) with markdown headers and directory-name anchors under each section, so Claude reads the whole file and matches the current working path to the right heading before applying conventions.",
+      "B": "Delete the root CLAUDE.md and create one comprehensive CLAUDE.md in each of services/api, apps/web, and packages/ui that fully restates the org-wide commit, license, and security rules alongside that area's specific conventions, so every directory is entirely self-contained and can be read in isolation.",
       "C": "Keep the org-wide rules in the root CLAUDE.md, and add a separate CLAUDE.md in each of services/api, apps/web, and packages/ui containing only that area's specific conventions, relying on the hierarchy so nested CLAUDE.md files supplement the root file when Claude works in that subdirectory.",
-      "B": "Delete the root CLAUDE.md and create one comprehensive CLAUDE.md in each subdirectory that fully restates the org-wide rules plus that area's conventions, so every directory is self-contained.",
-      "A": "Keep the single root CLAUDE.md but reorganize its content into clearly labeled sections (API, Web, UI, Org-Wide) with headers, so Claude can infer which section applies based on the files it is currently editing.",
-      "D": "Keep the single root CLAUDE.md for org-wide rules, and move the area-specific conventions into three separate skills in .claude/skills/, one per area, so Claude only loads the relevant skill on demand."
+      "D": "Keep the single root CLAUDE.md for org-wide rules, and move the area-specific conventions into three separate skills in .claude/skills/, one per area, each invoked by name so Claude loads the API, Web, or UI skill on demand when working in that part of the repo."
     },
     "correct": "C",
     "explanations": {
+      "A": "Relying on Claude to infer which section applies from headers and path-matching within one flat file is exactly the probabilistic approach that caused the original cross-contamination problem; labeling sections and adding anchors doesn't guarantee the right section is applied and the wrong one is ignored, since Claude still has to read and select from a single undifferentiated document.",
+      "B": "Restating the org-wide commit, license, and security rules inside each of the three area CLAUDE.md files creates a maintenance burden - any change to those rules must now be updated in three separate places, and the copies can drift out of sync over time, reintroducing the coverage gaps the fix was meant to solve.",
       "C": "Correct. CLAUDE.md files form a hierarchy where nested files are loaded alongside the root file based on directory location, so scoping org-wide rules at the root and area-specific conventions in each subdirectory ensures both are automatically applied together without manual selection or duplication, and eliminates the cross-contamination caused by mixing all conventions into one flat file.",
-      "B": "Duplicating the org-wide rules across three files creates a maintenance burden - any change to commit format, license header, or security requirements must be updated in three places, and the files can drift out of sync over time.",
-      "A": "Relying on Claude to infer which section applies from unstructured prose is exactly the probabilistic approach that caused the original cross-contamination problem; headers alone don't guarantee the right section is applied and the wrong one is ignored.",
-      "D": "Skills require explicit invocation or Claude deciding to load them, which is not deterministic the way directory-scoped CLAUDE.md files are, and doesn't solve the org-wide rules being missed deep in the directory tree."
+      "D": "Skills that are invoked by name require Claude to decide to load them, which is not deterministic the way directory-scoped CLAUDE.md files are; even with one skill per area, Claude can still fail to invoke the matching skill while editing that area, and this restructuring does nothing to fix org-wide rules being missed deep in the directory tree."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1348,7 +1357,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-da9ce509",
+    "id": "D3.1-cb90ae39",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -1357,17 +1366,17 @@ window.CCARF_BANK = [
     "scenario": "A platform team is packaging a repository-analysis workflow for Claude Code: it walks the dependency graph, reads dozens of files, and produces a long architectural report. Trial runs surfaced two problems: the exploration's verbose intermediate output floods the main conversation, crowding out the task the engineer was working on, and during one run the workflow modified a build file while \"tidying\" something it noticed. Engineers should keep invoking the analysis on demand, by name.",
     "question": "Which configuration best addresses both problems?",
     "options": {
+      "A": "Move the workflow's instructions into the project CLAUDE.md so they load automatically, and add a rule stating that analysis runs must treat all files as read-only and never modify build files.",
+      "B": "Split the workflow into several smaller skills, each covering one stage of the dependency-graph walk and producing a shorter chunk of output, with engineers invoking each skill by name in sequence.",
       "C": "Package the workflow as a skill in .claude/skills/ whose SKILL.md frontmatter sets context: fork, so it runs in an isolated sub-agent context, and allowed-tools restricting it to read-only tools.",
-      "D": "Package the workflow as a skill, and add instructions in the SKILL.md body telling Claude to keep its output brief and avoid editing any files.",
-      "A": "Move the workflow's instructions into the project CLAUDE.md so they are always loaded, with a rule stating that analysis runs must not modify files.",
-      "B": "Split the workflow into several smaller skills so each produces less output, and rely on engineers to invoke them in sequence."
+      "D": "Package the workflow as a skill in .claude/skills/, and write instructions in the SKILL.md body directing Claude to keep its exploration output brief and to only read files, never editing or writing to them."
     },
     "correct": "C",
     "explanations": {
+      "A": "CLAUDE.md is for always-loaded universal standards, not an on-demand workflow the team wants invoked by name; loading these instructions into every session adds permanent context weight and does nothing to isolate the exploration's verbose output from the main conversation, and a prose rule against modifying build files is a request Claude can still ignore, not an enforcement mechanism.",
+      "B": "Splitting the workflow into per-stage skills does not isolate output - each stage's exploration still runs and reports into the main conversation, so the fragments still accumulate there - and requiring engineers to invoke each stage in sequence adds invocation burden while still leaving no mechanism that stops any stage from modifying a build file it notices.",
       "C": "Correct. context: fork runs the skill in an isolated sub-agent context, so verbose exploration output never pollutes the main conversation, and allowed-tools programmatically restricts the skill to read-only tools - a guarantee, not a request.",
-      "D": "Prompt-level instructions are probabilistic: they lower the odds of verbose output and stray edits but guarantee neither. The isolation and tool-restriction frontmatter exist precisely for this.",
-      "A": "CLAUDE.md is for always-loaded universal standards, not an on-demand workflow; it adds permanent context weight without isolating output, and a prose rule against edits is not an enforcement mechanism.",
-      "B": "Splitting the workflow does not isolate output - the fragments still land in the main conversation - and adds invocation burden without addressing the file-modification risk."
+      "D": "Prompt-level instructions in the SKILL.md body are probabilistic: telling Claude to keep output brief and to only read files lowers the odds of verbose output and stray edits but guarantees neither, since Claude is still free to write and still free to elaborate if it judges that useful. The isolation and tool-restriction frontmatter exist precisely to make these guarantees instead of requests."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1375,7 +1384,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.2-79f2ed31",
+    "id": "D3.2-886b61bf",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -1465,17 +1474,17 @@ window.CCARF_BANK = [
     "scenario": "A developer asks Claude Code to convert a 3,000-line legacy jQuery module to React hooks. In the first attempt, the developer writes one exhaustive prompt describing every component, state variable, and edge case up front, then lets Claude Code run to completion before looking at any output. The resulting diff compiles but has several state-management bugs that trace back to a misunderstanding formed early in the conversion, and by the time the developer reviews the work, that misunderstanding has propagated through dozens of files, making the fix nearly as costly as starting over.",
     "question": "What change to the workflow would most effectively prevent this kind of compounding error going forward?",
     "options": {
-      "D": "Break the migration into small increments (e.g., one component or state slice at a time), reviewing and confirming correctness after each step before Claude Code proceeds to the next.",
-      "A": "Write an even more detailed single prompt covering every component and edge case so nothing is left to inference.",
-      "C": "Let Claude Code complete the entire migration in one pass again, then rely on a final comprehensive review pass to catch and fix all bugs at once.",
-      "B": "Switch to plan mode so Claude Code designs the full migration up front, then execute the entire plan in a single uninterrupted run."
+      "A": "Write an even more detailed single prompt that enumerates every component, prop, state variable, hook dependency, and edge case, then let Claude Code run the entire conversion to completion.",
+      "B": "Switch to plan mode so Claude Code designs the full component tree, state architecture, and hook boundaries up front, then execute that entire plan in a single uninterrupted run.",
+      "C": "Let Claude Code complete the entire migration in one pass, then run a comprehensive review pass checking every converted file's props, state, and hooks against the original for parity.",
+      "D": "Break the migration into small increments (e.g., one component or state slice at a time), reviewing and confirming correctness after each step before Claude Code proceeds to the next."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Iterative refinement - working in small, checkpointed increments with review between steps - surfaces a wrong assumption right after it is introduced, before it can propagate through the rest of the codebase, and lets feedback from each step inform the next.",
-      "A": "More upfront detail cannot substitute for checkpoints during execution: it does not create a moment to catch a bad assumption before it propagates, and issues in a large migration often only become visible once code is actually produced and inspected.",
-      "C": "This repeats the original mistake. A single large uninterrupted pass still lets an early misunderstanding compound across dozens of files, and a final review pass must untangle far more than it would have at an earlier checkpoint.",
-      "B": "Planning up front helps with design, but executing the entire plan in one uninterrupted run still removes the incremental checkpoints needed to catch an early error before it spreads."
+      "A": "More upfront detail — even enumerating every component, prop, state variable, hook dependency, and edge case — cannot substitute for checkpoints during execution: it does not create a moment to catch a bad assumption before it propagates, and issues in a large migration often only become visible once code is actually produced and inspected.",
+      "B": "Planning up front, including designing the full component tree, state architecture, and hook boundaries, helps with design, but executing that entire plan in one uninterrupted run still removes the incremental checkpoints needed to catch an early error before it spreads.",
+      "C": "This repeats the original mistake. A single large uninterrupted pass still lets an early misunderstanding compound across dozens of files, and even a thorough final review pass checking every file's props, state, and hooks against the original must untangle far more than it would have at an earlier checkpoint.",
+      "D": "Correct. Iterative refinement - working in small, checkpointed increments with review between steps - surfaces a wrong assumption right after it is introduced, before it can propagate through the rest of the codebase, and lets feedback from each step inform the next."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1483,7 +1492,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-2a909525",
+    "id": "D3.5-0703259d",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
@@ -1519,17 +1528,17 @@ window.CCARF_BANK = [
     "scenario": "A developer productivity team maintains a CLAUDE.md-driven workflow that generates TypeScript API client boilerplate from OpenAPI specs. Initial testing against 40 sample specs shows the generated code compiles correctly only 65% of the time, with failures spanning several distinct causes: missing null checks on optional fields, incorrect enum handling, and wrong import paths for nested schemas.\n\nTo reach their 90% target, the team plans a series of refinement passes on the CLAUDE.md instructions and re-runs the 40-spec test set after each pass.",
     "question": "What is the most effective way to structure this refinement process?",
     "options": {
-      "A": "Rewrite the CLAUDE.md instructions from scratch each pass, incorporating everything learned so far, to avoid compounding earlier mistakes.",
-      "D": "Make one targeted instruction change addressing the highest-impact failure cause, re-run the test set, confirm the change improved results without introducing new failures, then move to the next cause.",
-      "B": "Add instructions addressing all three known failure causes in a single pass, then re-run the test set once to check the combined effect.",
-      "C": "Skip further prompt changes and re-run the existing workflow against the 40 specs multiple times, keeping the run with the highest compile-success rate."
+      "A": "Rewrite the CLAUDE.md instructions from scratch each pass, drafting a full new instruction set covering null checks, enum handling, and import paths, then re-run the 40-spec test set.",
+      "B": "Add instructions addressing all three known failure causes - null checks on optional fields, enum handling, and nested-schema import paths - together in a single pass, then re-run the full 40-spec test set.",
+      "C": "Skip further prompt changes and re-run the existing workflow against the same 40 specs several times, recording the compile-success rate each run and keeping the run that produced the highest rate.",
+      "D": "Make one targeted instruction change addressing the highest-impact failure cause, re-run the test set, confirm the change improved results without introducing new failures, then move to the next cause."
     },
     "correct": "D",
     "explanations": {
-      "A": "Discards a validated baseline and re-introduces risk of losing previously-fixed behavior; progressive improvement builds on confirmed gains rather than restarting each cycle.",
-      "D": "Correct. Iterative refinement means isolating one change, measuring its effect against the test set, and confirming it before proceeding to the next issue - this attributes improvement or regression to a specific change and prevents fixes from masking or interacting with each other.",
-      "B": "Bundling multiple changes into one pass makes it impossible to tell which instruction caused which effect, so a regression from one change could be hidden by gains from another, or a failing change could go undetected.",
-      "C": "Rerunning an unchanged workflow and cherry-picking the best result does not fix the underlying causes and treats run-to-run variance as if it were genuine improvement."
+      "A": "Discards a validated baseline and re-introduces risk of losing previously-fixed behavior; progressive improvement builds on confirmed gains rather than restarting each cycle with a full rewrite covering every known failure at once.",
+      "B": "Bundling instructions for null checks, enum handling, and import paths into one pass makes it impossible to tell which instruction caused which effect, so a regression from one change could be hidden by gains from another, or a failing change could go undetected.",
+      "C": "Rerunning an unchanged workflow multiple times and cherry-picking the run with the highest compile-success rate does not fix the underlying causes and treats run-to-run variance as if it were genuine improvement.",
+      "D": "Correct. Iterative refinement means isolating one change, measuring its effect against the test set, and confirming it before proceeding to the next issue - this attributes improvement or regression to a specific change and prevents fixes from masking or interacting with each other."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1537,7 +1546,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-2da1e6f1",
+    "id": "D3.5-9c2ffef5",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -1546,17 +1555,17 @@ window.CCARF_BANK = [
     "scenario": "An engineering team adds a Claude Code step to their CI pipeline that runs on every pull request to flag critical issues before merge. The pipeline invokes Claude Code non-interactively, captures its free-text response, and pipes it into a shell script that greps for the word \"approved\" to decide whether to pass or fail the build. Over several weeks, the team notices the gate is unreliable: some PRs with real critical issues still pass because Claude phrased its conclusion differently (\"this looks fine to merge\" instead of \"approved\"), and some clean PRs fail because the grep pattern doesn't match Claude's wording.",
     "question": "What is the most effective way to make the CI gate reliably reflect Claude's review verdict?",
     "options": {
+      "A": "Lower the model's temperature setting to a low value in the CI invocation so Claude produces more consistent wording across runs, then keep matching the same free-text grep pattern against that steadier output to decide pass or fail.",
+      "B": "Keep the pipeline invoking Claude non-interactively as before, but route its free-text review output to a human reviewer who reads the full response and manually approves or blocks the merge in the pull request UI before the build completes.",
       "C": "Have Claude emit a structured result (e.g., a JSON object with an explicit pass/fail field) and have the pipeline parse that field programmatically to set the build's exit status, instead of pattern-matching free-text prose.",
-      "D": "Add few-shot examples to the prompt showing Claude consistently ending its review with the word \"approved\" when there are no critical issues.",
-      "A": "Lower the model's temperature to make its wording more deterministic across runs.",
-      "B": "Keep the free-text grep approach but have a human review Claude's output before the merge is finalized."
+      "D": "Add several few-shot examples to the system prompt showing Claude ending its review with the exact word \"approved\" on clean code and a distinct exact word on code with critical issues, so the CI grep pattern matches the modeled wording."
     },
     "correct": "C",
     "explanations": {
+      "A": "Lowering temperature and rerunning the same grep against the resulting output may reduce wording variation somewhat, but it does not guarantee a specific parseable token appears in the output, so the underlying free-text matching problem remains.",
+      "B": "Inserting a manual review step into the pipeline defeats the purpose of automating the gate in CI and does not fix the unreliable signal - it just papers over it with human effort on every PR.",
       "C": "Correct. A CI gate needs a deterministic, machine-parseable signal. Requiring structured output with an explicit field and using it to drive the build's exit status replaces probabilistic text-matching with programmatic enforcement, eliminating the phrasing-dependent failures.",
-      "D": "Few-shot examples only raise the odds Claude uses a particular word - they still rely on probabilistic compliance with exact phrasing, which is the root cause of the flaky gate in the first place.",
-      "A": "Lowering temperature may reduce wording variation somewhat, but it does not guarantee a specific parseable token appears in the output, so the underlying free-text matching problem remains.",
-      "B": "Inserting a manual review step defeats the purpose of automating the gate in CI and does not fix the unreliable signal - it just papers over it with human effort on every PR."
+      "D": "Adding few-shot examples that model the exact word only raises the odds Claude uses that particular word - it still relies on probabilistic compliance with exact phrasing, which is the root cause of the flaky gate in the first place."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1564,7 +1573,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.6-e0c056af",
+    "id": "D3.6-9e75e85b",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -1573,17 +1582,17 @@ window.CCARF_BANK = [
     "scenario": "A platform team wants pull requests to receive an automated Claude Code review before a human reviewer looks at them. The pipeline runs on every PR event on a shared CI runner: Claude Code checks out the PR diff, has no memory of prior runs, and must post its findings as a PR comment, then exit so the pipeline can report success or failure to the merge gate. The team also wants the check to fail the build (blocking merge) only when Claude Code finds a genuine correctness bug, not for style nits.",
     "question": "Which CI/CD integration design correctly matches how Claude Code should be invoked in this non-interactive pipeline context?",
     "options": {
-      "D": "Invoke Claude Code non-interactively per run with the diff and review instructions as input, capture its output and exit status, and have the pipeline script decide the build's pass/fail outcome based on that captured result.",
-      "C": "Run Claude Code in its normal interactive mode inside the CI job so it can prompt for confirmation before deciding whether to fail the build.",
-      "A": "Rely on Claude Code to remember prior PR reviews from earlier CI runs so it can compare the current diff against past feedback without the pipeline passing in any state.",
-      "B": "Have Claude Code directly set the CI job's exit code and merge-gate status itself based on its own judgment of severity, without the pipeline script inspecting its output."
+      "A": "Have Claude Code load a saved session log from the previous CI run for this PR, so it can recall which lines it already flagged and compare the current diff's changed hunks against that stored review history without the pipeline passing in any state.",
+      "B": "Have Claude Code classify each finding it makes as blocking or non-blocking and write that severity judgment directly into the CI job's exit code, updating the PR's merge-gate status itself so the job succeeds or fails based on its own assessment.",
+      "C": "Run Claude Code in its normal interactive mode inside the CI job, attached to the job's terminal, so it walks through each finding one at a time and waits for a typed confirmation at the prompt before deciding whether to fail the build.",
+      "D": "Invoke Claude Code non-interactively per run with the diff and review instructions as input, capture its output and exit status, and have the pipeline script decide the build's pass/fail outcome based on that captured result."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. CI/CD integration uses non-interactive (headless) invocation because each run is stateless; the pipeline script captures Claude Code's output and translates it into the pass/fail merge-gate decision, letting the team apply its own rule (block only on genuine bugs, not style nits).",
-      "C": "CI jobs run unattended with no one to respond to prompts - interactive mode would hang the pipeline, which is exactly why non-interactive invocation is required for automation.",
-      "A": "Each CI invocation is stateless and has no memory of prior runs; expecting it to recall past reviews without the pipeline supplying that context is a misunderstanding of how the integration works.",
-      "B": "The pipeline script, not Claude Code itself, is responsible for owning the merge-gate decision - it must inspect the captured output/exit status rather than letting the invocation unilaterally control CI status."
+      "A": "Each CI invocation is stateless and has no memory of prior runs; expecting it to load a session log or compare against stored review history without the pipeline supplying that context is a misunderstanding of how the integration works.",
+      "B": "The pipeline script, not Claude Code itself, is responsible for owning the merge-gate decision - it must inspect the captured output/exit status rather than letting the invocation classify severity and write its own verdict into the CI job's exit code and merge-gate status.",
+      "C": "CI jobs run unattended with no one to respond to prompts - interactive mode, with Claude Code waiting on a typed confirmation at the terminal, would hang the pipeline, which is exactly why non-interactive invocation is required for automation.",
+      "D": "Correct. CI/CD integration uses non-interactive (headless) invocation because each run is stateless; the pipeline script captures Claude Code's output and translates it into the pass/fail merge-gate decision, letting the team apply its own rule (block only on genuine bugs, not style nits)."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1591,7 +1600,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.6-3bba4457",
+    "id": "D3.6-0cfa119b",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -1627,17 +1636,17 @@ window.CCARF_BANK = [
     "scenario": "A structured data extraction pipeline uses Claude to pull \"adverse event severity\" from clinical trial intake forms, classifying each as MILD, MODERATE, or SEVERE for downstream reporting to a safety database. The current prompt simply says: \"Extract the adverse event severity from the form text.\" Audit results show the model frequently labels ambiguous cases as SEVERE (e.g., a patient reporting \"some discomfort\" is flagged SEVERE), triggering unnecessary safety escalations and a manual review backlog. The team has confirmed the source documents are not the problem — the same ambiguous phrasing is handled correctly and consistently by human reviewers who use a written severity rubric.",
     "question": "What change to the prompt would most directly reduce these false-positive SEVERE classifications?",
     "options": {
+      "A": "Add three few-shot examples to the prompt, one demonstrating a MILD case, one a MODERATE case, and one a SEVERE case, each pairing a short excerpt of form text with its correct label, so the model has a labeled example spanning the full severity range to pattern-match new intake narratives against.",
+      "B": "Lower the model's temperature to 0 and add an instruction to re-run the same extraction twice, comparing the two outputs and reconciling any mismatch before the final label is written to the safety database, so that classifications become fully deterministic and repeatable across runs.",
       "C": "Replace the vague instruction with explicit criteria defining what qualifies as MILD, MODERATE, and SEVERE (drawn from the human rubric), and instruct the model to select the level supported by explicit textual evidence, flagging genuinely ambiguous cases as \"needs review\" rather than defaulting to SEVERE.",
-      "B": "Lower the model's temperature to 0 so that classifications become more deterministic and repeatable across runs, removing the sampling variation that currently lets the same narrative receive different severity levels on different passes.",
-      "D": "Instruct the model to always err on the side of caution and classify ambiguous cases as SEVERE, since under-flagging a true adverse event is costlier than an unnecessary escalation, and a reviewer can downgrade an over-classified case cheaply.",
-      "A": "Add one few-shot example showing a clear-cut SEVERE case so the model has a concrete pattern to match against, giving it at least one anchor for what genuine severity looks like instead of inferring the level from the instruction alone."
+      "D": "Instruct the model to treat any case lacking a clear, explicit statement of mild or moderate symptoms as SEVERE by default, and to route every such classification directly into the safety database for downstream reporting, since under-flagging a true adverse event carries a higher clinical cost than an unnecessary escalation."
     },
     "correct": "C",
     "explanations": {
+      "A": "Three labeled examples still only show the model what unambiguous MILD, MODERATE, and SEVERE cases look like — none of them models an ambiguous case like 'some discomfort,' which is precisely where the boundary is unclear and where the errors are occurring.",
+      "B": "Re-running the extraction and reconciling mismatches only catches variation introduced by sampling; if the model's criteria for SEVERE are themselves biased toward over-flagging ambiguous language, running it twice and reconciling will just converge on the same biased label both times.",
       "C": "Correct. The root cause is that the prompt supplies no explicit decision criteria, so the model is guessing at a boundary that humans apply consistently via a written rubric. Encoding that rubric's explicit criteria, tied to an evidence requirement and a defined fallback for ambiguity, directly targets the source of the false positives.",
-      "B": "Temperature affects randomness in token sampling, not the model's understanding of what distinguishes severity levels - it would not fix a classification bias rooted in missing criteria, only make the same biased behavior more repeatable.",
-      "D": "This hard-codes the exact failure mode the audit is complaining about - it institutionalizes over-flagging of ambiguous cases as SEVERE instead of giving the model criteria to distinguish genuine severe cases from ambiguous ones.",
-      "A": "A single example of an unambiguous SEVERE case does nothing to teach the model where the boundary lies for ambiguous cases, which is precisely where the errors are occurring."
+      "D": "This hard-codes the exact failure mode the audit is complaining about: routing every case lacking an explicit mild/moderate statement straight to SEVERE and into the safety database institutionalizes over-flagging of ambiguous cases rather than giving the model criteria to distinguish genuine severe cases from ambiguous ones."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1645,7 +1654,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-07136340",
+    "id": "D4.1-5df315f6",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1681,17 +1690,17 @@ window.CCARF_BANK = [
     "scenario": "A structured data extraction pipeline uses Claude to pull line items (product code, quantity, unit price, discount) from vendor invoices and emit JSON consumed directly by an accounting system. The zero-shot prompt with a JSON schema works well for simple single-line invoices, but on invoices with multi-line discounts, bundled products, or handwritten annotations, the model inconsistently applies discounts at the line level versus the invoice total level, and sometimes omits the discount field entirely rather than setting it to zero.",
     "question": "What is the most effective change to improve consistency on these edge cases?",
     "options": {
-      "D": "Add 3-5 few-shot examples in the prompt that show fully worked input-output pairs covering the ambiguous cases (multi-line discounts, bundles, discount = 0), demonstrating the exact field-level convention to apply.",
-      "B": "Lower the temperature to 0 so the model produces more deterministic output across invoices.",
-      "C": "Rewrite the system prompt with a longer, more detailed natural-language explanation of how discounts should be allocated across line items.",
-      "A": "Add a JSON schema field description clarifying that discount is a required numeric field."
+      "A": "Add a JSON schema field description clarifying that discount is a required numeric field, and update the extraction call to pass that revised schema so the model validates each line item against the stricter field constraint before the output reaches the accounting system.",
+      "B": "Lower the temperature to 0 so the model samples the highest-probability token at each decoding step, producing more deterministic output across repeated runs on the same invoice text and stabilizing which value it selects when the schema field is ambiguous.",
+      "C": "Rewrite the system prompt with a longer, more detailed natural-language explanation of how discounts should be allocated across line items, walking through the bundling and multi-line discount cases step by step ahead of the extraction instructions.",
+      "D": "Add 3-5 few-shot examples in the prompt that show fully worked input-output pairs covering the ambiguous cases (multi-line discounts, bundles, discount = 0), demonstrating the exact field-level convention to apply."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Few-shot examples that concretely demonstrate the desired input-output behavior on the specific ambiguous cases teach the model the exact convention (e.g., always populate discount, allocate at line level) far more reliably than abstract instructions, directly improving consistency on the edge cases causing errors.",
-      "B": "Temperature affects randomness in token sampling, not the model's underlying interpretation of ambiguous business logic - it would not resolve inconsistent discount allocation or missing fields caused by an underspecified task.",
-      "C": "More prose instructions describing the desired behavior in the abstract are less effective than concrete worked examples at conveying an exact convention, and risk adding ambiguity rather than resolving it.",
-      "A": "Schema validation can enforce that a field is present and numeric, but it cannot teach the model which allocation convention to use or guarantee the model fills the field with the semantically correct value rather than a placeholder."
+      "A": "Schema validation can enforce that a field is present and numeric, and passing the revised schema on every extraction call will reject a response missing the field, but it cannot teach the model which allocation convention to use or guarantee the model fills the field with the semantically correct value rather than a placeholder like 0.",
+      "B": "Temperature affects randomness in token sampling, not the model's underlying interpretation of ambiguous business logic - forcing deterministic decoding at each step would make the model consistently repeat whatever convention it defaults to, but would not resolve inconsistent discount allocation or missing fields caused by an underspecified task.",
+      "C": "More prose instructions describing the desired behavior in the abstract, even walked through step by step for each case, are less effective than concrete worked examples at conveying an exact convention, and risk adding ambiguity rather than resolving it.",
+      "D": "Correct. Few-shot examples that concretely demonstrate the desired input-output behavior on the specific ambiguous cases teach the model the exact convention (e.g., always populate discount, allocate at line level) far more reliably than abstract instructions, directly improving consistency on the edge cases causing errors."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1699,7 +1708,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-80f92d2b",
+    "id": "D4.2-17d94839",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1708,17 +1717,17 @@ window.CCARF_BANK = [
     "scenario": "A finance team built a pipeline that extracts vendor name, invoice amount, due date, and line items from scanned PDF invoices and feeds the result into an accounts-payable system that parses the response as JSON. The current prompt asks Claude to \"respond only with JSON matching this schema\" and includes the schema as text in the instructions. In production, roughly 8% of extractions fail downstream parsing because Claude prepends a short explanatory sentence before the JSON, wraps the payload in markdown code fences, or leaves trailing commentary after the closing brace.",
     "question": "What is the most effective way to eliminate these parsing failures?",
     "options": {
+      "A": "Set the temperature parameter to 0 in the API call, forcing deterministic sampling that always selects the highest-probability token, so the same invoice input produces the same output every time.",
+      "B": "Keep the prompt-based JSON instructions, but add a post-processing step that runs a regex over the response to strip leading prose, markdown fences, and trailing text after the closing brace before parsing.",
       "C": "Define an extraction tool whose input schema describes the required fields and types, and force the model to call it with tool_choice, so the extraction arrives as a structured tool_use block instead of free text.",
-      "D": "Add several few-shot examples to the prompt showing correctly formatted JSON with no leading text, so the model learns the expected output pattern.",
-      "A": "Set temperature to 0 so the model's output becomes deterministic and therefore always matches the schema.",
-      "B": "Keep the current prompt-based JSON instructions, but add a post-processing step that strips leading prose and markdown fences with a regex before parsing."
+      "D": "Add several few-shot examples to the prompt, each pairing a sample invoice with correctly formatted JSON containing no leading text or trailing commentary, so the model learns the expected output pattern from the demonstrations."
     },
     "correct": "C",
     "explanations": {
+      "A": "Temperature affects sampling variability, not structural conformance; a deterministic model can still deterministically produce a preamble or fences on every run.",
+      "B": "Treats a structural enforcement problem as text cleanup: regex stripping is brittle against variation in fence placement, nested code blocks, and where trailing commentary appears, and does nothing to prevent malformed JSON itself.",
       "C": "Correct. Tool use with a JSON schema turns output format into a programmatically enforced contract: the extraction arrives as a structured tool_use block, never as prose - eliminating JSON syntax errors, preamble, and markdown wrapping at the source. Semantic errors (values in the wrong field, line items that don't sum) still require downstream validation.",
-      "D": "Few-shot examples raise the odds of clean output, but compliance stays probabilistic - the same class of formatting failure continues at some rate.",
-      "A": "Temperature affects sampling variability, not structural conformance; a deterministic model can still deterministically produce a preamble or fences.",
-      "B": "Treats a structural enforcement problem as text cleanup: regex stripping is brittle against variation in fences, nested code blocks, and commentary placement, and does nothing to prevent malformed JSON itself."
+      "D": "Few-shot examples raise the odds of clean output, but compliance stays probabilistic - the same class of formatting failure continues at some rate no matter how many demonstrations are added."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1726,7 +1735,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-fc440a79",
+    "id": "D4.3-0e551ef4",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1735,17 +1744,17 @@ window.CCARF_BANK = [
     "scenario": "A document-processing pipeline uses Claude to extract structured line-item data (SKU, quantity, unit price, total) from scanned vendor invoices into a JSON schema, which then feeds an accounts-payable system. In production, roughly 8% of extractions fail downstream: some outputs are missing required fields, some have line-item totals that don't match quantity × unit price, and a few contain SKUs that don't exist in the vendor catalog. Currently the pipeline accepts whatever Claude returns and forwards it directly to accounts payable, where mismatches surface days later as payment errors.",
     "question": "What is the most effective way to reduce the rate of bad extractions reaching accounts payable?",
     "options": {
-      "D": "Add a validation stage that checks schema conformance, arithmetic consistency (quantity × unit price = total), and SKU existence against the catalog; on failure, send the document and the specific error back to Claude for a bounded number of retries before routing to human review.",
-      "A": "Expand the system prompt with more detailed instructions and examples emphasizing accuracy on totals and SKUs, so Claude is less likely to make these errors on the first pass and fewer invoices need any downstream correction at all.",
-      "B": "Lower the model's temperature to reduce output variance, since inconsistent field values are a sign of excessive randomness in generation, so that repeated extractions of the same invoice converge on one stable set of totals and SKUs.",
-      "C": "Have a second Claude call independently re-extract the same invoice and simply overwrite the first result whenever the two outputs differ, on the reasoning that the later extraction is the more considered of the two attempts."
+      "A": "Rewrite the system prompt with expanded instructions and worked examples that walk through computing quantity × unit price and cross-checking each SKU against a sample catalog listing, so Claude internalizes the correct extraction pattern before generating any output.",
+      "B": "Set the model's temperature parameter to 0 for every extraction call, since sampling randomness is what produces inconsistent field values, and a fixed low-temperature setting will make Claude's token selection deterministic enough that totals and SKUs converge on one stable output per invoice.",
+      "C": "Route each invoice through a second, independent Claude call that re-extracts the same fields from scratch, then automatically overwrite the first JSON result with the second call's values whenever any field differs, treating the second pass as a fresh, more considered attempt at the document.",
+      "D": "Add a validation stage that checks schema conformance, arithmetic consistency (quantity × unit price = total), and SKU existence against the catalog; on failure, send the document and the specific error back to Claude for a bounded number of retries before routing to human review."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Programmatic checks (schema conformance, arithmetic consistency, catalog lookup) can deterministically catch exactly these failure modes rather than hoping the model avoids them. Feeding the specific validation error back to Claude gives it the information needed to self-correct, a bounded retry count prevents infinite loops, and routing persistent failures to human review ensures bad data never silently reaches accounts payable.",
-      "A": "Prompt refinement relies on probabilistic compliance and cannot guarantee arithmetic consistency or catalog membership - it may reduce the error rate somewhat but provides no deterministic backstop, so bad extractions will still reach accounts payable undetected.",
-      "B": "Misdiagnoses the problem: missing fields, arithmetic mismatches, and invalid SKUs are extraction accuracy failures, not sampling-variance artifacts, so reducing temperature would not reliably fix them and offers no way to catch the ones that still occur.",
-      "C": "Running a second extraction and blindly overwriting on disagreement has no way to determine which of the two outputs (if either) is actually correct, and it still lacks any programmatic validation against the schema, arithmetic, or catalog - so invalid results can still pass through."
+      "A": "Prompt refinement, even with worked examples and step-by-step arithmetic walkthroughs, relies on probabilistic compliance and cannot guarantee arithmetic consistency or catalog membership - it may reduce the error rate somewhat but provides no deterministic backstop, so bad extractions will still reach accounts payable undetected.",
+      "B": "Misdiagnoses the problem: missing fields, arithmetic mismatches, and invalid SKUs are extraction accuracy failures, not sampling-variance artifacts, so forcing deterministic token selection via temperature=0 would not reliably fix them and offers no way to catch the ones that still occur.",
+      "C": "Running a second extraction and blindly overwriting on disagreement has no way to determine which of the two outputs (if either) is actually correct, and it still lacks any programmatic validation against the schema, arithmetic, or catalog - so invalid results can still pass through.",
+      "D": "Correct. Programmatic checks (schema conformance, arithmetic consistency, catalog lookup) can deterministically catch exactly these failure modes rather than hoping the model avoids them. Feeding the specific validation error back to Claude gives it the information needed to self-correct, a bounded retry count prevents infinite loops, and routing persistent failures to human review ensures bad data never silently reaches accounts payable."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1753,7 +1762,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-8603b3d1",
+    "id": "D4.4-707c9c39",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1816,17 +1825,17 @@ window.CCARF_BANK = [
     "scenario": "A data platform team runs a structured extraction pipeline that pulls line-item details from vendor invoices using Claude, validates the output against a JSON schema, and loads it into an accounts payable system. Two categories of work feed this pipeline: (1) a nightly ingestion of roughly 8,000 archived invoices scanned from a backlog of paper records, which has no deadline beyond \"done before the next morning's finance reconciliation,\" and (2) invoices submitted through a live vendor portal that must be parsed and validated within seconds so the portal can immediately confirm receipt to the vendor. A newly hired engineer proposes routing both workloads through the Message Batches API to cut costs, since both ultimately call the same extraction prompt and schema.",
     "question": "How should this proposal be evaluated?",
     "options": {
+      "A": "Keep both workloads on real-time calls, processing each invoice synchronously through the standard Messages endpoint so the extraction output and schema validation result return within the same request-response cycle that submitted the invoice.",
       "B": "Route the nightly archive backlog through the Message Batches API, since it only needs to finish before the next business day, while keeping the live vendor-portal submissions on real-time API calls that return confirmation immediately.",
-      "C": "Route both workloads through the Message Batches API and have the portal poll the batch status endpoint before confirming receipt to the vendor.",
-      "A": "Keep both workloads on real-time calls, since batch results cannot be reliably matched back to their source invoice records.",
-      "D": "Route both workloads through the Message Batches API and add a fallback that reissues any request as a real-time call if the batch has not completed within a few seconds."
+      "C": "Route both workloads through the Message Batches API, submitting each portal invoice as its own batch request and having the portal poll the batch status endpoint at short intervals until the results field populates, then confirm receipt to the vendor.",
+      "D": "Route both workloads through the Message Batches API, and add a fallback that reissues any request as a real-time call to the standard Messages endpoint once a timer set to a few seconds after batch submission elapses without a completed result."
     },
     "correct": "B",
     "explanations": {
-      "B": "Correct. The Message Batches API offers meaningful cost savings but has processing times without a guaranteed low-latency SLA, making it well suited to the nightly backlog's overnight deadline. The vendor portal needs to confirm receipt within seconds, which requires real-time calls instead.",
-      "C": "Polling a batch for a workload that must confirm receipt within seconds does not meet the portal's latency requirement - batches are not designed to complete quickly enough for that use case.",
       "A": "Reflects a misconception - batch results can be correlated back to their originating requests using custom identifiers, so matching output to source records is not a real obstacle to using batch processing where it fits.",
-      "D": "A few-seconds timeout is far shorter than realistic batch processing windows, so this fallback would fire on essentially every request, making the batch routing pointless overhead for the portal workload while still failing to use batching appropriately for the backlog."
+      "B": "Correct. The Message Batches API offers meaningful cost savings but has processing times without a guaranteed low-latency SLA, making it well suited to the nightly backlog's overnight deadline. The vendor portal needs to confirm receipt within seconds, which requires real-time calls instead.",
+      "C": "Polling a batch for a workload that must confirm receipt within seconds does not meet the portal's latency requirement - batches are not designed to complete quickly enough for that use case, so this polling loop would routinely still be waiting when the portal needs to respond to the vendor.",
+      "D": "A few-seconds timeout is far shorter than realistic batch processing windows, so this fallback would fire on essentially every portal request, making the batch routing pointless overhead for the portal workload while still failing to use batching appropriately for the backlog."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1834,7 +1843,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.5-ebe947cf",
+    "id": "D4.5-53829946",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1870,17 +1879,17 @@ window.CCARF_BANK = [
     "scenario": "A legal-tech company uses Claude to extract indemnification, liability-cap, and termination clauses from 80-page vendor contracts into a structured JSON schema that feeds a downstream contract database. A single-pass review over the full contract text reliably catches clauses in the main body but misses clauses embedded in appendices and exhibits, and produces inconsistent extractions when a clause in the body is modified or superseded by language in a later exhibit - sometimes the original body clause is extracted, sometimes the exhibit override, and occasionally both are returned as conflicting entries with no indication of which governs.",
     "question": "How should the review architecture be redesigned to address these failures?",
     "options": {
+      "A": "Run three independent full-document extraction passes and retain only the clauses that appear identically in at least two of the three outputs, tagging each with a confidence score.",
       "B": "Run per-section passes (body, appendices, exhibits) for local clause extraction, followed by a separate reconciliation pass that resolves cross-references and determines which of any conflicting clauses governs.",
-      "A": "Run three independent full-document extraction passes and keep only the clauses that appear identically in at least two of the three outputs.",
-      "D": "Switch to a model with a larger context window so the entire contract, including appendices and exhibits, can be processed in a single pass.",
-      "C": "Keep the single full-document pass but instruct it to flag any clause it is uncertain about, leaving conflict resolution to the downstream contract database."
+      "C": "Keep the single full-document pass but have it emit a confidence flag for any clause it is uncertain about, then route those flagged clauses to the downstream contract database for resolution.",
+      "D": "Switch to a model with a larger context window and raise the maximum output token limit so the entire contract, including all appendices and exhibits, fits into a single processing pass that extracts every clause directly into the schema."
     },
     "correct": "B",
     "explanations": {
+      "A": "Majority voting across identical full-document passes, even with a per-clause confidence score attached, would suppress the exhibit-override clauses precisely because they appear inconsistently - the real signal (a conflict that needs resolving) looks like noise to a voting scheme and gets discarded rather than resolved.",
       "B": "Correct. Splitting by section prevents attention dilution across a long document so appendix and exhibit clauses are no longer missed, and a dedicated reconciliation pass is needed because determining which of two conflicting clauses governs requires comparing outputs across sections - something no single per-section pass can do on its own.",
-      "A": "Majority voting across identical full-document passes would suppress the exhibit-override clauses precisely because they appear inconsistently - the real signal (a conflict that needs resolving) looks like noise to a voting scheme and gets discarded rather than resolved.",
-      "D": "Misdiagnoses the problem as a context-capacity limitation. The scenario shows the failure is inconsistent attention and unresolved cross-references, not that the document doesn't fit in context - a bigger window does not add a reconciliation step.",
-      "C": "Pushes a task that requires document understanding (deciding which clause legally governs) onto a downstream system that only has the flagged output, not the contract structure needed to adjudicate the conflict."
+      "C": "Pushes a task that requires document understanding (deciding which clause legally governs) onto a downstream system that only receives a confidence flag and the flagged clause text, not the contract structure or cross-referenced exhibit language needed to adjudicate the conflict.",
+      "D": "Misdiagnoses the problem as a context-capacity or token-limit constraint. The scenario shows the failure is inconsistent attention and unresolved cross-references, not that the document doesn't fit in context - fitting everything into one extraction call does not add a reconciliation step for competing clauses."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1888,7 +1897,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-d8e0b73a",
+    "id": "D4.6-087a172b",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1897,17 +1906,17 @@ window.CCARF_BANK = [
     "scenario": "A structured data extraction pipeline uses Claude to pull line items, subtotals, and vendor tax IDs from scanned vendor invoices before loading them into an accounts-payable system. A single-pass extraction prompt performs well on simple one-page invoices, but on multi-page invoices with itemized tables spanning several pages, per-page subtotals, and handwritten annotations, the model frequently drops line items from page 2 onward, miscomputes the grand total, and occasionally hallucinates a tax ID when the field is illegible. Accuracy on these complex multi-page invoices is around 61%, well below the 95% threshold required for automated downstream posting.",
     "question": "Which architecture change would most effectively raise extraction reliability on the complex multi-page invoices?",
     "options": {
-      "D": "Run three independent full-document extraction passes and accept only field values that appear identically in at least two of the three outputs.",
+      "A": "Keep the single-pass design but lengthen the prompt with highly detailed field-by-field extraction rules, explicit instructions for handling multi-page tables, and several additional few-shot examples of correctly extracted invoices with subtotals and tax IDs.",
       "B": "Split extraction into a per-page pass that captures line items and subtotals from each page independently, followed by a separate aggregation pass that sums subtotals and reconciles the grand total and tax ID against the assembled per-page data.",
-      "A": "Keep the single-pass design but lengthen the prompt with more detailed field-by-field extraction instructions and additional few-shot examples of correctly extracted invoices.",
-      "C": "Replace the single Claude call with a larger-context-window model so the entire multi-page invoice, including annotations, fits comfortably within the context limit in one pass."
+      "C": "Replace the single Claude call with a larger-context-window model so the entire multi-page invoice, including annotations, itemized tables, and per-page subtotals, fits comfortably within the context limit and is extracted in one pass.",
+      "D": "Run three independent full-document extraction passes over the line items, subtotals, and tax ID, then accept only the field values that appear identically across at least two of the three separately generated outputs."
     },
     "correct": "B",
     "explanations": {
-      "D": "Majority voting across full-document passes does not fix the underlying issue: attention dilution across a long, table-heavy document tends to produce the same kind of errors (dropped page-2 items, hallucinated illegible fields) in each independent run, so consensus can still converge on an incomplete or wrong answer while tripling cost.",
+      "A": "More detailed instructions, explicit table-handling rules, and additional few-shot examples rely on the model correctly attending to every item across a long, complex document in a single pass - they do not address the root cause of dropped items and miscomputed totals on multi-page inputs.",
       "B": "Correct. Per-page passes reduce the amount of content each call must attend to, addressing the attention dilution causing dropped line items and hallucinated fields, while a dedicated aggregation pass handles the cross-page reconciliation (summing subtotals, computing the grand total, resolving the tax ID) that a single page-level pass cannot see on its own.",
-      "A": "More detailed instructions and few-shot examples rely on the model correctly attending to every item across a long, complex document in a single pass - they do not address the root cause of dropped items and miscomputed totals on multi-page inputs.",
-      "C": "Misdiagnoses the problem as a context-capacity limitation rather than attention dilution and error accumulation over a long, complex, table-heavy input; fitting more content into one pass does not prevent the model from missing items or hallucinating illegible fields."
+      "C": "Misdiagnoses the problem as a context-capacity limitation rather than attention dilution and error accumulation over a long, complex, table-heavy input; fitting more content into one pass does not prevent the model from missing items or hallucinating illegible fields.",
+      "D": "Majority voting across full-document passes does not fix the underlying issue: attention dilution across a long, table-heavy document tends to produce the same kind of errors (dropped page-2 items, hallucinated illegible fields) in each independent run, so consensus can still converge on an incomplete or wrong answer while tripling cost."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1915,7 +1924,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-76a3326e",
+    "id": "D4.6-18f0c066",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -1924,17 +1933,17 @@ window.CCARF_BANK = [
     "scenario": "A security team uses Claude to review a 40-file pull request that touches authentication, database access, and third-party dependency updates before it can merge to production. Their current process runs one review pass over the entire diff with a general prompt asking Claude to \"check for security vulnerabilities.\" Post-merge incident analysis shows the reviews consistently miss the same categories of issues (a SQL injection pattern repeated across five files, a hardcoded secret in a config file, an outdated dependency with a known CVE) even though the issues that are found are usually accurate.",
     "question": "The team wants to restructure the review to catch more of these missed vulnerability categories without suppressing the valid findings the current process already produces. Which architecture should they adopt?",
     "options": {
-      "C": "Run the same full-diff security review prompt three independent times and only surface an issue if it is flagged in at least two of the three runs.",
+      "A": "Split the review into one pass per file across all 40 files, feeding each file diff and its surrounding context to the model, with every pass using the same general check for security vulnerabilities instruction.",
       "B": "Run separate review passes each scoped to a distinct vulnerability category (e.g., injection flaws, authentication/authorization, secrets exposure, dependency risk), then merge the findings across passes.",
-      "D": "Keep a single review pass over the full diff but raise the model's temperature to encourage it to surface a more diverse set of issues in that one pass.",
-      "A": "Split the review into one pass per file across all 40 files, with each pass using the same general \"check for security vulnerabilities\" instruction."
+      "C": "Run the same full-diff security review prompt three independent times over all 40 files, tally which issues each run flags across authentication, database, and dependency code, and surface an issue only if it is flagged in at least two of the three runs.",
+      "D": "Keep a single review pass over the full diff spanning authentication, database access, and dependency changes, but raise the model sampling temperature parameter to encourage it to surface a more diverse set of issues within that one pass."
     },
     "correct": "B",
     "explanations": {
-      "C": "Requiring agreement across identical runs suppresses genuine findings instead of catching more of them - identical passes tend to share the same blind spots, so consensus filtering discards true positives that only one run happens to catch, worsening the exact problem the team is trying to fix.",
+      "A": "Per-file passes can help with issues local to one file, but the missed issues here are cross-cutting (an injection pattern repeated across five files, a dependency-wide CVE) - splitting by file while feeding each pass the same generic instruction does not give any pass a focused lens for these categories.",
       "B": "Correct. Scoping each pass to a distinct vulnerability category narrows what that pass has to attend to, reducing the attention dilution that caused the single general pass to miss cross-cutting issues like a repeated injection pattern or a stray secret. Merging findings across category-focused passes catches issues a single broad pass, or passes split only by file, would overlook.",
-      "D": "Raising temperature does not address attention dilution across a large diff; it only makes a single pass's output less consistent without systematically expanding what categories of issues get checked.",
-      "A": "Per-file passes can help with issues local to one file, but the missed issues here are cross-cutting (an injection pattern repeated across five files, a dependency-wide CVE) - splitting by file with the same generic instruction does not give any pass a focused lens for these categories."
+      "C": "Requiring agreement across identical runs suppresses genuine findings instead of catching more of them - identical passes tend to share the same blind spots, so tallying overlap across three runs of the same prompt discards true positives that only one run happens to catch, worsening the exact problem the team is trying to fix.",
+      "D": "Raising the sampling temperature does not address attention dilution across a large diff; it only makes a single pass's output less consistent without systematically expanding what categories of issues get checked across the authentication, database, and dependency code it spans."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1942,7 +1951,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-f86ff8f4",
+    "id": "D4.6-a6384b0f",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -1951,17 +1960,17 @@ window.CCARF_BANK = [
     "scenario": "A customer support agent handles a single chat session that runs for over 200 turns as it walks a customer through a complex billing dispute. In turn 4, the customer states they are on a grandfathered legacy pricing plan with a contractual 48-hour SLA for refunds. By turn 150, the raw conversation history has grown large enough that the platform's context window management has begun dropping or summarizing the oldest turns to stay within limits. The agent then proposes a resolution that applies standard (non-legacy) pricing rules and quotes the standard 5-day refund timeline, contradicting facts established early in the conversation.",
     "question": "What is the most effective way to prevent this loss of critical information across the long conversation?",
     "options": {
-      "D": "Maintain an explicit, periodically-updated summary or structured state object containing critical facts (e.g., plan type, SLA terms), and re-inject it into context so it survives truncation or summarization of the raw turn history.",
-      "C": "Increase the max_tokens parameter on each API call so the model can generate longer responses.",
-      "A": "Rely on the platform's default automatic context summarization to retain whatever information is most relevant as the conversation grows.",
-      "B": "Add a single reminder in the initial system prompt instructing the agent to remember the customer's plan type and SLA for the rest of the conversation."
+      "A": "Rely on the platform's default automatic context summarization, which compresses older turns into a condensed narrative and drops or de-prioritizes turns it scores as less relevant, to retain whatever information is most relevant as the conversation grows.",
+      "B": "Add a single reminder in the initial system prompt, framed as a bulleted list of the customer's plan type and SLA terms, instructing the agent to remember and reapply those facts for the rest of the conversation.",
+      "C": "Increase the max_tokens parameter on each API call so the model can generate longer, more detailed responses that restate the customer's plan type and SLA terms alongside its proposed resolution.",
+      "D": "Maintain an explicit, periodically-updated summary or structured state object containing critical facts (e.g., plan type, SLA terms), and re-inject it into context so it survives truncation or summarization of the raw turn history."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Explicitly extracting and persisting critical facts into a structured, periodically-refreshed summary ensures they remain available regardless of how the raw transcript is truncated or compressed as the conversation grows.",
-      "C": "max_tokens controls the length of a single generated response, not how much prior conversation context is retained - it does not address information loss from truncation or summarization.",
-      "A": "Default automatic summarization is lossy and not guaranteed to prioritize the specific critical details (like a one-off contractual SLA) that matter for this case - it caused the problem in the first place.",
-      "B": "A one-time instruction at the start of a long conversation is a probabilistic approach; as the conversation grows and earlier turns are truncated or de-prioritized, there is no guarantee the model retains or re-applies that early reminder."
+      "A": "Default automatic summarization is lossy and not guaranteed to prioritize the specific critical details (like a one-off contractual SLA) that matter for this case - its scoring and compression process caused the problem in the first place.",
+      "B": "A one-time instruction at the start of a long conversation is a probabilistic approach; even framed as a bulleted list, as the conversation grows and earlier turns are truncated or de-prioritized, there is no guarantee the model retains or re-applies that early reminder 150+ turns later.",
+      "C": "max_tokens controls the length of a single generated response, not how much prior conversation context is retained - generating longer output does not cause the model to recall facts from turns that have already been truncated or summarized out of the context window.",
+      "D": "Correct. Explicitly extracting and persisting critical facts into a structured, periodically-refreshed summary ensures they remain available regardless of how the raw transcript is truncated or compressed as the conversation grows."
     },
     "provenance": {
       "source": "seed-generated",
@@ -1969,7 +1978,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-f47c5c6b",
+    "id": "D5.1-2a72ef96",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
@@ -2032,17 +2041,17 @@ window.CCARF_BANK = [
     "scenario": "An SRE team deploys a Claude Agent SDK-based incident-response agent with MCP tools query_metrics, restart_service, scale_replicas, and page_oncall. The agent is meant to handle routine remediation autonomously and page a human for anything with material blast radius. After a month in production, logs show the opposite pattern: the agent pages on-call engineers at 2 a.m. for well-understood, low-risk issues (e.g., a single pod restart loop with a known fix already documented in the runbook), while for an actual incident — a primary database connection pool exhausting during a traffic spike — it autonomously ran scale_replicas and restart_service against the production database tier without paging anyone, causing a brief but customer-visible outage.",
     "question": "What is the most effective way to fix the agent's escalation calibration?",
     "options": {
-      "D": "Replace human paging with a self-reported confidence score (1-10) from the agent, routing to on-call only when confidence falls below a set threshold, so that the agent escalates precisely the cases it is least sure about.",
+      "A": "Train a separate classifier on historical incident tickets, using features such as alert type, affected service tier, and time of day, to predict whether a given alert should be auto-remediated or escalated, and feed that prediction into the agent's routing step ahead of any tool execution.",
+      "B": "Remove restart_service and scale_replicas from the agent's toolset entirely, requiring a human operator to invoke those actions manually via the on-call runbook, and restrict the agent to read-only tools such as query_metrics plus the page_oncall escalation path for production changes.",
       "C": "Define explicit escalation criteria in the system prompt, grounded in the blast radius and reversibility of the action rather than symptom type, with few-shot examples distinguishing routine pre-approved fixes from actions on shared production infrastructure that require paging first.",
-      "A": "Train a separate classifier on historical incident tickets to predict whether a given alert should be auto-remediated or escalated, using the outcomes of past incidents as the signal for how the current one should be routed.",
-      "B": "Remove restart_service and scale_replicas from the agent's toolset entirely, so all remediation requires a human to act, eliminating the possibility of the agent taking an unsafe action on shared production infrastructure."
+      "D": "Replace human paging with a self-reported confidence score from one to ten that the agent computes after evaluating the alert against the runbook, routing to on-call only when that score falls below a configured threshold, and logging the score alongside every remediation action it takes."
     },
     "correct": "C",
     "explanations": {
-      "D": "LLM self-reported confidence is poorly calibrated - the agent was confidently wrong on the highest-stakes case (the database incident), so a confidence gate would not have caught it.",
-      "C": "Correct. The root cause is unclear decision boundaries: the agent is escalating based on symptom familiarity rather than the actual risk of the action it is about to take. Explicit criteria tied to blast radius/reversibility, reinforced with few-shot examples, is the proportionate first step to recalibrate when to escalate.",
       "A": "Over-engineered before simpler prompt-level fixes have been tried, and still doesn't address that the agent is reasoning about the wrong signal (symptom type instead of action risk).",
-      "B": "Solves the immediate danger but is disproportionate - it eliminates all autonomous remediation, including the routine low-risk cases the agent should legitimately handle, rather than fixing the miscalibrated escalation logic."
+      "B": "Solves the immediate danger but is disproportionate - it eliminates all autonomous remediation, including the routine low-risk cases the agent should legitimately handle, rather than fixing the miscalibrated escalation logic.",
+      "C": "Correct. The root cause is unclear decision boundaries: the agent is escalating based on symptom familiarity rather than the actual risk of the action it is about to take. Explicit criteria tied to blast radius/reversibility, reinforced with few-shot examples, is the proportionate first step to recalibrate when to escalate.",
+      "D": "LLM self-reported confidence is poorly calibrated - the agent was confidently wrong on the highest-stakes case (the database incident), so a confidence gate would not have caught it."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2050,7 +2059,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.2-b5ce23d0",
+    "id": "D5.2-20da23d8",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -2060,16 +2069,16 @@ window.CCARF_BANK = [
     "question": "What is the most effective way to fix the error propagation strategy across this pipeline?",
     "options": {
       "A": "Have the extraction agent emit a structured error object identifying which field failed and why (e.g., \"policy_number: extraction_failed - illegible\") instead of silently substituting an empty string, so downstream agents can distinguish a genuine failure from a legitimately empty field and branch accordingly.",
-      "C": "Have the integration agent add defensive null-checks immediately before submission, rejecting any claim whose critical fields are missing.",
-      "D": "Increase the extraction agent's retry count and add exponential backoff so it makes more attempts before returning a result.",
-      "B": "Update the extraction agent's system prompt to instruct it to leave fields blank when it cannot confidently extract them, and to mention any low-confidence fields in a prose summary at the end of its response."
+      "B": "Update the extraction agent's system prompt to instruct it to leave fields blank when it cannot confidently extract them, and to append a prose summary at the end of its response naming any low-confidence fields, which the validation agent can read alongside the JSON payload and cross-reference against blank fields before the integration agent submits the claim.",
+      "C": "Have the integration agent add defensive null-checks immediately before submission, scanning each claim's policy_number, claim_amount, and incident_date for missing or blank values and rejecting any claim whose critical fields are empty, routing rejected claims to a separate queue for manual review before they reach the claims-processing system.",
+      "D": "Increase the extraction agent's retry count and add exponential backoff so it makes more attempts to re-parse the PDF and re-run OCR on the policy_number field before returning a result, resubmitting the same document image to the extraction model multiple times until a non-empty value is produced or the retry budget is exhausted."
     },
     "correct": "A",
     "explanations": {
       "A": "Correct. The root cause is that a real failure (illegible field) is indistinguishable from a legitimate value once it becomes a silent empty string. A structured, explicit error signal preserves that distinction as the result moves between agents, letting the validation and integration agents make correct, deterministic decisions instead of inheriting an ambiguous default.",
-      "C": "Only catches the symptom at the last stage, after the validation agent has already been misled into approving the record. It does not fix the propagation problem for any other consumer of the extraction agent's output, and provides no context about why the field is missing.",
-      "D": "Retries address transient failures (e.g., a flaky OCR call), not a genuinely illegible field. Retrying more times will not produce a correct policy number and does nothing to communicate the failure to downstream agents.",
-      "B": "Still relies on probabilistic compliance and buries the error signal in unstructured prose that downstream agents are not guaranteed to parse or act on, rather than propagating it as a structured, checkable condition."
+      "B": "Still relies on probabilistic compliance with a prompt instruction, and the error signal lives only in unstructured prose. The validation agent would have to reliably parse free text and match field names against the JSON every time to catch the problem, which is not a dependable mechanism compared to a structured, checkable error field.",
+      "C": "Only catches the symptom at the last stage, after the validation agent has already been misled into approving the record. Scanning for blank fields immediately before submission does not tell you whether a blank is a genuine extraction failure or a legitimately empty field, and it does nothing for any other consumer of the extraction agent's output earlier in the pipeline.",
+      "D": "Retries and backoff address transient failures, such as a flaky OCR call that might succeed on a second pass. Repeatedly re-running OCR on a genuinely illegible policy_number will not produce a correct value no matter how many attempts are made, and this approach does nothing to communicate the failure to downstream agents once the retry budget is exhausted."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2077,7 +2086,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.3-261c5264",
+    "id": "D5.3-f0bb8acc",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -2086,17 +2095,17 @@ window.CCARF_BANK = [
     "scenario": "A developer asks Claude Code to explain how authentication and session handling work across a 15-year-old monolith with over 6,000 files, most of which are unrelated to auth. The first attempt has Claude read files sequentially starting from the repository root, and it runs out of context budget partway through the services/ directory without ever reaching the auth/ or middleware/ folders where the relevant logic actually lives.",
     "question": "What is the most effective way to restructure this exploration so Claude reliably finds and explains the relevant auth logic?",
     "options": {
-      "D": "First use Glob/Grep to locate files and directories matching auth-related terms (e.g., \"session\", \"login\", \"authenticate\"), then Read only the specific files or code sections those searches surface, expanding scope only as needed.",
-      "A": "Switch to a model with a larger context window so the entire 6,000-file repository can be loaded in one pass.",
-      "B": "Have Claude read every file in the repository sequentially but summarize each file immediately after reading it to keep prior context small.",
-      "C": "Spawn one subagent that reads the entire repository in a single pass and returns a full summary, avoiding grep since keyword search might miss relevant files."
+      "A": "Switch to a model with a larger context window, sized to fit the full 6,000-file repository in a single pass, loading every file's contents so the services/, auth/, and middleware/ directories are all analyzed together for auth logic.",
+      "B": "Have Claude read every file in the repository sequentially in file-system order, generating a running summary immediately after each file to keep accumulated context small, continuing through services/, auth/, and middleware/ until all files are summarized.",
+      "C": "Spawn one subagent tasked with reading the entire repository in a single continuous pass and compiling a full summary of every directory, including services/, auth/, and middleware/, using sequential Read calls to gather each file's content.",
+      "D": "First use Glob/Grep to locate files and directories matching auth-related terms (e.g., \"session\", \"login\", \"authenticate\"), then Read only the specific files or code sections those searches surface, expanding scope only as needed."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. Targeted search tools (Glob/Grep) narrow exploration to relevant files before spending context on Read, letting Claude reach the actual auth/middleware code instead of exhausting its context budget on unrelated directories encountered first.",
-      "A": "A bigger window doesn't fix the root inefficiency - reading thousands of irrelevant files still wastes context and attention on content unrelated to the question, and the relevant files may still be reached too late or at the cost of a much more expensive call.",
-      "B": "Still requires reading the full content of every file at least once, which is unnecessary and slow when the relevant code is confined to a few directories; summarizing after the fact doesn't solve the problem of not finding the right files first.",
-      "C": "Discards the fastest way to narrow scope (search) in favor of brute-force reading, and having a single agent read the entire repository in one pass reintroduces the same context-budget exhaustion problem the scenario describes, just inside a subagent instead."
+      "A": "A bigger window doesn't fix the root inefficiency - loading every file's contents, including the thousands unrelated to auth, still spends context and attention on irrelevant code, and the relevant files may still be reached too late or at the cost of a much more expensive call.",
+      "B": "Still requires reading the full content of every file in file-system order at least once before summarizing it, which is unnecessary and slow when the relevant code is confined to a few directories; summarizing after the fact doesn't solve the problem of not finding the right files first.",
+      "C": "Discards the fastest way to narrow scope (search) in favor of brute-force reading, and having a single agent work through the entire repository's directories via sequential Read calls in one pass reintroduces the same context-budget exhaustion problem the scenario describes, just inside a subagent instead.",
+      "D": "Correct. Targeted search tools (Glob/Grep) narrow exploration to relevant files before spending context on Read, letting Claude reach the actual auth/middleware code instead of exhausting its context budget on unrelated directories encountered first."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2104,7 +2113,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-b3973277",
+    "id": "D5.4-d00d5f76",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -2113,17 +2122,17 @@ window.CCARF_BANK = [
     "scenario": "A logistics company uses Claude to extract structured fields (SKU, quantity, unit price, delivery date) from photographed supplier packing slips into JSON records that feed their ERP system. To limit manual review load, the pipeline has Claude emit a self-reported confidence score (1-100) alongside each extraction, and anything below 70 is routed to a human review queue while everything else auto-posts to the ERP.\n\nA quarterly audit finds that overpayments from bad data are concentrated in extractions where Claude reported confidence above 90. Nearly all of these involve packing slips with handwritten quantity corrections or non-standard units of measure (e.g., \"cs\" vs \"case,\" or a quantity written over a crossed-out printed value) - cases where the model's output looked structurally complete and well-formed, but the underlying values were wrong.",
     "question": "What change would most effectively fix the confidence calibration problem driving these overpayments?",
     "options": {
+      "A": "Have a second, independent Claude call review the same packing-slip photograph and the first call's JSON output, producing its own 1-100 confidence score for each of the four extracted fields, and route an extraction to human review whenever the two self-reported scores diverge by more than 20 points.",
+      "B": "Lower the auto-post threshold from 70 to 50, so that any extraction scoring below the new cutoff on any of its four extracted fields is diverted from the ERP posting step into the human review queue, applied uniformly across the SKU, quantity, unit price, and delivery date fields on every packing slip processed.",
       "C": "Replace the self-reported confidence score with a programmatic risk score built from objective signals - schema/field-completeness validation, detection of handwritten annotations, and unit-of-measure normalization failures - and route to human review based on that score.",
-      "B": "Lower the auto-post threshold from 70 to 50 so more extractions are routed to human review.",
-      "D": "Add few-shot examples to the prompt showing Claude assigning lower confidence scores when a packing slip contains handwritten corrections.",
-      "A": "Have a second Claude call independently re-score the confidence of each extraction, and route to human review only when the two self-reported scores disagree by more than 20 points."
+      "D": "Curate a larger set of few-shot examples showing packing slips with handwritten quantity corrections and crossed-out printed values, each example paired with a low confidence score, and insert them into the extraction prompt so Claude learns to generalize the pattern and assign lower scores on similar slips going forward."
     },
     "correct": "C",
     "explanations": {
+      "A": "Still uses self-reported confidence as the underlying signal; two LLM calls independently re-scoring the same image and JSON output are likely to share the same blind spots (e.g., both missing that a value was overwritten by hand), so agreement between them doesn't indicate correctness.",
+      "B": "Shifts the threshold but keeps relying on the same uncalibrated metric applied field-by-field; the overpayment cases were already scoring above 90, well above even a lowered cutoff, so widening the net this way does not catch them.",
       "C": "Correct. The root problem is that the routing signal (LLM self-reported confidence) doesn't correlate with actual accuracy - it's high precisely on the cases with hidden risk factors like handwriting and nonstandard units. Grounding routing in objective, checkable signals rather than the model's probabilistic self-assessment gives a reliable trigger for exactly the failure modes observed.",
-      "B": "Shifts the threshold but keeps relying on the same uncalibrated metric; the overpayment cases were already scoring above 90, well above even a lowered cutoff, so this does not catch them.",
-      "D": "Still relies on self-reported confidence, which is a probabilistic behavior the model may not reliably reproduce across varied real-world slip formats - it doesn't fix the underlying calibration problem.",
-      "A": "Still uses self-reported confidence as the underlying signal; two LLM calls are likely to share the same blind spots (e.g., both missing that a value was overwritten by hand), so agreement between them doesn't indicate correctness."
+      "D": "Still relies on self-reported confidence, which is a probabilistic behavior the model may not reliably reproduce across varied real-world slip formats and layouts it wasn't shown examples of - it doesn't fix the underlying calibration problem."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2131,7 +2140,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-1ddc0d81",
+    "id": "D5.5-ef720684",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -2167,17 +2176,17 @@ window.CCARF_BANK = [
     "scenario": "A structured-data-extraction service uses the Claude Agent SDK to pull line items, coverage limits, and exclusions from insurance claim PDFs into a JSON schema for a downstream claims system. Each claim runs through a multi-step session: the agent reads the PDF, extracts candidate fields, and cross-checks them against policy tables. For roughly 10% of claims, one clause is genuinely ambiguous (e.g., a coverage limit that could be read as either a per-incident or an aggregate cap), and the team wants to try two different extraction strategies on that clause to see which one produces output that validates cleanly against the JSON schema and downstream reconciliation rules.",
     "question": "The team wants to test both extraction strategies on the ambiguous clause without letting a failed attempt contaminate the reasoning that carries forward into the rest of the claim's processing. What is the best way to structure this?",
     "options": {
+      "A": "After the ambiguous clause is reached, serialize the full session transcript to a file on disk, then for each strategy spin up a fresh session that reloads that saved transcript as its starting context, appends the strategy-specific extraction turn, and writes the resulting output back to its own file for schema validation.",
+      "B": "For each strategy, restart the session from the very beginning of the claim: re-open the PDF, re-run the full extraction and policy cross-check pipeline from scratch, then apply that strategy to the ambiguous clause and validate the resulting JSON against the schema and reconciliation rules.",
       "C": "At the point where the ambiguity is detected, fork the session into two independent branches, run each strategy to completion, then continue the workflow only from the branch whose output passes schema validation, discarding the other branch's transcript.",
-      "D": "Have the agent try the first strategy, then in the same session try the second strategy as a follow-up turn, and instruct it via the system prompt to disregard the first attempt when producing final output.",
-      "B": "Restart the session from the beginning for each strategy so that every attempt starts from a clean, unbiased state.",
-      "A": "After each claim, write the full transcript to a file, then reload that file as the starting point for a fresh session each time a new strategy needs to be attempted."
+      "D": "Within the same session, have the agent apply the first strategy to the ambiguous clause, then in a follow-up turn apply the second strategy, add a system-prompt instruction directing it to disregard the first attempt's reasoning and tool output, and have it emit final field values for schema validation based only on the second attempt."
     },
     "correct": "C",
     "explanations": {
+      "A": "This manually reimplements forking through file save/reload: writing the transcript out and reloading it into a new session for each strategy adds operational overhead and failure points (serialization format, reload fidelity) without providing anything a native fork wouldn't provide directly.",
+      "B": "Restarting from scratch and re-running the full extraction and policy cross-check pipeline before even reaching the ambiguous clause throws away the exploration work already done up to that point, which is unnecessary - only the point of divergence needs to branch, not the entire claim.",
       "C": "Correct. Forking the session at the checkpoint preserves the exploration already completed up to that point while giving each strategy its own isolated continuation, so neither branch's reasoning or tool output leaks into the other. The workflow then keeps only the winning branch's state and cleanly drops the rest.",
-      "D": "Both attempts remain in the same context history, so the model's later reasoning is still exposed to the discarded attempt. Relying on an instruction to 'disregard' it is probabilistic compliance, not a guarantee of isolation.",
-      "B": "Restarting from scratch throws away the exploration work already done before the ambiguous clause was reached, which is unnecessary - only the point of divergence needs to branch, not the entire session.",
-      "A": "This manually reimplements forking through file save/reload, adding operational overhead and failure points without providing anything a native fork wouldn't provide directly."
+      "D": "Both attempts remain in the same context history, so the model's later reasoning is still exposed to the discarded first attempt's tool output and reasoning trace. Relying on a system-prompt instruction to disregard it is probabilistic compliance, not a guarantee of isolation, even when the agent is told to base final output only on the second attempt."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2185,7 +2194,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-08001971",
+    "id": "D1.7-04a4ecb5",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -2194,10 +2203,10 @@ window.CCARF_BANK = [
     "scenario": "You want to create a custom /review slash command that runs your team's standard code review checklist. This command should be available to every developer when they clone or pull the repository.",
     "question": "Where should you create this command file?",
     "options": {
-      "A": "In the .claude/commands/ directory in the project repository.",
-      "C": "In ~/.claude/commands/ in each developer's home directory.",
-      "D": "In the CLAUDE.md file at the project root.",
-      "B": "In a .claude/config.json file with a commands array."
+      "A": "In the .claude/commands/ directory in the project repository",
+      "C": "In ~/.claude/commands/ in each developer's home directory",
+      "B": "In a .claude/config.json file with a commands array",
+      "D": "In the CLAUDE.md file at the project root"
     },
     "correct": "A",
     "explanations": {
@@ -2212,7 +2221,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.2-60253b40",
+    "id": "D3.2-a6d4b794",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -2248,10 +2257,10 @@ window.CCARF_BANK = [
     "scenario": "Your pipeline script runs claude \"Analyze this pull request for security issues\" but the job hangs indefinitely. Logs indicate Claude Code is waiting for interactive input.",
     "question": "What's the correct approach to run Claude Code in an automated pipeline?",
     "options": {
-      "C": "Add the -p flag: claude -p \"Analyze this pull request for security issues\".",
-      "A": "Set the environment variable CLAUDE_HEADLESS=true before running the command.",
-      "D": "Redirect stdin from /dev/null: claude \"Analyze this pull request for security issues\" < /dev/null.",
-      "B": "Add the --batch flag: claude --batch \"Analyze this pull request for security issues\"."
+      "D": "Redirect stdin from /dev/null: claude \"Analyze this pull request for security issues\" < /dev/null",
+      "B": "Add the --batch flag: claude --batch \"Analyze this pull request for security issues\"",
+      "A": "Set the environment variable CLAUDE_HEADLESS=true before running the command",
+      "C": "Add the -p flag: claude -p \"Analyze this pull request for security issues\""
     },
     "correct": "C",
     "explanations": {
@@ -2266,7 +2275,7 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.6-036d66a3",
+    "id": "D3.6-31e90992",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -2329,17 +2338,17 @@ window.CCARF_BANK = [
     "scenario": "A backend team relies on Claude Code to generate service code across a repo with a root CLAUDE.md covering shared build commands, lint rules, and test framework conventions. Six months ago, an engineer setting up the payments service copied the entire root CLAUDE.md into services/payments/CLAUDE.md and appended payment-specific rules (PCI-related validation, a stricter error-handling pattern) at the bottom. Since then, the root file has been updated twice — the lint command changed and the team migrated test frameworks — but nobody updated the payments copy. Now, whenever Claude Code generates code inside services/payments, it produces test files using the old test framework and references the outdated lint command, contradicting the conventions used everywhere else in the repo.",
     "question": "What is the most maintainable way to fix this drift while still preserving the payments team's directory-specific rules?",
     "options": {
-      "B": "Delete services/payments/CLAUDE.md entirely and instruct engineers to paste the PCI validation and error-handling rules into their prompts manually whenever they work in that directory.",
-      "D": "Trim services/payments/CLAUDE.md down to only the payment-specific rules, removing the duplicated shared content — since nested CLAUDE.md files are loaded alongside the root file based on directory location, the shared standards only need to live in the root file.",
-      "C": "Set up a script that runs on a schedule to copy the current contents of the root CLAUDE.md into every subdirectory CLAUDE.md so they stay synchronized.",
-      "A": "Move the PCI validation and error-handling rules into the root CLAUDE.md under a \"Payments\" header, then delete services/payments/CLAUDE.md, so every rule lives in one file."
+      "A": "Move the PCI validation and error-handling rules into the root CLAUDE.md under a \"Payments\" header, consolidating the lint command and test framework references there too, then delete services/payments/CLAUDE.md so every rule for every service lives in one shared file going forward.",
+      "B": "Delete services/payments/CLAUDE.md entirely and set up a shared onboarding doc instructing engineers to paste the current PCI validation and error-handling rules into their prompts manually at the start of each session whenever they work inside that directory.",
+      "C": "Set up a script that runs on a schedule, such as a cron job, to diff and copy the current contents of the root CLAUDE.md into every subdirectory CLAUDE.md file across the repo, including services/payments, keeping the build, lint, and test conventions synchronized automatically.",
+      "D": "Trim services/payments/CLAUDE.md down to only the payment-specific rules, removing the duplicated shared content — since nested CLAUDE.md files are loaded alongside the root file based on directory location, the shared standards only need to live in the root file."
     },
     "correct": "D",
     "explanations": {
-      "B": "Removes the drift risk but sacrifices the reliability of persistent, file-based configuration — manually re-pasting rules into prompts is inconsistent, easy to forget, and reintroduces the exact problem CLAUDE.md files exist to solve.",
-      "D": "Correct. CLAUDE.md files form a hierarchy where nested files are loaded alongside the root file based on directory location, so content doesn't need to be duplicated to apply within a subdirectory. Trimming the payments file to only its unique rules eliminates the duplicated content that caused drift, while the hierarchy still ensures both files apply when working in services/payments.",
-      "C": "Solves the immediate symptom but adds unnecessary tooling and infrastructure to compensate for a modular-organization problem the hierarchy already solves natively; it also fails to scale as more subdirectories accumulate their own copies.",
-      "A": "Eliminates the drift but sacrifices modular organization by folding directory-specific concerns back into the shared root file — as more services add their own sections this way, the root file grows unwieldy again, which is the bloat problem scoped CLAUDE.md files are meant to prevent."
+      "A": "Eliminates the drift but sacrifices modular organization by folding directory-specific concerns — and now even more shared content — back into the root file; as more services consolidate this way, the root file grows unwieldy again, which is the bloat problem scoped CLAUDE.md files are meant to prevent.",
+      "B": "Removes the drift risk but sacrifices the reliability of persistent, file-based configuration — manually re-pasting rules into prompts each session is inconsistent, easy to forget, and reintroduces the exact problem CLAUDE.md files exist to solve.",
+      "C": "Solves the immediate symptom but adds unnecessary tooling and infrastructure to compensate for a modular-organization problem the hierarchy already solves natively; it also fails to scale as more subdirectories accumulate their own copies to keep in sync.",
+      "D": "Correct. CLAUDE.md files form a hierarchy where nested files are loaded alongside the root file based on directory location, so content doesn't need to be duplicated to apply within a subdirectory. Trimming the payments file to only its unique rules eliminates the duplicated content that caused drift, while the hierarchy still ensures both files apply when working in services/payments."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2347,7 +2356,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-dab64774",
+    "id": "D3.1-0cb457d6",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
@@ -2356,17 +2365,17 @@ window.CCARF_BANK = [
     "scenario": "A team uses Claude Code to auto-generate unit tests for newly added API endpoint handlers as part of their local dev workflow. The system prompt gives detailed natural-language instructions: \"use descriptive test names, mock external dependencies, assert on both status code and response body, and group related tests in describe blocks.\" Despite this, generated test files vary widely in practice - some use inline mocks while others use fixture files, assertion styles mix expect(res.body).toEqual() with expect(res.body).toMatchObject() inconsistently, and describe-block nesting depth differs from file to file. Developers spend significant time reformatting generated tests to match the codebase's established conventions before merging.",
     "question": "What change would most effectively reduce this style inconsistency across generated test files?",
     "options": {
-      "B": "Expand the natural-language instructions in the system prompt with more granular rules covering mocking approach, assertion method, and nesting depth.",
+      "A": "Lower the temperature setting toward zero to reduce sampling randomness, producing more deterministic token choices and consistent output across repeated generation runs of the same prompt.",
+      "B": "Expand the natural-language instructions in the system prompt with more granular rules specifying the exact mocking library and pattern, the precise assertion method for response bodies, and a fixed maximum describe-block nesting depth.",
       "C": "Include 2-3 few-shot examples of complete, existing test files from the codebase that demonstrate the exact mocking approach, assertion style, and describe-block structure the team wants replicated.",
-      "A": "Lower the temperature setting to reduce output variability between generation runs.",
-      "D": "Split the task into separate prompts, one per structural concern (mocking, assertions, grouping), run sequentially and merge the results."
+      "D": "Split the task into separate prompts, one per structural concern such as mocking setup, assertion style, and describe-block grouping, run them sequentially in that order, and merge the resulting code segments into one final test file."
     },
     "correct": "C",
     "explanations": {
-      "B": "Natural-language rules describe style abstractly; precise stylistic choices like exact assertion method or nesting depth are hard to fully pin down in words and still leave room for divergent interpretation across files - this is the approach already tried without success.",
+      "A": "Temperature affects randomness in token sampling, not the model's understanding of which style convention to follow; even with near-deterministic sampling toward the same prompt, the model still lacks a concrete signal for which mocking approach or assertion method is correct, so inconsistency driven by ambiguous instructions would persist across different prompts and files.",
+      "B": "Natural-language rules describe style abstractly; even specifying the mocking library, assertion method, and a nesting-depth limit in words is hard to pin down precisely and still leaves room for divergent interpretation across files - this is the approach already tried without success.",
       "C": "Correct. Concrete few-shot examples show the model the exact desired mocking approach, assertion style, and structure to replicate, rather than describing it abstractly - this directly targets the ambiguity that abstract instructions left unresolved and drives consistent output across files.",
-      "A": "Temperature affects randomness in token sampling, not the model's understanding of which style convention to follow; lowering it does not communicate which mocking approach or assertion method is correct, so inconsistency driven by ambiguous instructions would persist.",
-      "D": "Fragmenting the task across separate prompts addresses workflow structure, not the underlying ambiguity about which conventions to use, and introduces new risk of inconsistency between the merged pieces."
+      "D": "Fragmenting the task across separate sequential prompts and merging the segments addresses workflow structure, not the underlying ambiguity about which conventions to use for mocking, assertions, or nesting, and introduces new risk of inconsistency between the merged pieces."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2374,7 +2383,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-2ee86cfd",
+    "id": "D4.2-40759f76",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
@@ -2464,17 +2473,17 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system is tasked with explaining how the billing pipeline works across a 40,000-file monorepo. The coordinator spawns five subagents, each assigned a different module (invoicing, payments, tax calculation, dunning, and reporting), and instructs each to \"read all relevant files and report back everything you find.\" Each subagent dutifully reads dozens of full files and returns the complete raw file contents to the coordinator so it can write the final explanation.\n\nBy the time the fourth subagent's results arrive, the coordinator's context is dominated by raw source code from the first three modules, and it begins losing track of earlier findings and truncating parts of the conversation. The final synthesized explanation omits key details about the invoicing module even though that subagent's report was accurate and complete when it was submitted.",
     "question": "What change would most effectively fix this context management problem?",
     "options": {
-      "C": "Increase the coordinator's model to one with a larger context window so it can hold all five modules' raw file contents at once.",
-      "D": "Instruct each subagent to keep detailed file exploration within its own context and return only a synthesized summary of key findings to the coordinator, rather than raw file contents.",
-      "B": "Reduce the system to a single agent that explores all five modules sequentially so there is only one context to manage.",
-      "A": "Have subagents use Grep instead of Read for all file exploration so they never load full file contents into their own context."
+      "A": "Have subagents use Grep instead of Read for all file exploration, searching each module for matching function definitions, call sites, and configuration keys, then passing the raw matched lines and snippets forward to the coordinator to assemble into the final explanation.",
+      "B": "Reduce the system to a single agent that explores all five modules sequentially, reading through each module's files in turn and appending its notes to one running document that carries forward as it moves on to the next module.",
+      "C": "Increase the coordinator's model to one with a larger context window, configured to hold each subagent's full raw file contents simultaneously so all five modules' source code remains available while the coordinator drafts the final explanation.",
+      "D": "Instruct each subagent to keep detailed file exploration within its own context and return only a synthesized summary of key findings to the coordinator, rather than raw file contents."
     },
     "correct": "D",
     "explanations": {
-      "C": "Treats context capacity as the bottleneck rather than the actual problem, which is that raw, unsynthesized content is being passed upstream at all; a larger window only delays the same failure and adds unnecessary cost.",
-      "D": "Correct. Each subagent's context is disposable after it finishes its work - detailed exploration should stay isolated there, and only condensed, relevant findings should cross back to the coordinator. This keeps the coordinator's context focused on synthesis rather than raw source code, preventing earlier findings from being crowded out.",
-      "B": "Eliminates the parallelism benefit of the multi-agent design and still accumulates the same volume of raw content in a single context over time, just more slowly.",
-      "A": "Grep alone cannot support the deep understanding needed to explain how a pipeline works across modules; the problem is not the exploration tool but what is returned to the coordinator afterward."
+      "A": "Grep alone cannot support the deep understanding needed to explain how a pipeline works across modules, and matched lines and snippets are still raw, unsynthesized content; the problem is not the exploration tool but the fact that unsynthesized material keeps being passed to the coordinator.",
+      "B": "Eliminates the parallelism benefit of the multi-agent design, and a single running document that keeps accumulating notes from five modules in one context still grows to the same volume of unsynthesized material over time, just more slowly.",
+      "C": "Treats context capacity as the bottleneck rather than the actual problem, which is that raw, unsynthesized content is being passed upstream at all; holding all five modules' raw file contents at once only delays the same failure and adds unnecessary cost.",
+      "D": "Correct. Each subagent's context is disposable after it finishes its work - detailed exploration should stay isolated there, and only condensed, relevant findings should cross back to the coordinator. This keeps the coordinator's context focused on synthesis rather than raw source code, preventing earlier findings from being crowded out."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2482,7 +2491,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-ac5d4550",
+    "id": "D5.4-f3d0ed02",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -2518,17 +2527,17 @@ window.CCARF_BANK = [
     "scenario": "An engineering team uses Claude Code to automatically generate small bug-fix PRs across a monorepo. To manage reviewer load, they route PRs by diff size: fixes under 10 changed lines auto-merge without human review, while anything 10 lines or more is queued for a human reviewer. A post-incident review finds that a 3-line auto-merged change to the payment authorization module silently disabled a fraud check, causing a week of unvalidated transactions, while that same week a 40-line refactor of a logging utility (with no behavioral risk) sat in the human review queue for two days, consuming reviewer time.",
     "question": "What is the most effective way to redesign the review routing?",
     "options": {
+      "A": "Reconfigure the CI diff-size gate to raise the auto-merge threshold from 10 to 20 changed lines, so fixes in that expanded range skip the review queue and merge automatically across every package in the monorepo, cutting reviewer backlog.",
       "B": "Route based on the criticality of the files/paths touched (e.g., always require human review for changes in auth, payment, or security-sensitive modules), reserving size-based auto-merge for lower-risk areas of the codebase.",
-      "A": "Raise the auto-merge threshold to 20 lines so more small fixes bypass review, reducing reviewer backlog.",
-      "D": "Have Claude self-report a confidence score for each generated fix and auto-merge only those above a chosen threshold, regardless of diff size.",
-      "C": "Require every Claude-generated PR to go through human review regardless of size or location, eliminating auto-merge entirely."
+      "C": "Remove the auto-merge path entirely and route every Claude-generated PR, regardless of diff size or which files it touches, into the human reviewer queue with a mandatory sign-off step before the merge button unlocks.",
+      "D": "Have Claude emit a numeric self-reported confidence score alongside each generated diff, then have the CI gate compare that score to a configured threshold and auto-merge any fix whose score clears it, regardless of line count."
     },
     "correct": "B",
     "explanations": {
+      "A": "Widens the auto-merge window by moving the CI diff-size gate's cutoff from 10 to 20 lines, without addressing why the routing signal is wrong, making it more likely that another small, high-impact change to a critical path slips through unreviewed.",
       "B": "Correct. The incident shows diff size is a poor proxy for risk — a tiny change to a critical module caused real harm while a large but low-risk change wasted reviewer time. Routing on the actual risk signal (which code paths are touched) targets human review where it matters and preserves automation elsewhere.",
-      "A": "Widens the auto-merge window without addressing why the routing signal is wrong, making it more likely that another small, high-impact change to a critical path slips through unreviewed.",
-      "D": "Substitutes one weak proxy (diff size) for another (self-reported LLM confidence); confidence scores are not reliably calibrated to actual correctness and would not reliably catch a small change that silently breaks a fraud check.",
-      "C": "Eliminates the size-vs-risk mismatch but overcorrects by removing automation entirely, reintroducing the reviewer bottleneck the routing system was meant to solve, including for genuinely low-risk changes."
+      "C": "Eliminates the size-vs-risk mismatch by sending every PR through mandatory sign-off, but overcorrects by removing automation entirely, reintroducing the reviewer bottleneck the routing system was meant to solve, including for genuinely low-risk changes like the logging refactor.",
+      "D": "Substitutes one weak proxy (diff size) for another (a numeric self-reported confidence score compared against a configured threshold); confidence scores are not reliably calibrated to actual correctness and would not reliably catch a small change that silently breaks a fraud check."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2536,7 +2545,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-c5184f83",
+    "id": "D5.5-a7188db3",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
@@ -2545,16 +2554,16 @@ window.CCARF_BANK = [
     "scenario": "A developer asks Claude Code to generate a migration script for upgrading an internal library from v2 to v3. To scope the change, Claude reads the vendor's CHANGELOG.md (fetched via WebFetch), which states that the function `fetchLegacyToken()` was removed in v3. It then greps the actual vendored source under `node_modules/`, which shows `fetchLegacyToken()` still defined and exported. A linked GitHub issue thread has two conflicting maintainer comments: one says the function was fully removed, the other says it was kept behind a compatibility flag for one more major version.",
     "question": "Given these conflicting sources, what is the best way for Claude Code to produce the migration script and its accompanying summary?",
     "options": {
-      "C": "Trust the changelog as the official source of truth, write the migration script assuming `fetchLegacyToken()` is gone, and omit any mention of the source code or issue thread from the summary.",
-      "A": "Trust the grepped source code as ground truth over the documentation, and silently proceed as if the function is still safe to call, without noting the changelog's claim.",
-      "B": "Write the migration script to feature-detect `fetchLegacyToken()` at runtime rather than assuming either outcome, and include a summary that names each source (changelog, vendored source, issue thread comments) and states explicitly that they disagree, so the developer can confirm before merging.",
-      "D": "Since two of the three sources (changelog and one maintainer comment) indicate the function was removed, proceed on that majority view and generate the script without flagging the disagreement."
+      "A": "Trust the grepped source code in node_modules as ground truth over the documentation, and write the migration script to leave every call site invoking fetchLegacyToken() untouched exactly as it appears in v2, with a summary stating plainly that the function remains available and that no further changes are required for the v3 upgrade.",
+      "B": "Write the migration script to feature-detect fetchLegacyToken() at runtime rather than assuming either outcome, and include a summary that names each source (changelog, vendored source, issue thread comments) and states explicitly that they disagree, so the developer can confirm before merging.",
+      "C": "Trust the changelog as the official source of truth, write the migration script to remove every call site that invokes fetchLegacyToken() and replace each one with the documented v3 replacement function, and present the summary as a straightforward, fully resolved removal that needs no further caveats.",
+      "D": "Tally the three sources, note that two of the three, the changelog and one maintainer comment, agree the function was removed, and write the migration script to drop every fetchLegacyToken call site on that majority basis, presenting the summary as a fully resolved, majority-backed decision that is ready to merge as-is."
     },
     "correct": "B",
     "explanations": {
-      "C": "Privileges one source (the changelog) and discards contradicting evidence found directly in the vendored source code, hiding the conflict from the developer who will merge the change.",
-      "A": "Makes the opposite error of A - it discards the official documentation and one maintainer's comment in favor of the source code snapshot, which could be stale or represent an unreleased state, again hiding a real disagreement.",
+      "A": "Makes the opposite error of C - it discards the official documentation and one maintainer's comment in favor of the source code snapshot, which could be stale or represent an unreleased state, again hiding a real disagreement from the developer by presenting the code-as-written as settled fact.",
       "B": "Correct. When sources genuinely conflict, the safest path is to avoid committing to an unverified assumption in the generated code and to preserve provenance - stating which source said what - so the developer can resolve the ambiguity with full context before merging.",
+      "C": "Privileges one source (the changelog) and discards contradicting evidence found directly in the vendored source code and the issue thread, hiding the conflict from the developer by presenting a clean removal as though no ambiguity existed.",
       "D": "Treating source disagreement as a vote to be tallied is not a valid resolution method - a maintainer's direct clarification about a compatibility flag is qualitatively different from a changelog entry, and averaging away the disagreement hides genuine uncertainty from the developer instead of surfacing it."
     },
     "provenance": {
@@ -2563,7 +2572,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-23d4e156",
+    "id": "D5.6-825f82e6",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
@@ -2572,17 +2581,17 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system investigates a company's projected 2027 revenue growth for an investment memo. Three subagents return figures from different sources: the SEC filings agent extracts 8% from the company's official guidance, the analyst-reports agent finds a 14% consensus estimate from sell-side analysts, and the news agent surfaces a 22% figure from a single optimistic op-ed. The synthesis agent currently outputs one sentence: \"The company is projected to grow revenue by approximately 14% in 2027,\" with no mention of the other two figures or where any number came from.",
     "question": "What is the most effective way to fix how the synthesis agent handles this conflicting information?",
     "options": {
-      "D": "Instruct the synthesis agent to average the three figures (8%, 14%, and 22%) and report the mean as the projected growth rate.",
-      "A": "Instruct the synthesis agent to always defer to the SEC filings agent's figure, since official filings are the most authoritative source type.",
+      "A": "Instruct the synthesis agent to defer to the SEC filings agent's figure and present it as the projected growth rate, since official regulatory filings are the most authoritative source for guidance figures.",
       "B": "Instruct the synthesis agent to report each growth figure alongside its source and note the disagreement between them, rather than presenting a single unattributed number.",
-      "C": "Have the coordinator re-run the news and analyst-reports agents until their figures converge with the SEC filing before synthesis proceeds."
+      "C": "Have the coordinator re-run the news and analyst-reports agents with adjusted prompts until their figures converge with the SEC filing's 8%, then pass only the converged number to the synthesis agent.",
+      "D": "Instruct the synthesis agent to average the three figures (8%, 14%, and 22%) into a single blended growth rate and present that computed mean as the projected 2027 revenue growth figure in the memo."
     },
     "correct": "B",
     "explanations": {
-      "D": "Manufactures a precise-looking number that none of the sources actually reported and erases the fact that the sources meaningfully disagree - the opposite of preserving provenance.",
-      "A": "Silently discards two sources without surfacing the conflict; collapsing to one figure without attribution or acknowledgment of disagreement hides information the reader needs to judge confidence, even if official filings are often the most reliable source type.",
+      "A": "Silently discards two sources without surfacing the conflict; collapsing to one figure without attribution or acknowledgment of disagreement hides information the reader needs to judge confidence, even though official filings are often the most reliable source type.",
       "B": "Correct. When sources genuinely conflict, synthesis should preserve provenance (which source reported which figure) and explicitly flag the disagreement and its magnitude, so downstream readers can judge confidence and weigh the claims themselves rather than receiving a single number stripped of its origin and uncertainty.",
-      "C": "Re-running agents until they converge doesn't resolve a real underlying disagreement between sources - it just discards genuine divergence, and there's no guarantee independent sources with different methodologies will ever agree."
+      "C": "Re-running agents with adjusted prompts until they converge doesn't resolve a real underlying disagreement between sources - it just discards genuine divergence, and there's no guarantee independent sources with different methodologies and different inputs will ever agree.",
+      "D": "Manufactures a precise-looking blended number that none of the sources actually reported and erases the fact that the sources meaningfully disagree - the opposite of preserving provenance."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2590,7 +2599,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-318e36ed",
+    "id": "D5.6-4b45573c",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -2626,15 +2635,15 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system has a coordinator, a web-search agent, a document-analysis agent, and a synthesis agent that compiles the final report. Only during the final compilation step, the synthesis agent needs to apply a lengthy internal citation style guide (source ranking rules, quote-attribution format, footnote numbering) — a capability that is irrelevant to every other stage of the pipeline. The team wants this applied consistently without bloating every agent's system prompt with formatting rules it will rarely need.",
     "question": "Which approach best fits this situation?",
     "options": {
-      "B": "Create a project-scoped slash command, /format-citations, that a user runs manually after the synthesis agent has already produced the report.",
       "A": "Create a skill (e.g., citation-style/SKILL.md) with a description referencing citation formatting and report compilation, so the synthesis agent can discover and invoke it only when it reaches that step.",
-      "C": "Paste the full citation style guide directly into the synthesis agent's system prompt so it is always available with no lookup needed.",
-      "D": "Create a slash command, /format-citations, and add it as a required tool call the coordinator must invoke on every research run before finishing."
+      "B": "Create a project-scoped slash command, /format-citations, that applies the source ranking rules, quote-attribution format, and footnote numbering to the compiled report, run manually by a user after the synthesis agent produces the draft.",
+      "C": "Paste the full citation style guide, including source ranking rules, quote-attribution format, and footnote numbering, directly into the synthesis agent's system prompt so every rule is always loaded and available for every task.",
+      "D": "Create a slash command, /format-citations, covering source ranking rules, quote-attribution format, and footnote numbering, and add it as a required tool call the coordinator must invoke on every research run before finishing."
     },
     "correct": "A",
     "explanations": {
-      "B": "Requires a human to remember a manual, separate step after the fact, defeating the goal of consistent, built-in application as part of the agent's own workflow.",
       "A": "Correct. A skill with a description matching the relevant context lets the agent discover and load the capability on demand, exactly when synthesis reaches the compilation step, instead of carrying the detail everywhere it isn't needed.",
+      "B": "Requires a human to remember a manual, separate step after the fact, defeating the goal of consistent, built-in application as part of the agent's own workflow.",
       "C": "Permanently inflates the synthesis agent's context with detail needed only during one narrow step, the exact overhead an on-demand skill avoids.",
       "D": "Forces a rigid, unconditional invocation every single run regardless of whether the report is actually at the citation-formatting step, and misuses a user-facing slash command as a mandatory pipeline dependency."
     },
@@ -2644,7 +2653,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.2-f0551513",
+    "id": "D3.2-1f63cb66",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -2653,17 +2662,17 @@ window.CCARF_BANK = [
     "scenario": "A multi-agent research system assigns a claim-extraction subagent to pull structured findings (claim_text, source_url, supporting_quote) from web pages into a JSON schema that a synthesis agent later cites in its report. The extraction subagent's output passes JSON schema validation on nearly every run — all required fields are present and correctly typed. However, a manual audit of last week's reports found that in roughly 20% of extracted records, the supporting_quote field does not actually appear anywhere in the source page at source_url; the model fabricated a plausible-sounding quote and attached it to a real URL. Because these records are schema-valid, the pipeline's current retry loop — which only re-invokes the extraction subagent when JSON parsing or schema validation fails — never flags them, and the fabricated citations flow straight into published reports.",
     "question": "What change would most effectively catch this failure mode before reports are published?",
     "options": {
-      "C": "Increase the retry count on schema validation failures so the extraction subagent gets more attempts to produce a well-formed record.",
       "A": "Add a verification step that checks each supporting_quote against the actual text of the page at source_url, and feeds any mismatch back to the extraction subagent as the reason for a retry.",
-      "B": "Set the extraction subagent's temperature to 0 to make its outputs more deterministic and consistent across runs.",
-      "D": "Tighten the JSON schema by adding a regex pattern requiring source_url to be a well-formed URL."
+      "B": "Set the extraction subagent's temperature to 0 and pin a fixed seed, so repeated calls on the same page produce identical claim_text, source_url, and supporting_quote values.",
+      "C": "Increase the retry count on schema validation failures to a higher number, so the extraction subagent gets more attempts to produce a well-formed claim_text, source_url, and supporting_quote record.",
+      "D": "Tighten the JSON schema by adding a regex pattern requiring source_url to be a well-formed URL and requiring supporting_quote to be a non-empty string above a minimum character length."
     },
     "correct": "A",
     "explanations": {
-      "C": "Schema validation already passes on these records — the fabricated quotes are syntactically valid, correctly-typed JSON, so more retries triggered by schema checks will never fire on this failure mode.",
       "A": "Correct. Schema validation only enforces structure, not semantic accuracy. Catching a fabricated-but-well-formed quote requires a separate grounding check that compares the extracted content against the actual source, then routes any mismatch back into the retry loop with the specific discrepancy identified.",
-      "B": "Lowering temperature may reduce variance but does not verify content against a source; the model can still confidently and deterministically fabricate a quote that sounds plausible.",
-      "D": "A URL-format regex only confirms source_url is syntactically a URL — it says nothing about whether the quote attributed to that URL actually exists on the page, so the fabrication passes unchanged."
+      "B": "Lowering temperature and fixing the seed may make the extraction subagent's outputs more deterministic and repeatable across runs, but determinism does not verify content against a source; the model can still confidently and consistently fabricate the same plausible-sounding quote every time.",
+      "C": "Schema validation already passes on these records — the fabricated quotes are syntactically valid, correctly-typed claim_text, source_url, and supporting_quote fields, so giving the extraction subagent more attempts triggered by schema checks will never fire on this failure mode.",
+      "D": "A URL-format regex and a minimum-length check on supporting_quote only confirm source_url is syntactically a URL and that a quote string of adequate size is present — neither checks whether that quote actually appears on the page it's attributed to, so the fabrication passes unchanged."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2671,7 +2680,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-17ebc512",
+    "id": "D4.4-260c23b8",
     "scenarioType": "Multi-Agent Research System"
   },
   {
@@ -2707,17 +2716,17 @@ window.CCARF_BANK = [
     "scenario": "A structured data extraction pipeline uses a schema-defined extraction tool to pull purchase-order fields (vendor, PO number, delivery date, payment terms) from supplier emails. The schema marks every field as required. QA sampling finds that when an email genuinely omits payment terms, the extraction still returns a plausible-looking value such as \"Net 30\" - fabricated to satisfy the schema - and these invented values are flowing into the ERP system.",
     "question": "Which schema change most directly prevents the fabricated values?",
     "options": {
-      "D": "Make fields that may legitimately be absent from the source optional and nullable, so the model can return null when the information is not present.",
-      "A": "Keep all fields required but add a system-prompt instruction telling the model never to guess values.",
-      "B": "Lower the temperature so the extraction is more deterministic and less likely to invent values.",
-      "C": "Add a second required field asking the model to rate its confidence in each extracted value."
+      "A": "Keep all fields required, but add a system-prompt instruction telling the model to write 'unknown' as a placeholder when a field like payment terms is missing from the email.",
+      "B": "Lower the model's temperature toward zero and add a few-shot example showing correct extraction, so extractions become deterministic and less likely to invent plausible values.",
+      "C": "Add a second required field asking the model to output a numeric confidence score alongside each extracted value, flagging low-confidence fields like a fabricated payment term.",
+      "D": "Make fields that may legitimately be absent from the source optional and nullable, so the model can return null when the information is not present."
     },
     "correct": "D",
     "explanations": {
-      "D": "Correct. A required field forces the model to produce something even when the source has nothing. Making absent-able fields optional and nullable removes the structural pressure to fabricate, so a missing value can be represented honestly as null.",
-      "A": "The schema still requires a value, so the structural pressure to produce one remains; a prompt instruction competes with - and loses to - the required-field constraint.",
-      "B": "Temperature changes variability, not the requirement to fill the field; a deterministic model will deterministically fabricate a value when the schema demands one.",
-      "C": "Self-reported confidence is poorly calibrated and does nothing to stop the fabricated value from being produced in the first place."
+      "A": "The schema still requires a value, so the structural pressure to produce one remains; a prompt instruction to write 'unknown' as a placeholder competes with - and loses to - the required-field constraint, and 'unknown' is itself just another fabricated string filling a slot that should be empty.",
+      "B": "Temperature changes variability, not the requirement to fill the field; a deterministic model guided by a few-shot example will deterministically fabricate a value like 'Net 30' when the schema still demands one.",
+      "C": "Self-reported confidence is poorly calibrated and does nothing to stop the fabricated value from being produced in the first place - the pipeline still writes 'Net 30' into the ERP system alongside a confidence score.",
+      "D": "Correct. A required field forces the model to produce something even when the source has nothing. Making absent-able fields optional and nullable removes the structural pressure to fabricate, so a missing value can be represented honestly as null."
     },
     "provenance": {
       "source": "seed-generated",
@@ -2725,7 +2734,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-9f00f65e",
+    "id": "D4.3-0a962374",
     "scenarioType": "Structured Data Extraction"
   },
   {
