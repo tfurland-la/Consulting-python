@@ -3,6 +3,7 @@
 "use strict";
 
 const test = require("node:test");
+const EXAM_BLOCK_SIZE_PAD = 15;
 const assert = require("node:assert/strict");
 
 const A = require("./adaptive.js");
@@ -229,6 +230,37 @@ test("examRegisterPlan spreads the functional questions instead of clustering", 
 test("drawRegister honours the fraction at its extremes", () => {
   assert.equal(A.drawRegister(rngOf(0.99), 0), "named");
   assert.equal(A.drawRegister(rngOf(0.01), 1), "functional");
+});
+
+test("examLengthPlan gives the whole form a posture and hits the target share", () => {
+  const plan = A.examLengthPlan(rngOf(0.5));
+  assert.equal(plan.length, 60);
+  assert.ok(plan.every((p) => p === "longest" || p === "not-longest"));
+  assert.equal(
+    plan.filter((p) => p === "longest").length,
+    Math.round(60 * A.LENGTH_LONGEST_FRACTION),
+  );
+});
+
+test("examLengthPlan spreads the longest-is-correct slots instead of clustering", () => {
+  // Clustered postures are their own tell: a candidate who works out that the
+  // shortcut pays in one stretch of the form can play it there.
+  for (const seed of [1, 7, 42, 20260803]) {
+    const plan = A.examLengthPlan(seededRng(seed));
+    const thirds = [0, 0, 0];
+    plan.forEach((p, i) => {
+      if (p === "longest") thirds[Math.floor(i / 20)] += 1;
+    });
+    assert.ok(
+      thirds.every((n) => n >= 2),
+      `clustered at seed ${seed}: ${thirds}`,
+    );
+  }
+});
+
+test("drawLengthPosture honours the fraction at its extremes", () => {
+  assert.equal(A.drawLengthPosture(rngOf(0.99), 0), "not-longest");
+  assert.equal(A.drawLengthPosture(rngOf(0.01), 1), "longest");
 });
 
 test("examDifficultyPlan yields the 36/15/9 standard/harder/hard-tail spread", () => {
@@ -994,6 +1026,40 @@ test("drawExamBlockedForm returns null rather than a short form", () => {
   // Two questions per (scenario, domain) cannot cover D1's quota of 16.
   const form = A.drawExamBlockedForm(labelledBank(2), freshState(), { rng: rngOf(0.4) });
   assert.equal(form, null);
+});
+
+test("drawExamBlockedForm exhausts the subsets instead of sampling blindly", () => {
+  // It used to pick a random 4-of-6 up to BLOCKED_FORM_ATTEMPTS times. With
+  // only 15 distinct subsets, random draws retry some and never reach others:
+  // the chance of missing a given subset across 24 draws is (14/15)^24 ~ 19%.
+  // Measured against the committed bank that was a 24% fallback rate, and the
+  // fallback is silent — the sitting just quietly stops being blocked, which
+  // is what made it look like blocks were never implemented at all.
+  //
+  // A uniform bank cannot show this: every subset is equally fillable, so
+  // blind sampling always lands somewhere valid. The committed bank is skewed
+  // — three of its six types sit at exactly EXAM_BLOCK_SIZE. Here two types
+  // are "eligible" on total count but hold only D1 questions, so they cannot
+  // cover a block's other domains. That leaves exactly ONE workable 4-subset
+  // of six, which is the case blind sampling misses.
+  const bank = labelledBank(6).filter((q) => {
+    const thin = A.SCENARIO_TYPES.slice(0, 2).includes(q.scenarioType);
+    return !thin || q.domain === "D1";
+  });
+  // Pad the thin types past the eligibility floor so they are still drawn.
+  for (const scenarioType of A.SCENARIO_TYPES.slice(0, 2)) {
+    for (let i = 0; i < EXAM_BLOCK_SIZE_PAD; i++) {
+      bank.push({
+        id: `pad-${scenarioType.slice(0, 4)}-${i}`,
+        taskStatement: "D1.1", domain: "D1", scenarioType, correct: "B",
+      });
+    }
+  }
+  let fellBack = 0;
+  for (let i = 0; i < 80; i++) {
+    if (!A.drawExamBlockedForm(bank, freshState(), {})) fellBack += 1;
+  }
+  assert.equal(fellBack, 0, `fell back to interleaved ${fellBack}/80 times`);
 });
 
 test("drawExamBlockedForm returns null when the bank is unlabelled", () => {

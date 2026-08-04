@@ -60,15 +60,14 @@ by design, not drift.
 ## The exam being modeled
 
 The CCAR-F exam is 60 scenario-based questions, 120 minutes, passing score 720 of
-1000. Questions are grounded in production scenarios. Per exam guide v1.0 §3 the
+1000. Questions are grounded in production scenarios. Exam guide v1.0 §3 says the
 item format is "multiple-choice **and multiple-response** items; each item states
-how many responses to select" — so some real items ask for more than one answer.
+how many responses to select."
 
-**This tool models only single-answer items.** That is a deliberate, known gap,
-not an oversight: the guide publishes no worked multiple-response example (all 12
-of its sample questions are single-answer), so the number of options, how many are
-correct, and whether partial credit applies are all unknown. Modeling it on
-guesswork would misreport readiness. See *Known fidelity gaps* in
+**This tool models single-answer items only, and that matches the exam.** A real
+sitting encountered no multiple-response items, so the guide overstates the
+format. This was previously recorded as a known gap; it is closed. See *Known
+fidelity gaps* in
 [`local_practice_exam_spec.md`](local_practice_exam_spec.md).
 
 ### Domains and weightings

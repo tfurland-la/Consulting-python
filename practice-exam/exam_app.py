@@ -74,7 +74,7 @@ class ExamApi:
         }
 
     def generate(self, task_statement, extra_avoid=None, scenario_type=None,
-                 difficulty="standard", register="named"):
+                 difficulty="standard", register="named", length_posture=None):
         """extra_avoid: summaries of questions generated earlier in the same
         exam form for this statement, so streamed form generation doesn't
         produce within-form near-duplicates. scenario_type pins one of
@@ -86,7 +86,13 @@ class ExamApi:
         register selects named or functional phrasing. The page decides it for
         both the timed exam and the drill: a bank generated only in official
         terminology trains name-recognition rather than mechanism-recognition,
-        which is the gap a real sitting exposed."""
+        which is the gap a real sitting exposed.
+
+        length_posture decides whether the correct option may be the longest of
+        the four. Also page-decided, and for the same structural reason: the
+        margin cap bounds one question, so only a plan across many can hold the
+        rate at which the shortcut pays. None leaves the margin cap as the only
+        constraint."""
         try:
             bank = exam_lib.load_bank()
             avoid = [
@@ -105,6 +111,7 @@ class ExamApi:
                     scenario_type=scenario_type,
                     difficulty=difficulty or "standard",
                     register=register or "named",
+                    length_posture=length_posture,
                 )
             }
         except Exception as err:  # surfaced to the page as a friendly error

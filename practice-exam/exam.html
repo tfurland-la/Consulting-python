@@ -291,6 +291,7 @@ const CCARF_SEED = {
       border-right: 1px solid var(--paper-warm);
     }
     body.exam-blocked #q-task,
+    body.exam-blocked #q-fork,
     body.exam-blocked #q-task-label,
     body.exam-blocked #q-stem,
     body.exam-blocked #q-options,
@@ -305,6 +306,11 @@ const CCARF_SEED = {
     margin-bottom: 8px;
   }
   body:not(.exam-blocked) .scenario-heading { display: none; }
+  /* The branch: the specific situation this question asks about, inside the
+     standing scenario. Distinct from the stem so the two do not read as one
+     undifferentiated block, and empty when there is no fixed scenario. */
+  .fork { color: var(--ink); margin-bottom: 14px; white-space: pre-line; }
+  .fork:empty { display: none; }
 
   /* Mark-through. The toggle is a sibling of the option, never a child: a
      <button> inside a <button> is invalid HTML and gives unreliable clicks and
@@ -417,6 +423,7 @@ const CCARF_SEED = {
       <div class="task-label" id="q-task-label"></div>
       <div class="scenario" id="q-scenario"></div>
       <div class="scenario-heading" id="q-scenario-heading">Scenario</div>
+      <div class="fork" id="q-fork"></div>
       <div class="stem" id="q-stem"></div>
       <div id="q-options"></div>
       <div id="q-feedback"></div>
@@ -452,10 +459,9 @@ const CCARF_SEED = {
         (27/18/20/20/15) · 4 of the 6 exam scenarios · skip and return to any question, mark questions
         for review, change any answer, review before submitting · no feedback until scored. Results
         update your adaptive weights.</p>
-        <p class="note" style="margin-bottom:12px"><strong>Known gap:</strong> the real exam also asks
-        multiple-response questions ("select two"); every question here is single-answer, because the
-        exam guide publishes no multiple-response example to calibrate against. Multi-select items
-        tend to be harder, so treat your score as a floor rather than a prediction.</p>
+        <p class="note" style="margin-bottom:12px">Every question is single-answer, which matches the
+        real exam. The exam guide describes multiple-response items, but a real sitting found none —
+        the guide overstates the format.</p>
         <div class="controls">
           <button class="primary" id="btn-exam-fresh">Fresh questions (readiness gate)</button>
           <button class="primary" id="btn-exam-bank">From the question bank (instant)</button>
@@ -645,7 +651,13 @@ function makeClaudeGenerator(bridge) {
     // time, so there is no sequence to spread across. Drilling is where the
     // official-terminology over-fit was learned, so it gets the mix too.
     const register = A.drawRegister();
-    const res = await bridge.generate(ts, extraAvoid || [], null, tier, register);
+    // Drawn per question rather than planned: the drill has no sequence to
+    // spread a plan across, so the rate holds in expectation over a session
+    // instead of exactly over a form.
+    const lengthPosture = A.drawLengthPosture();
+    const res = await bridge.generate(
+      ts, extraAvoid || [], null, tier, register, lengthPosture
+    );
     if (res.error) throw new Error(res.detail || res.error);
     const question = res.question;
     question.difficulty = tier; // stamp the tier so submitAnswer can log it
@@ -798,7 +810,11 @@ function renderQuestion(question) {
   el("q-task").textContent = question.taskStatement;
   el("q-task-label").textContent =
     `${A.DOMAINS[question.domain]} — ${A.TASK_STATEMENTS[question.taskStatement]}`;
-  el("q-scenario").textContent = question.scenario;
+  // The drill shows the same two parts as the exam, single-column: a branch on
+  // its own is a symptom with no system attached.
+  const view = scenarioPanelFor(question);
+  el("q-scenario").textContent = view.panel;
+  el("q-fork").textContent = view.fork;
   el("q-stem").textContent = question.question;
   el("q-feedback").replaceChildren();
   el("status-note").textContent = question.id ? "" : "Generated question";
@@ -886,7 +902,7 @@ function startBankExam() {
     return;
   }
   el("setup-card").hidden = true;
-  beginExam(form, null);
+  beginExam(form, null, grouped);
   el("status-note").textContent = grouped
     ? "Bank exam, grouped into 4 runs of 15 by scenario type. Unlike a fresh " +
       "exam, the questions in a run do not share one scenario — banked " +
@@ -897,6 +913,20 @@ function startBankExam() {
 
 // The exam's six scenarios are fixed text. health() reports them; adaptive.js
 // mirrors them so the bank exam, which runs with no bridge, can still show one.
+// What the scenario panel shows for one question, and what (if anything) is its
+// branch. Official samples are quoted verbatim from the exam guide and were
+// never written as branches of anything, so pairing one with a fixed scenario
+// would put two overlapping setups on screen; they show their own text and have
+// no branch. A bank substitute dropped into a block is off-scenario for the
+// same reason.
+function scenarioPanelFor(question) {
+  const standalone =
+    question.offScenario ||
+    (question.provenance && question.provenance.source === "official-sample");
+  const fixed = standalone ? null : examScenario(question.scenarioType);
+  return { panel: fixed || question.scenario || "", fork: fixed ? question.scenario : "" };
+}
+
 function examScenario(scenarioType) {
   return (app.examScenarios && app.examScenarios[scenarioType])
     || A.EXAM_SCENARIOS[scenarioType]
@@ -923,6 +953,7 @@ function summarizeForAvoid(question) {
 async function startFreshExam() {
   const difficulties = A.examDifficultyPlan(); // 36 standard / 15 harder / 9 hard, spread
   const registers = A.examRegisterPlan(); // ~45% functional, spread the same way
+  const postures = A.examLengthPlan(); // ~35% longest-is-correct, spread the same way
   // health() reports the generator's scenario list; fall back to the local
   // mirror so a bridge that reports nothing still yields a well-formed draw.
   const allTypes = (app.scenarioTypes && app.scenarioTypes.length)
@@ -945,6 +976,7 @@ async function startFreshExam() {
         scenarioType: block.scenarioType,
         difficulty: difficulties[i],
         register: registers[i],
+        lengthPosture: postures[i],
       });
     }
   });
@@ -994,6 +1026,7 @@ async function prepareForm() {
   }
   const difficulties = A.examDifficultyPlan();
   const registers = A.examRegisterPlan();
+  const postures = A.examLengthPlan();
   const allTypes = (app.scenarioTypes && app.scenarioTypes.length)
     ? app.scenarioTypes
     : A.SCENARIO_TYPES;
@@ -1011,6 +1044,7 @@ async function prepareForm() {
         scenarioType: block.scenarioType,
         difficulty: difficulties[i],
         register: registers[i],
+        lengthPosture: postures[i],
       });
     }
   });
@@ -1097,7 +1131,7 @@ async function generateFormQuestion(form, slot, idSuffix) {
     .filter((q) => q && q.taskStatement === a.ts)
     .map(summarizeForAvoid);
   const res = await app.bridge.generate(
-    a.ts, avoid, a.scenarioType, a.difficulty, a.register
+    a.ts, avoid, a.scenarioType, a.difficulty, a.register, a.lengthPosture
   );
   if (res.error) {
     if (String(res.error).includes("RateLimited")) throw new Error(res.error);
@@ -1257,7 +1291,8 @@ async function sitPreparedForm(meta) {
 async function prepWorker(prep) {
   while (!prep.cancelled && prep.nextSlot < prep.assignments.length) {
     const slot = prep.nextSlot++;
-    const { ts, scenarioType, difficulty, register } = prep.assignments[slot];
+    const { ts, scenarioType, difficulty, register, lengthPosture } =
+      prep.assignments[slot];
     let question = null;
     // Two attempts against the SAME scenario before giving the slot up. A
     // bank substitute carries a different scenario, so every substitution
@@ -1266,7 +1301,7 @@ async function prepWorker(prep) {
       try {
         const extraAvoid = (prep.summariesByTs[ts] || []).slice();
         const res = await app.bridge.generate(
-          ts, extraAvoid, scenarioType, difficulty, register
+          ts, extraAvoid, scenarioType, difficulty, register, lengthPosture
         );
         if (res.error) throw new Error(res.detail || res.error);
         question = res.question;
@@ -1352,7 +1387,7 @@ function beginFreshExam() {
   beginExam(prep.buffer.slice(), prep); // sparse form, materialized on demand
 }
 
-function beginExam(form, prep) {
+function beginExam(form, prep, blocked) {
   app.exam = {
     form,
     prep,
@@ -1381,11 +1416,13 @@ function beginExam(form, prep) {
     timerId: setInterval(renderExamTimer, 1000),
   };
   document.body.classList.add("exam-active");
-  // The split scenario panel is only right for a form whose questions come in
-  // shared-scenario blocks. A bank form's 60 scenarios are all different, so
-  // the panel would repaint every question and the split would just cost stem
-  // width — it stays single-column there.
-  document.body.classList.toggle("exam-blocked", !!(prep && prep.blocks));
+  // The split panel is right for any form whose questions come in
+  // shared-scenario runs — which is now every timed variant, since the bank
+  // path draws blocked forms too. Gating it on `prep` was wrong: the bank
+  // sitting has no prep, so a form that WAS blocked into 4 runs of 15 still
+  // rendered single-column. Callers say whether the form is blocked.
+  const isBlocked = blocked === undefined ? !!(prep && prep.blocks) : !!blocked;
+  document.body.classList.toggle("exam-blocked", isBlocked);
   app.displayedScenario = null; // force the first paint
   el("exam-timer").hidden = false;
   el("results-card").hidden = true;
@@ -1523,10 +1560,10 @@ function renderExamQuestion() {
   // what the real exam holds on screen — and the question's own `scenario` is
   // its branch, which belongs with the question rather than in the panel. A
   // bank substitute is off-scenario, so it falls back to showing its own.
-  const blockScenario = question.offScenario ? null : examScenario(question.scenarioType);
-  setExamScenario(blockScenario || question.scenario);
-  const branch = blockScenario ? question.scenario : "";
-  el("q-stem").textContent = branch ? `${branch}\n\n${question.question}` : question.question;
+  const view = scenarioPanelFor(question);
+  setExamScenario(view.panel);
+  el("q-fork").textContent = view.fork;
+  el("q-stem").textContent = question.question;
   el("q-feedback").replaceChildren();
   el("status-note").textContent = "";
 

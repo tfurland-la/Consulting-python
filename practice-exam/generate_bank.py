@@ -97,6 +97,37 @@ def plan_registers(count, pending, fraction=None):
     return exam_lib.register_plan(count, fraction=owed / count if count else 0)
 
 
+def length_mix(entries):
+    """Realized longest-is-correct counts over a set of entries.
+
+    Measured, never read from a field. Posture is not stamped on a question
+    because it is recoverable from the option text, so unlike the register
+    there is no assigned value that could drift away from the content.
+    """
+    longest = sum(1 for e in entries if exam_lib.longest_option_is_correct(e))
+    return {
+        "longest": longest,
+        "not-longest": len(entries) - longest,
+        "fraction": (longest / len(entries)) if entries else 0.0,
+    }
+
+
+def plan_length_postures(count, pending, fraction=None):
+    """Length postures for `count` new candidates, given what is already pending.
+
+    Same shortfall arithmetic as plan_registers, and for the same reason: a run
+    that dies partway leaves its share owed, and a fresh plan would never repay
+    it. Aimed at pending + this run rather than at the whole bank — correcting
+    the bank's history from one batch would swing a small batch to all-one-
+    posture, and a batch held at the target converges the bank on it anyway.
+    """
+    share = exam_lib.LENGTH_LONGEST_FRACTION if fraction is None else fraction
+    have = length_mix(pending)["longest"]
+    wanted = round((len(pending) + count) * share)
+    owed = max(0, min(count, wanted - have))
+    return exam_lib.length_plan(count, fraction=owed / count if count else 0)
+
+
 def merge_pending(bank, pending):
     """Reviewed pending entries -> committed bank entries.
 
@@ -176,21 +207,29 @@ def generate(per_task, tasks, workers, functional_fraction=None, scenario=None):
     # Registers are spread across the batch, aimed at the fraction over pending
     # + this run so a resumed batch repays whatever the failed one left owed.
     registers = plan_registers(len(work), pending, fraction=functional_fraction)
-    work = [(ts, scenario_type, registers[i])
+    # Length postures likewise. LENGTH_TELL_MAX_RATIO caps one question's
+    # margin; this is what caps how OFTEN the correct option is longest, which
+    # the cap alone never did — generation settles just under it and the rate
+    # climbs while every question stays legal.
+    postures = plan_length_postures(len(work), pending)
+    work = [(ts, scenario_type, registers[i], postures[i])
             for i, (ts, scenario_type) in enumerate(work)]
     print(f"Generating {len(work)} questions across {len(targets)} task statements "
           f"({workers} workers, model {model}, "
-          f"{registers.count('functional')} functional / {registers.count('named')} named)…")
+          f"{registers.count('functional')} functional / {registers.count('named')} named, "
+          f"{postures.count('longest')} longest-is-correct / "
+          f"{postures.count('not-longest')} not)…")
 
     def one(item):
-        ts, scenario_type, register = item
+        ts, scenario_type, register, length_posture = item
         # Summaries of existing questions steer generation away from reusing
         # a premise, option skeleton, or correct-answer rationale.
         avoid = [exam_lib.summarize_for_avoid(b) for b in bank if b["taskStatement"] == ts]
         with lock:
             avoid += [exam_lib.summarize_for_avoid(p) for p in pending if p["taskStatement"] == ts]
         candidate = exam_lib.generate_question(
-            ts, avoid=avoid, scenario_type=scenario_type, register=register
+            ts, avoid=avoid, scenario_type=scenario_type, register=register,
+            length_posture=length_posture,
         )
         entry = exam_lib.attach_provenance(
             candidate, source="seed-generated", model=model, generated_at=today
@@ -212,9 +251,10 @@ def generate(per_task, tasks, workers, functional_fraction=None, scenario=None):
     stop = threading.Event()
 
     def record(item, reason, error):
-        ts, scenario_type, register = item
+        ts, scenario_type, register, length_posture = item
         failed.append({"taskStatement": ts, "scenarioType": scenario_type,
-                       "register": register, "reason": reason, "error": error})
+                       "register": register, "lengthPosture": length_posture,
+                       "reason": reason, "error": error})
 
     def one_statement(ts, queue):
         """Walk one statement's queue in order.
@@ -283,6 +323,16 @@ def merge():
     print(f"  Register mix, whole bank: {whole['functional']} functional / "
           f"{whole['named']} named, {whole['unlabelled']} unlabelled "
           f"(target {exam_lib.FUNCTIONAL_FRACTION:.0%} of labelled)")
+    # The rate the whole exercise exists to hold. Reported on the merged bank
+    # because that is what a bank exam draws from — a batch can sit on target
+    # while the bank it joins does not.
+    batch_len = length_mix(pending)
+    whole_len = length_mix(merged)
+    print(f"  Longest-is-correct, this batch: {batch_len['longest']}/"
+          f"{len(pending)} ({batch_len['fraction']:.0%})")
+    print(f"  Longest-is-correct, whole bank: {whole_len['longest']}/"
+          f"{len(merged)} ({whole_len['fraction']:.0%}, target "
+          f"{exam_lib.LENGTH_LONGEST_FRACTION:.0%}, chance 25%)")
 
 
 def merge_classifications(bank, labels):

@@ -61,6 +61,13 @@ def test_js_functional_fraction_matches_python():
     assert _dump_js_export("FUNCTIONAL_FRACTION") == exam_lib.FUNCTIONAL_FRACTION
 
 
+def test_js_length_longest_fraction_matches_python():
+    """A timed form and a bank refill must hold the same longest-is-correct
+    rate, or the shortcut the bank suppresses reappears on the live exam."""
+    assert (_dump_js_export("LENGTH_LONGEST_FRACTION")
+            == exam_lib.LENGTH_LONGEST_FRACTION)
+
+
 def test_js_primary_domain_map_names_real_domains():
     primary = _dump_js_export("SCENARIO_PRIMARY_DOMAINS")
     assert set(primary) == set(exam_lib.SCENARIO_TYPES)

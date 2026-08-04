@@ -441,7 +441,7 @@ def test_each_question_for_a_statement_sees_its_predecessors(tmp_path, monkeypat
     counter = {"n": 0}
 
     def fake_generate_question(ts, avoid=None, scenario_type=None,
-                               difficulty="standard", register="named", scenario=None):
+                               difficulty="standard", register="named", scenario=None, length_posture=None):
         seen.append((ts, len(avoid or [])))
         counter["n"] += 1
         candidate = make_candidate_for(ts, marker=f"m{counter['n']}")

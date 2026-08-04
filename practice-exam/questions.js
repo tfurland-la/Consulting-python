@@ -283,7 +283,7 @@ window.CCARF_BANK = [
   {
     "taskStatement": "D1.1",
     "domain": "D1",
-    "scenario": "A team builds an autonomous CI/CD agent using Claude Code to fix failing unit tests on pull requests. The agent runs an agentic loop: read the test failure output, edit the relevant source file, re-run the test suite via Bash, and repeat until the tests pass, at which point it commits the fix and reports success. After deployment, engineers notice that roughly 1 in 5 \\\"fixed\\\" pull requests still have failing tests in the actual CI run, even though the agent reported the task as complete and exited its loop.\n\nInvestigation of the agent's transcripts shows that in the failure cases, the agent's final loop iteration edited the code, then reasoned in natural language that \\\"this change should resolve the test failure\\\" and reported success without re-invoking the Bash tool to re-run the test suite and inspect the actual output.",
+    "scenario": "One such agent autonomously fixes failing unit tests: it reads test failure output, edits the source file, re-runs the suite via Bash, and repeats until tests pass, then commits and reports success. In roughly 1 in 5 \"fixed\" pull requests, the actual CI run still fails even though the agent reported success — transcripts show its final iteration edited the code, reasoned \"this should resolve the test failure,\" and reported success without re-invoking Bash to re-run the suite.",
     "question": "What is the most effective change to the agentic loop's design to prevent this failure mode?",
     "options": {
       "A": "Require the loop to terminate only after a Bash call re-runs the test suite and the loop code checks the exit code and output for a pass before allowing a success report.",
@@ -304,13 +304,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-5f4f00b3",
+    "id": "D1.1-e0ef1c84",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.1",
     "domain": "D1",
-    "scenario": "A developer productivity team built an autonomous \"fix failing tests\" agent using Claude Code in CI. The agentic loop repeatedly runs the test suite via Bash, reads the failure output, edits the relevant file with Edit, and reruns the tests - continuing until the suite passes or a fixed cap of 50 iterations is reached. Reviewing a week of CI runs, the team finds several runs hit the full 50-iteration cap on the same failing test: from iteration 10 onward, the agent repeatedly applies a fix, reverts it when a different assertion breaks, then reapplies the original fix, cycling between the same two states for 40 more iterations before the run is terminated by the cap, consuming significant API spend with zero progress after iteration 10.",
+    "scenario": "Your automated fix-failing-tests reviewer runs a loop capped at 50 iterations: run the suite via Bash, read the failure, Edit the file, rerun. Auditing a week of runs, you find several hit the full 50-iteration cap on the same test, oscillating between the same two patches from iteration 10 onward - each fix breaks a different assertion, gets reverted, then reapplied - burning significant API spend with zero progress after iteration 10 until the cap terminates the run.",
     "question": "What is the most effective change to the design of this agentic loop?",
     "options": {
       "C": "Add a stagnation check that compares the error signature across consecutive iterations and terminates the loop early (e.g., escalating to a human) once the same failure repeats without new progress, rather than relying solely on the fixed iteration cap.",
@@ -331,13 +331,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-552d7619",
+    "id": "D1.1-bd025aca",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.1",
     "domain": "D1",
-    "scenario": "A team is building an autonomous data-pipeline monitoring agent using the Claude Agent SDK. Each night, the agent must investigate failed ETL jobs by reading logs, querying a metadata database via MCP tools, identifying root causes, and applying safe remediations (e.g., restarting a job, re-triggering an upstream dependency). The team implements this as a single Claude call per failed job: one large prompt containing all failure context, followed by one tool call selection, with no mechanism for the agent to observe the tool's result before producing its final answer.\n\nIn testing, the agent frequently misdiagnoses issues because it \"commits\" to a remediation before it can see whether an earlier diagnostic tool call actually returned useful data. For example, it calls query_job_metadata, but its final answer is generated without incorporating that tool's actual output, since the loop terminates after a single model turn regardless of tool results.",
+    "scenario": "In load testing, one agent's ETL-remediation loop is implemented as a single Claude call per failed job—one prompt, one tool call, no re-invocation—and logs show it calls query_job_metadata but generates its final remediation before that call's result is available to incorporate.",
     "question": "What is the most important structural change needed to make this agent capable of reliable autonomous task execution?",
     "options": {
       "B": "Implement an actual agentic loop: after each tool call, feed the tool result back to the model and let it continue reasoning and calling tools across multiple turns until the task is complete, rather than stopping after one turn.",
@@ -358,13 +358,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-3e531a08",
+    "id": "D1.1-66ecfa50",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.2",
     "domain": "D1",
-    "scenario": "A coordinator agent orchestrates three subagents in a codebase-modernization pipeline: a code-search subagent (using Grep/Glob to locate all usages of a deprecated API), a refactor subagent (using Read/Edit to rewrite call sites), and a test-runner subagent (using Bash to run the test suite and report results). Each subagent currently returns its complete raw output to the coordinator: the code-search subagent returns the full contents of every matching file, and the test-runner subagent returns the entire raw test log, including all passing test output. After only a few files, the coordinator's context window fills up, it loses track of earlier findings, and it starts producing inconsistent refactor plans.",
+    "scenario": "For a codebase-modernization run, the code-search subagent returns full file contents for every match of a deprecated API, and the test-runner subagent returns the entire raw test log including passing output; after a few files the coordinator's context fills up and it starts producing inconsistent refactor plans.",
     "question": "What is the most effective change to fix this problem?",
     "options": {
       "A": "Have the coordinator persist all raw subagent output, including full file contents and the complete test log, to an external memory store and reload it in full before each new decision.",
@@ -385,13 +385,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-d7fa8b8a",
+    "id": "D1.2-ba1e8cc3",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.2",
     "domain": "D1",
-    "scenario": "A coordinator agent orchestrates a legal-document review pipeline with three subagents: a clause-extraction agent, a risk-analysis agent, and a redline-drafting agent. The coordinator delegates each incoming contract to clause-extraction first, then passes its output to risk-analysis, then to redline-drafting, waiting for each subagent to fully complete before invoking the next. Contracts average 40 pages, and each subagent takes 60-90 seconds, so a single contract takes 4-5 minutes end-to-end even though the subagents partly operate on independent sections of the contract (e.g., risk-analysis of standard boilerplate liability clauses doesn't require clause-extraction's output at all, while risk-analysis of custom negotiated terms does depend on it). The team wants to cut latency without changing what each subagent produces.",
+    "scenario": "The coordinator delegates each 40-page contract to clause-extraction first, then risk-analysis, then redline-drafting, waiting for each subagent to fully complete before invoking the next, so a single contract takes 4-5 minutes end-to-end even though the subagents partly operate on independent sections of the contract.",
     "question": "The team profiles the pipeline and confirms that risk-analysis on standard boilerplate sections does not depend on clause-extraction's output, while risk-analysis on custom negotiated terms does. What is the most effective change to the coordinator's orchestration pattern?",
     "options": {
       "A": "Have the coordinator dispatch all three subagents concurrently at the start of every contract, sending each subagent the full 40-page contract as input and having the coordinator merge their three completed outputs together before finalizing the review.",
@@ -412,13 +412,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-f3a874bc",
+    "id": "D1.2-a1dc0727",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.2",
     "domain": "D1",
-    "scenario": "A multi-agent customer support system uses a coordinator agent that receives incoming tickets and delegates to three subagents: a billing agent, a technical-troubleshooting agent, and a shipping agent. Each subagent has its own scoped toolset and returns a structured result to the coordinator, which then composes the final customer reply. During a product launch, ticket volume triples, and engineers notice the coordinator invokes the billing agent and technical agent sequentially even for tickets that clearly require both (e.g., \"I was charged twice and the app still won't sync after my refund\"), roughly doubling response latency for these mixed tickets compared to single-topic tickets.",
+    "scenario": "Production logs show the coordinator agent invokes the billing agent and technical-troubleshooting agent sequentially even for mixed tickets, roughly doubling response latency for these tickets during the launch traffic spike.",
     "question": "What is the most effective change to reduce latency for tickets that require multiple independent subagents, without compromising reliability?",
     "options": {
       "A": "Modify the coordinator to detect when a ticket requires multiple independent subagents and invoke those subagents concurrently, then synthesize their results once all have returned.",
@@ -439,13 +439,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-f167c6d9",
+    "id": "D1.2-be12c694",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D1.2",
     "domain": "D1",
-    "scenario": "A coordinator agent orchestrates a codebase migration assessment by dispatching four subagents in parallel: one to inventory frontend components, one to map backend API routes, one to document the database schema, and one to review infrastructure configs. Each subagent is instructed to \"report everything you find,\" so each returns its full raw output directly into the coordinator's context - complete file contents, unfiltered grep results, and verbose logs. By the time all four subagents finish, the coordinator's context is nearly exhausted, and the final migration plan it produces is noticeably shallow, omitting details that were clearly present in the subagents' raw output.",
+    "scenario": "You dispatch the web-search, document-analysis, synthesis, and report-generation subagents in parallel for a single research run, instructing each to \"report everything you find\" back to you directly. By the time all four finish, your context is nearly exhausted with their raw output, and the final report you produce is noticeably shallow, omitting details clearly present in what the subagents returned.",
     "question": "What change to the coordinator-subagent pattern would most effectively fix this problem?",
     "options": {
       "A": "Have each subagent write its complete raw findings, full file contents and unfiltered grep results, to a shared file, then have the coordinator read all four files before drafting the migration plan.",
@@ -466,13 +466,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-2178759f",
+    "id": "D1.2-ae1433a1",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.3",
     "domain": "D1",
-    "scenario": "A multi-agent research pipeline uses a coordinator agent that spawns a separate subagent for each subtopic in a report (e.g., \\\"market sizing,\\\" \\\"competitive landscape,\\\" \\\"regulatory risk\\\"). The engineering team configures every subagent invocation to receive the coordinator's entire conversation history up to that point, including all prior tool calls and the outputs of subagents spawned earlier for unrelated subtopics. As the pipeline scales to reports with 8-10 subtopics, later subagents run noticeably slower and more expensively, and their outputs occasionally drift off-topic, echoing details from earlier, unrelated subtopics.",
+    "scenario": "As reports scale to 8-10 subtopics like \"market sizing,\" \"competitive landscape,\" and \"regulatory risk,\" you have the coordinator spawn a separate subagent per subtopic, each receiving the coordinator's full conversation history including earlier subagents' outputs; later subagents run noticeably slower and pricier, occasionally echoing unrelated earlier subtopics.",
     "question": "What change to subagent invocation would most directly fix this problem?",
     "options": {
       "B": "Pass each subagent only the specific task description and inputs it needs for its own subtopic, rather than the coordinator's full conversation history.",
@@ -493,13 +493,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-c857e051",
+    "id": "D1.3-4eb717c7",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.3",
     "domain": "D1",
-    "scenario": "A developer productivity platform uses a lead Claude agent to triage incoming bug reports. For each report, the lead agent spawns a fresh subagent to reproduce the bug: the subagent receives only the bug report text plus a scoped Bash/Read/Grep toolset, with no memory of other bug reports or prior conversation turns. The team wants the reproduction subagent's findings to feed into a second \"fix-writing\" subagent, but currently the lead agent copies the first subagent's entire raw transcript into the second subagent's prompt. This inflates token usage and occasionally passes along irrelevant exploratory dead-ends, such as files opened and discarded during the search.\n\nEngineering wants every subagent invocation to start with a clean, isolated context, while still carrying forward only the essential findings between the reproduction subagent and the fix-writing subagent.",
+    "scenario": "The lead agent triages incoming bug reports by spawning a fresh reproduction subagent per report, scoped to Bash/Read/Grep with no memory of prior turns, then copying its entire raw transcript into a second fix-writing subagent's prompt — inflating tokens and dragging in discarded exploratory dead-ends.",
     "question": "What is the most effective way to pass context from the reproduction subagent to the fix-writing subagent?",
     "options": {
       "A": "Give both subagents access to the same shared conversation history by configuring the lead agent to launch the fix-writing subagent inside the reproduction subagent's existing session, so it can read the full transcript directly, including every file opened and command run during the search.",
@@ -520,13 +520,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-848ef864",
+    "id": "D1.3-5a3594c5",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.3",
     "domain": "D1",
-    "scenario": "A developer productivity team builds a coordinator agent that explores a legacy codebase and spawns a separate subagent for each file to write unit tests. The coordinator's prompt to each subagent is simply \"Write unit tests for this file,\" passing only the file path. Reviewing the outputs, the team finds many subagents generate tests that ignore project-specific conventions discussed earlier in the main session (e.g., the mocking library to use, naming patterns for test files, and a decision to skip integration-style tests), even though the coordinator itself clearly \"knows\" these decisions from earlier in the conversation.",
+    "scenario": "The coordinator spawns one subagent per file in the legacy codebase with the sole instruction \"Write unit tests for this file\" plus the file path. Across the run, most of the resulting test files use the wrong mocking library, don't follow the project's file-naming pattern, and include integration-style tests — all conventions the coordinator itself had already settled on earlier in the conversation.",
     "question": "Why are the subagents producing tests that ignore these conventions, and what is the correct fix?",
     "options": {
       "D": "Subagents run in their own isolated context and do not automatically inherit the coordinator's conversation history; the fix is to explicitly include the relevant conventions and decisions in each subagent's invocation prompt.",
@@ -547,13 +547,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-1146b75c",
+    "id": "D1.3-801e8326",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.3",
     "domain": "D1",
-    "scenario": "A developer is using Claude Code to refactor a legacy billing module. Over several turns in the main conversation, they explore the codebase, identify that InvoiceCalculator.compute() double-applies a discount when a promo code and a loyalty tier overlap, and confirm the fix should live in discount_engine.py. They then spawn a subagent via the Task tool with the prompt: \"Fix the bug we just found and add a regression test.\" The subagent responds by asking which file contains the bug and what the bug actually is, then starts re-exploring the entire repository from scratch, burning several minutes before it can even locate the relevant code.",
+    "scenario": "Reviewing a session log, you see the developer's main-thread turns identify the double-discount bug in InvoiceCalculator.compute() and confirm the fix belongs in discount_engine.py, then spawn a subagent via the Task tool with only \"Fix the bug we just found and add a regression test.\" The subagent's transcript shows it immediately asking which file and what bug, then issuing fresh Grep/Glob calls across the whole repo before finding discount_engine.py.",
     "question": "What is the root cause of the subagent's behavior, and what should the developer do differently?",
     "options": {
       "A": "The subagent was spawned via the Task tool without the Read and Grep tools enabled in its configuration; the developer should explicitly grant Read, Grep, and Glob access when invoking the Task tool so the subagent can search file contents and directory listings to locate discount_engine.py.",
@@ -574,13 +574,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-8b6513bb",
+    "id": "D1.3-d9e4aea9",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.4",
     "domain": "D1",
-    "scenario": "A CI/CD pipeline uses a \"fix\" agent (built on Claude Code with Read/Write/Bash tools) to patch failing unit tests, then hands off to a separate \"deploy\" agent that pushes the change to staging. The orchestrator decides whether to invoke the deploy agent by parsing the fix agent's final natural-language summary for a phrase like \"all tests pass.\" Post-incident review shows that in 8% of runs the deploy agent was invoked even though the test suite had actually failed with a nonzero exit code - the fix agent had read truncated log output and written a summary claiming success.",
+    "scenario": "Here, the \"fix\" agent patches failing unit tests, then a separate \"deploy\" agent pushes to staging; the orchestrator decides whether to invoke deploy by parsing the fix agent's final summary for a phrase like \"all tests pass.\" In 8% of runs, deploy was invoked even though the suite exited nonzero, because the fix agent had read truncated log output and written a summary falsely claiming success.",
     "question": "What is the most effective way to correct the handoff between the fix agent and the deploy agent?",
     "options": {
       "A": "Have the deploy agent send the fix agent a follow-up prompt asking it to re-check the test logs line by line and explicitly restate, in its own words, whether every test passed before the orchestrator triggers the deployment step.",
@@ -601,13 +601,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-5316a0d8",
+    "id": "D1.4-a73bbd3b",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.4",
     "domain": "D1",
-    "scenario": "A multi-agent loan-application pipeline uses an orchestrator to hand off work between three agents: an intake agent that extracts applicant data from submitted documents, a verification agent that checks the applicant against a credit bureau API, and an approval agent that issues the final decision. The intended workflow is strictly sequential: intake produces structured data, verification must confirm the applicant's identity and credit standing, and only then does approval run. The orchestrator's system prompt states this order explicitly and includes examples of correct handoffs.\n\nAn audit of production traces finds that in roughly 8% of applications, the orchestrator hands the approval agent intake data directly, skipping the verification agent entirely, resulting in several loans approved for applicants who were never credit-checked. The orchestrator's logs show no error or exception in these cases - it simply proceeded to approval without invoking verification.",
+    "scenario": "Repurposed for a loan-application pipeline, the coordinator hands off between an intake agent (extracts applicant data), a verification agent (checks identity/credit via a bureau API), and an approval agent, with system-prompt-specified sequential order. An audit finds that in roughly 8% of applications, the coordinator hands intake data directly to the approval agent, skipping verification, with no error in the logs.",
     "question": "What change would most effectively prevent this failure from recurring?",
     "options": {
       "B": "Add a programmatic gate so the approval agent cannot be invoked unless it receives a verification result object (e.g., a verified credit-check token) produced by the verification agent, with the orchestration layer blocking the handoff if that input is missing.",
@@ -628,13 +628,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-5d94d864",
+    "id": "D1.4-1c2cb7bd",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.4",
     "domain": "D1",
-    "scenario": "A loan-processing workflow uses three stages: an intake agent extracts applicant data from submitted documents, an underwriting agent computes a risk score and recommendation, and a disbursement step transfers approved funds. Company policy requires that any loan recommendation above $50,000 be reviewed and explicitly approved by a human loan officer before disbursement proceeds. The underwriting agent's system prompt states: \"If the recommended loan amount exceeds $50,000, pause and wait for human approval before calling the disburse_funds tool.\" Post-launch auditing finds that in 9% of large-loan cases, the agent invoked disburse_funds immediately after generating its recommendation, without any human ever reviewing the case.",
+    "scenario": "The underwriting subagent is given the same policy in its system prompt: pause and wait for human approval before calling disburse_funds when its recommended loan amount exceeds $50,000. Post-launch auditing of the multi-agent system finds that in 9% of large-loan cases, the underwriting agent invoked disburse_funds immediately after generating its recommendation, without any human ever reviewing the case.",
     "question": "What change would most reliably close this gap between policy and actual behavior?",
     "options": {
       "C": "Make disburse_funds programmatically unavailable for loans above $50,000 until a separate, verified human-approval signal has been recorded for that case, so the agent has no code path to invoke it without that handoff.",
@@ -655,13 +655,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-efc7cde6",
+    "id": "D1.4-b94ecaa9",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.4",
     "domain": "D1",
-    "scenario": "A document-processing pipeline built on the Claude Agent SDK handles insurance claims: an intake agent extracts claim data, a validation agent checks it against policy rules, and a payout agent issues approvals. The workflow requires validation to complete and return an explicit \"status: approved\" before the payout agent may run. During a review of production traces, engineers find that in a small but nonzero number of runs, the payout agent executed even though the validation agent's output contained \"status: pending_review\" rather than \"status: approved\" — the intake agent had passed the claim forward after a timeout, and the orchestration logic relied solely on the payout agent's system prompt instructions (\"only proceed if the prior agent approved the claim\") to catch this.",
+    "scenario": "You repurpose the pipeline for insurance claims: the intake agent extracts claim data, the validation agent checks policy rules, and the payout agent issues approvals only after validation returns \"status: approved.\" Traces show a nonzero fraction of runs where intake forwards a claim after a timeout, and the payout agent fires even though validation's output reads \"status: pending_review,\" with orchestration relying only on the payout agent's system prompt to catch this.",
     "question": "What is the most effective change to prevent unapproved claims from reaching the payout agent?",
     "options": {
       "A": "Update the intake agent's system prompt to withhold forwarding until it detects an explicit validation-complete marker, adding a check step before passing the claim along.",
@@ -682,13 +682,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-b2cb744a",
+    "id": "D1.4-71eb367f",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.5",
     "domain": "D1",
-    "scenario": "A structured data extraction agent built on the Claude Agent SDK reads scanned vendor invoices and calls a submit_to_accounting tool that pushes extracted fields (vendor name, invoice date, line-item amounts) into a downstream accounting system. The downstream system requires invoice_date in strict ISO 8601 format and rejects any payload where it isn't, but the model extracts dates in whatever format appears on the source document (MM/DD/YYYY, DD-MM-YYYY, \\\"March 3, 2026\\\", etc.), and roughly 20% of submissions fail downstream validation or, worse, silently post an ambiguous date (e.g., 03/04/2026) as the wrong calendar date.\n\nThe team wants a fix that guarantees every payload reaching submit_to_accounting has a correctly normalized, schema-valid invoice_date, without depending on the model reliably following formatting instructions.",
+    "scenario": "Reviewing the accounting integration logs, you find that this month's submit_to_accounting calls for scanned vendor invoices show invoice_date arriving in whatever format appeared on the source document — MM/DD/YYYY, DD-MM-YYYY, or written dates like \"March 3, 2026\" — and 20% of these submissions either fail the downstream system's strict ISO 8601 validation or silently post an ambiguous date like 03/04/2026 under the wrong calendar date.",
     "question": "What is the most effective way to guarantee this?",
     "options": {
       "A": "Update the system prompt with explicit instructions and a worked example showing how MM/DD/YYYY, DD-MM-YYYY, and written dates like March 3, 2026 should each be converted to ISO 8601 before the model calls submit_to_accounting.",
@@ -709,13 +709,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-9f7cd567",
+    "id": "D1.5-77e05840",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.5",
     "domain": "D1",
-    "scenario": "A structured-data-extraction agent built on the Claude Agent SDK uses an MCP tool, fetch_vendor_record, to pull invoice records from twelve different vendor procurement systems. Each vendor returns dates and currency values in a different raw format (e.g., \\\"03/14/2026\\\" vs \\\"14-03-2026\\\" vs \\\"2026-03-14\\\"; \\\"$1,204.50\\\" vs \\\"1204.5 USD\\\" vs \\\"USD 1204,50\\\"). The downstream finance system requires every record to be normalized to ISO 8601 dates and integer USD cents before it is written to the final JSON output.\n\nThe team's current approach is a system prompt instruction telling the agent to \\\"always normalize dates to ISO 8601 and currency to integer cents before including a field in the output.\\\" Post-deployment validation shows 18% of extracted records still contain malformed dates or currency values, concentrated in ambiguous formats like \\\"03/04/2026\\\" where the agent guesses month-first vs day-first inconsistently.",
+    "scenario": "Your extraction agent calls an MCP tool, fetch_vendor_record, to pull invoice data from twelve vendor procurement systems, each returning dates and currency in different raw formats (e.g., \"03/14/2026\" vs \"14-03-2026\"; \"$1,204.50\" vs \"1204.5 USD\"). Post-deployment validation shows 18% of records still have malformed ISO 8601 dates or non-integer-cent currency, concentrated in ambiguous formats like \"03/04/2026\" where the agent guesses month-first vs day-first inconsistently.",
     "question": "What is the most effective way to fix the normalization failures?",
     "options": {
       "A": "Instruct the agent to validate its extracted output against the JSON schema, checking that each date matches the ISO 8601 pattern and each currency value is an integer, and self-correct any malformed fields before finalizing the record.",
@@ -736,13 +736,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-49aee0ec",
+    "id": "D1.5-cc1a9e10",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.5",
     "domain": "D1",
-    "scenario": "A Claude Agent SDK pipeline extracts structured data from scanned invoices and calls a submit_invoice_record tool to write each record into a downstream accounts-payable database. The database column for invoice_date requires strict ISO 8601 format (YYYY-MM-DD), but the model sometimes emits dates as \"03/14/2026\", \"March 14, 2026\", or \"14-03-2026\" depending on how the date appeared on the source document. These malformed values pass the model's own reasoning but fail the database's schema constraint, causing roughly 8% of submissions to silently fail and get dropped from the accounts-payable queue.",
+    "scenario": "Reviewing submit_invoice_record calls for scanned invoices, you find that the invoice_date field arrives as \"03/14/2026\", \"March 14, 2026\", or \"14-03-2026\" depending on the source document, and roughly 8% of submissions silently fail the downstream database's strict ISO 8601 (YYYY-MM-DD) constraint and get dropped from the accounts-payable queue, even though the model's own reasoning about the date is correct.",
     "question": "What is the most effective way to eliminate these downstream failures?",
     "options": {
       "A": "Update the system prompt to explicitly instruct the model to always format dates as YYYY-MM-DD before calling submit_invoice_record, adding a formatting rule with an example conversion and a reminder to double-check the invoice_date field against the ISO 8601 pattern before submission.",
@@ -763,13 +763,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-b4b4570b",
+    "id": "D1.5-8fe81b92",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.6",
     "domain": "D1",
-    "scenario": "A team is building an agentic workflow to process quarterly vendor contract renewals. The single-agent design is given one instruction: \"review the contract packet (terms sheet, redline history, and compliance checklist) and produce a renewal recommendation.\" In testing, the agent produces inconsistent recommendations - sometimes it thoroughly checks compliance but skims the redline history, other times it does the reverse. Output quality varies significantly across runs of the same contract, and the agent occasionally fails to flag known compliance red flags that are clearly present in the checklist.\n\nThe team is deciding how to restructure this into a more reliable workflow before scaling it to hundreds of contracts per quarter.",
+    "scenario": "You repurpose this pipeline for quarterly vendor contract renewals: one agent must review the terms sheet, redline history, and compliance checklist and produce a renewal recommendation. Testing shows output quality swings run to run - sometimes redline history gets skimmed, sometimes the compliance checklist does - and known compliance red flags in the checklist are occasionally missed entirely.",
     "question": "What is the most effective task decomposition strategy for this workflow?",
     "options": {
       "A": "Rewrite the single instruction into a longer, more detailed prompt that explicitly lists all three review areas—compliance checklist, redline history, and terms sheet—with guidance for each, while still asking one agent to produce the full recommendation in a single pass.",
@@ -790,13 +790,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-eb866331",
+    "id": "D1.6-1d1f89c0",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.6",
     "domain": "D1",
-    "scenario": "A team is building a multi-agent workflow to produce quarterly competitive analysis reports. The coordinator decomposes the task into a fixed pipeline of three sequential subtasks: \"gather competitor pricing data,\" \"gather competitor feature data,\" and \"write the final report.\" In practice, some competitors have just launched new products (requiring a product-launch analysis subtask), others have had recent executive changes (requiring a leadership-analysis subtask), and some have neither. Because the decomposition is fixed regardless of input, the pipeline either wastes time running irrelevant subtasks for simple competitors or omits highly relevant analysis for competitors with major recent news, and the coordinator has no mechanism to adjust the subtask list once a run begins.",
+    "scenario": "For a quarterly competitive analysis run, the coordinator's system prompt fixes a three-step pipeline per competitor - \"gather pricing data,\" \"gather feature data,\" \"write the report\" - but some competitors have just launched new products or had executive changes, and the coordinator cannot add subtasks once a run starts.",
     "question": "What change to the task decomposition strategy would most effectively address this problem?",
     "options": {
       "A": "Have the coordinator first assess each competitor's available signals and dynamically generate the set of subtasks needed for that specific competitor, rather than always running the same fixed three-step pipeline.",
@@ -817,13 +817,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-f6a65197",
+    "id": "D1.6-0b615ff3",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.6",
     "domain": "D1",
-    "scenario": "A team is using Claude Code to migrate a 300-file codebase from a legacy ORM to a new one. The migration involves a small set of shared base model classes that many files depend on, plus a long tail of independent leaf files (simple data models with no cross-file dependencies). An engineer's first attempt spawned one subagent per file, all running in parallel with a shared prompt describing the migration rules. The result was chaos: subagents working on leaf files imported from base classes mid-migration, producing files that mixed old and new ORM APIs, and several subagents made conflicting edits to the same shared base class file at once.",
+    "scenario": "Your team's first attempt at migrating the 300-file legacy-ORM codebase spawned one subagent per file, all in parallel with a shared prompt; leaf files imported from base classes mid-migration, mixing old and new ORM APIs, and several subagents made conflicting edits to the same shared base class file at once.",
     "question": "What task decomposition strategy would best resolve this failure?",
     "options": {
       "A": "Split the 300 files into 10 equal-sized alphabetical batches of 30 files each, assigning one subagent per batch to run in parallel, with each subagent updating the imports, base class references, and ORM method calls across its own batch of files.",
@@ -844,13 +844,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-95e49d0b",
+    "id": "D1.6-9a651851",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D1.6",
     "domain": "D1",
-    "scenario": "A team uses Claude Code to rename a widely-used function signature across a 200-file legacy codebase. The function is overloaded, and roughly 15% of call sites are ambiguous about which overload applies, requiring a judgment call. To parallelize the work, they split the 200 files into 10 batches of 20 files each based purely on file count, then run one agent per batch concurrently with Read/Grep/Edit access. After merging, review finds that files sharing the identical ambiguous call pattern were resolved differently depending on which batch they landed in - one batch's agent treated the pattern as overload A, while another batch's agent treated the same pattern as overload B - producing inconsistent, incompatible edits that fail the build.",
+    "scenario": "Tasked with renaming an overloaded function signature across a 200-file legacy codebase, you split the files into 10 batches of 20 by file count alone and run one agent per batch with Read/Grep/Edit access; roughly 15% of call sites are ambiguous about which overload applies. Post-merge review shows the identical ambiguous pattern was resolved as overload A in one batch and overload B in another, breaking the build.",
     "question": "What change to the decomposition strategy would most directly prevent this kind of inconsistency?",
     "options": {
       "D": "Group files by shared dependency/decision context - files containing the same ambiguous call pattern go into the same subtask - so each judgment call is made once, consistently, within a single agent's context, then parallelize across those groups instead of arbitrary file-count batches.",
@@ -871,13 +871,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-151e5d7f",
+    "id": "D1.6-8373a628",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.7",
     "domain": "D1",
-    "scenario": "A developer productivity team uses the Claude Agent SDK to power a long-running coding assistant. A session has already spent significant time exploring a large legacy codebase with Read/Grep/Glob, building up substantial context about module boundaries and dependencies. At this point, the developer wants to try two competing refactoring strategies (extract-service vs. extract-library) and compare their outcomes before committing to one, without losing the exploration work already done or letting the two attempts interfere with each other.",
+    "scenario": "Metrics on this session show the agent has already burned through dozens of turns using Read/Grep/Glob to map module boundaries and dependencies across the legacy codebase. The developer now wants to try two competing refactoring strategies — extract-service vs. extract-library — and compare their outcomes before committing to one, without losing the exploration work already done or letting the two attempts interfere with each other.",
     "question": "What is the most effective way to manage session state for this comparison?",
     "options": {
       "D": "Fork the current session at this point into two child sessions, each inheriting the accumulated exploration context, and let each pursue one refactoring strategy independently.",
@@ -898,13 +898,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-ddb5be6f",
+    "id": "D1.7-fbf9aaee",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.7",
     "domain": "D1",
-    "scenario": "A developer productivity team uses the Claude Agent SDK to build an internal \"migration assistant\" agent for a legacy monolith. Each session begins with a costly 20-minute exploration phase: the agent reads dozens of files with Read/Grep/Glob, maps module dependencies, and builds up conversational context before proposing any changes. After this exploration phase completes for a given module, an engineer wants to try two different migration strategies (e.g., extracting a service vs. wrapping the module with an adapter) starting from that same explored state, without paying the exploration cost twice.\n\nThe team also wants to guarantee that if both strategies turn out to be dead ends, they can still return to the original session exactly as it stood right after exploration, rather than losing that context or having it polluted by either strategy's changes.",
+    "scenario": "On one legacy module, the agent has just wrapped up a 20-minute exploration phase — dozens of Read/Grep/Glob calls mapping dependencies — before proposing any changes. The engineer now wants to try both extracting the module into a standalone service and wrapping it with an adapter, starting from that same explored state each time, and wants a guaranteed fallback to the original post-exploration session untouched if both attempts turn out to be dead ends.",
     "question": "What is the most effective way to structure session state management for this workflow?",
     "options": {
       "A": "Use the SDK's session resumption feature to reload the same session ID for each strategy attempt, re-running the Read/Grep/Glob exploration and dependency mapping each time so the agent rebuilds context before proposing either approach.",
@@ -925,13 +925,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-34af8de6",
+    "id": "D1.7-85cb5772",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.1",
     "domain": "D2",
-    "scenario": "A developer productivity agent built on the Claude Agent SDK has two MCP tools for locating code: search_codebase (\"Searches the codebase\") and grep_files (\"Searches files for matches\"). In production usage, the agent calls search_codebase for nearly every lookup, including simple, exact-string searches like finding a specific function name or config key. search_codebase performs a slower semantic embedding search, so these calls add unnecessary latency and cost for tasks a fast literal grep_files match would resolve in milliseconds.",
+    "scenario": "You wired grep_files and search_codebase into the agent's MCP toolset for codebase lookups. A production trace review finds that on exact-string queries, such as function names and config keys, the agent calls search_codebase's slower embedding search 9 times out of 10 instead of grep_files.",
     "question": "What is the most effective first step to fix this tool selection problem?",
     "options": {
       "A": "Insert a pre-processing classifier that labels each incoming query as \"exact\" or \"semantic\" by checking for quoted literals, identifier casing such as camelCase or snake_case, or file-path syntax, then exposes only the matching tool to the agent for that call.",
@@ -952,13 +952,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-f5bf1d6d",
+    "id": "D2.1-7557c555",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.1",
     "domain": "D2",
-    "scenario": "A structured data extraction pipeline processes scanned vendor documents using two MCP tools, extract_purchase_order and extract_invoice, each returning JSON matching a schema required by the downstream accounts-payable system. Their descriptions read \"Extracts structured data from a purchase order\" and \"Extracts structured data from an invoice,\" with no further guidance. Production monitoring shows the agent frequently calls extract_invoice on scanned purchase orders that lack a clear header, and downstream schema validation rejects roughly 18% of records because the extracted schema's document_type field doesn't match what the accounts system expects for that document.",
+    "scenario": "Among your MCP tools are extract_purchase_order and extract_invoice, described only as \"Extracts structured data from a purchase order\" and \"Extracts structured data from an invoice.\" Monitoring shows the agent frequently calls extract_invoice on scanned purchase orders lacking a clear header, and 18% of resulting records are rejected because the extracted document_type field doesn't match what the accounts-payable system expects.",
     "question": "What is the most effective first step to reduce these tool-selection errors?",
     "options": {
       "A": "Add a downstream JSON schema validation step keyed on the document_type field that automatically detects a mismatch and retries the extraction by invoking the other tool, logging each correction for the monitoring dashboard.",
@@ -979,13 +979,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-2c2ffc44",
+    "id": "D2.1-9a4377fc",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.1",
     "domain": "D2",
-    "scenario": "A structured data extraction pipeline processes incoming vendor invoices using an MCP server with two tools: parse_document, described as \"Parses a document and returns its contents,\" and extract_line_items, described as \"Extracts line items from a document.\" Both tools accept a raw document string and return JSON. Log review shows that for invoices with multi-page itemized tables, the agent frequently calls only parse_document and passes its generic output straight to the downstream billing system, omitting the structured per-item quantities and unit prices that extract_line_items would have produced. This causes 20% of downstream billing records to be missing itemized detail required for reconciliation.",
+    "scenario": "Among the system's MCP tools are parse_document, described as \"Parses a document and returns its contents,\" and extract_line_items, described as \"Extracts line items from a document.\" Log review shows the agent frequently calls only parse_document on multi-page itemized invoices, passing generic output to billing and omitting per-item quantities and unit prices, leaving 20% of records missing itemized detail.",
     "question": "What is the most effective first step to fix this tool selection problem?",
     "options": {
       "A": "Rewrite both tool descriptions to state their distinct purposes, input expectations, and when to use one versus the other (e.g., parse_document for general text/metadata, extract_line_items specifically for itemized tables with quantities and unit prices), so the agent can distinguish them from the tool description alone.",
@@ -1006,13 +1006,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-f6ab28ff",
+    "id": "D2.1-7e94c6ba",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.2",
     "domain": "D2",
-    "scenario": "A Developer Productivity agent uses an MCP tool run_migration to apply database schema migrations during automated task execution. When a migration fails, the tool currently returns a bare string: \"Error: exit code 1\". Logs show the agent's downstream behavior is inconsistent — sometimes it retries the same failing migration in a loop, sometimes it tells the user the database is unreachable when the real cause was a syntax error in the migration file, and sometimes it silently proceeds to the next task as if the migration succeeded.\n\nThe team wants the agent to reliably distinguish between transient failures (worth retrying), user-fixable errors (like SQL syntax mistakes, which should stop and surface a clear message), and permission errors (which should escalate rather than retry), without relying on the model to infer intent from a free-text string.",
+    "scenario": "Metrics show your run_migration MCP tool returns the bare string \"Error: exit code 1\" on failure, and downstream the agent inconsistently retries in a loop, blames an unreachable database for what was actually a SQL syntax error, or silently moves on as if the migration succeeded.",
     "question": "What is the most effective change to the run_migration tool's error handling to fix this?",
     "options": {
       "A": "Add a line to the system prompt instructing the agent to classify migration errors as transient, validation, or permission issues by scanning the returned error string for keywords such as timeout, syntax, or denied, then choosing to retry, stop, or escalate based on that inferred category.",
@@ -1033,13 +1033,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-eb7207fa",
+    "id": "D2.2-65e21cf7",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.1",
     "domain": "D2",
-    "scenario": "A Claude Code agent used for developer productivity has two MCP database tools: query_database and run_migration. Both descriptions simply read \"Executes SQL against the application database.\" Logs show that when engineers ask things like \"how many rows are in the orders table right now?\" or \"check if the users table has a status column,\" the agent sometimes calls run_migration instead of query_database, running schema-inspection statements through the migration pathway. No data has been lost yet, but the migration tool logs each call as a schema change event, corrupting the migration history and once triggering a lock on the orders table during a deploy window. A human-approval gate already fronts every run_migration call - which is how these stray calls keep getting caught before damage is done - but the misrouted attempts continue.",
+    "scenario": "Your query_database and run_migration MCP tools both carry the description \"Executes SQL against the application database.\" Logs show read-only requests like row counts or column checks are sometimes routed to run_migration, corrupting migration history and once locking the orders table during a deploy window.",
     "question": "What is the most effective fix to stop the agent from routing read-only requests to run_migration?",
     "options": {
       "A": "Remove run_migration from the agent's toolset and require engineers to run migrations manually outside the agent, using the deploy pipeline's existing schema-migration command so every schema change still goes through version control and the human-approval gate before touching the application database.",
@@ -1060,13 +1060,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-2c007212",
+    "id": "D2.1-6aaa4c2e",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.2",
     "domain": "D2",
-    "scenario": "An insurance claims agent uses an MCP tool, lookup_policy, to retrieve policy details before processing a claim. Currently, any failure in the tool — an invalid policy ID format, a policy that doesn't exist, or a timeout from the backend policy database — returns the same plain-text string: \"Error: could not complete request.\" Logs show the agent behaves inconsistently across these cases: sometimes it tells the customer their policy doesn't exist when the real cause was a transient database timeout, sometimes it asks the customer to resubmit a validly formatted ID because it misreads a not-found error as a formatting issue, and sometimes it retries indefinitely on a permanent not-found error.\n\nThe team wants the agent to react appropriately and consistently to each distinct failure mode without guessing at the cause from a generic message.",
+    "scenario": "Your escalate_to_human tool is fine, but your lookup_policy MCP tool sits behind the same insurance claims backend, and logs show it collapses invalid policy ID formats, not-found policies, and database timeouts into one string, \"Error: could not complete request,\" causing the agent to misdiagnose the failure and sometimes retry a permanent not-found error indefinitely.",
     "question": "What is the most effective way to fix this?",
     "options": {
       "A": "Wrap all tool failures in a single friendly JSON payload with one message field, \"Something went wrong, please try again,\" produced by a catch-all exception handler in the tool's response layer so every invalid-input, not-found, and timeout case returns identical text to the agent and customer.",
@@ -1087,13 +1087,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-1d55e0be",
+    "id": "D2.2-390a4269",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D2.3",
     "domain": "D2",
-    "scenario": "A structured data extraction pipeline processes scanned invoices. Claude has two tools available: extract_invoice_data (for well-formed invoices, populating a JSON schema for the billing system) and flag_for_review (for illegible, non-invoice, or incomplete documents, routing them to a human queue). The pipeline currently uses the default tool_choice setting. Logs show that on roughly 8% of documents, Claude responds with a plain-text explanation of why the document is problematic instead of calling either tool, which crashes the downstream parser expecting a tool call.",
+    "scenario": "For the invoice-extraction pipeline, Claude has two tools, extract_invoice_data and flag_for_review, with tool_choice left on its default setting. Logs show that on roughly 8% of documents Claude instead returns a plain-text explanation of the problem, calling neither tool, which crashes the downstream parser expecting a tool call.",
     "question": "What is the most effective way to configure tool_choice to fix this failure mode while preserving the correct extract vs. flag routing decision?",
     "options": {
       "A": "Set tool_choice to force the specific extract_invoice_data tool on every request, since that is the primary business-critical path.",
@@ -1114,13 +1114,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.3-a61fb467",
+    "id": "D2.3-c8e39de6",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.3",
     "domain": "D2",
-    "scenario": "A customer support pipeline has two agents: a triage agent that must categorize every incoming ticket by calling categorize_ticket before anything else happens, and a resolution agent with five tools (lookup_order, process_refund, update_shipping, send_email, escalate_to_human) that handles the actual customer request after triage. Production logs show the triage agent works correctly for straightforward tickets but roughly 8% of the time responds directly with a conversational message instead of calling categorize_ticket, causing those tickets to skip categorization and enter the resolution agent unclassified.",
+    "scenario": "Logs show your triage step, which calls categorize_ticket before the resolution agent's five tools run, skips that call and returns a conversational reply instead in roughly 8% of incoming tickets.",
     "question": "What is the most effective way to guarantee the triage agent always invokes categorize_ticket before producing any other output, while keeping the resolution agent's tool usage flexible?",
     "options": {
       "C": "Set the triage agent's tool_choice to force the categorize_ticket tool specifically, while leaving the resolution agent's tool_choice set to auto across its five tools.",
@@ -1141,13 +1141,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.3-404b6fa5",
+    "id": "D2.3-df5007a3",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D2.2",
     "domain": "D2",
-    "scenario": "A Structured Data Extraction pipeline uses an MCP tool submit_invoice to push validated invoice records to an accounting system. Currently, any failure - a malformed field, an expired auth token, or a downstream service timeout - is returned to the agent as the same generic string: \\\"Error: could not submit invoice.\\\" Production logs show the agent responds inconsistently: sometimes it retries a permission failure a dozen times (which can never succeed without human intervention), and sometimes it gives up immediately on a transient timeout that a simple retry would have resolved.\n\nThe team wants the agent to make the correct decision - fix the input, retry, or escalate to a human - based on the type of failure, without a person manually reading logs for every case.",
+    "scenario": "The pipeline's submit_invoice tool, used to push validated records downstream, returns the same generic \"Error: could not submit invoice.\" string whether the failure is a malformed field, an expired auth token, or a service timeout. Logs show the agent sometimes retries an auth failure a dozen times and sometimes abandons a timeout immediately, with no one manually reading logs to sort cases.",
     "question": "What is the most effective way to fix submit_invoice so the agent can reliably choose the right recovery action?",
     "options": {
       "A": "Wrap every failure in a single generic \"Tool execution failed\" message, and add system prompt instructions telling the agent to retry a fixed number of times before escalating any unresolved failure to a human.",
@@ -1168,13 +1168,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-5da90b32",
+    "id": "D2.2-9f2b349f",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.3",
     "domain": "D2",
-    "scenario": "A structured data extraction pipeline processes scanned invoices. The agent has two tools: extract_line_items (parses vendor, amounts, and line items into a JSON schema) and validate_schema (checks the extracted JSON against downstream system requirements). Tool choice is currently left at the default \"auto\" setting. Logs show that on roughly 20% of invoices, the model responds with a prose summary of the invoice contents instead of calling extract_line_items, especially when the invoice has an unusual layout - breaking the downstream parser, which expects a tool call every time.",
+    "scenario": "Monitoring the invoice-extraction pipeline, whose extract_line_items tool is left at the default \"auto\" tool_choice, you find that on roughly 20% of scanned invoices the model returns a prose summary instead of calling extract_line_items, especially when the invoice layout is unusual — breaking the downstream parser, which expects a tool call every time.",
     "question": "What is the most effective way to guarantee that extract_line_items is invoked on every invoice, regardless of layout?",
     "options": {
       "A": "Set tool_choice to force the model to call extract_line_items specifically, rather than leaving it on \"auto.\"",
@@ -1195,13 +1195,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.3-584e4210",
+    "id": "D2.3-3427b321",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.4",
     "domain": "D2",
-    "scenario": "A platform team configures a Claude Code-based incident investigation agent for their developer productivity workflow. They connect an MCP server for their observability platform, which exposes four tools: query_logs, query_metrics, restart_service, and scale_deployment. The investigation agent's job is limited to helping engineers understand \"what happened\" during an incident by reading logs and metrics - any remediation (restarting or scaling services) is handled by a separate, human-approved on-call runbook process that is not part of this agent's workflow.\n\nDuring review, the team notices the investigation agent occasionally calls restart_service when an engineer phrases a question ambiguously (e.g., \"can we fix the crash loop?\"), even though remediation was never intended to be part of this workflow.",
+    "scenario": "Connected via MCP, the observability server exposes query_logs, query_metrics, restart_service, and scale_deployment. Reviewing the investigation agent's transcript, you find that when an engineer asks \"can we fix the crash loop?\" it calls restart_service, even though remediation was meant to stay with the human-approved on-call runbook.",
     "question": "What is the most effective way to configure the MCP integration to prevent this?",
     "options": {
       "D": "Connect the MCP server but enable only query_logs and query_metrics for the investigation agent's configuration, leaving restart_service and scale_deployment available exclusively to the separate, approved runbook workflow.",
@@ -1222,13 +1222,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-171acc87",
+    "id": "D2.4-b89ed1ca",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.4",
     "domain": "D2",
-    "scenario": "A finance operations team is extending an internal agent workflow that already has tools for sending customer emails and processing refunds, built on the Claude Agent SDK. An engineer finds a community-published MCP server that wraps their accounting platform's API, exposing tools like create_invoice, void_transaction, and export_ledger. Because the MCP server would let the agent close a gap in the current workflow (reconciling refunds against the ledger automatically), the engineer wants to wire it directly into the production agent so it can be used on the next deploy.",
+    "scenario": "While extending the agent so it can automatically reconcile refunds against the ledger, an engineer finds a community-published MCP server wrapping the accounting platform's API, exposing tools like create_invoice, void_transaction, and export_ledger. Because wiring it in would close this reconciliation gap, the engineer wants to add it directly to the production agent's toolset alongside the existing customer-email and refund-processing tools for the next deploy.",
     "question": "What should happen before this third-party MCP server is integrated into the production agent workflow?",
     "options": {
       "D": "Review the server's source code and the permissions its tools require, test it in an isolated environment first, and grant it only the minimum tool scope the workflow actually needs before adding it to production.",
@@ -1249,13 +1249,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-01228b23",
+    "id": "D2.4-2444fe4c",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.4",
     "domain": "D2",
-    "scenario": "A platform team wants every engineer on a 40-person team to have consistent access to an internal Jira MCP server from Claude Code, so agents can look up and update tickets while exploring the codebase. The team needs the same server available to everyone who clones the repo, without engineers manually reconfiguring their own machines, and without an API token ending up readable by anyone who checks out the repository.\n\nA junior engineer proposes committing an .mcp.json file to the repo root with the server's command and a hardcoded Jira API token in the args, reasoning this guarantees every teammate gets the exact same working configuration the moment they clone the repo.",
+    "scenario": "While using the SDK to help engineers explore an internal codebase, your 40-person platform team wants everyone to get the same Jira MCP server access on clone, without manual per-machine setup or an API token becoming readable to anyone who checks out the repo. A junior engineer proposes committing an .mcp.json file to the repo root with the server's command and a hardcoded Jira API token in the args.",
     "question": "What is the most effective way to integrate this MCP server for the team while addressing the credential-exposure risk?",
     "options": {
       "B": "Commit a project-scoped .mcp.json that defines the Jira server and references the token via an environment variable rather than a literal value, so the configuration is shared through version control while each engineer supplies their own credential locally.",
@@ -1276,13 +1276,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-749acf92",
+    "id": "D2.4-a9ff6caf",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.5",
     "domain": "D2",
-    "scenario": "A developer asks Claude Code to deprecate an internal helper function, formatLegacyDate(), and replace all call sites across a 400-file TypeScript monorepo with the new formatDate() utility, which takes the same arguments. The function name is unique enough that a text search won't produce false positives, but call sites are scattered across many directories, and each file also contains unrelated code that must be preserved exactly as-is.",
+    "scenario": "Test coverage logs show that on the ongoing effort to deprecate the internal helper formatLegacyDate() and replace all call sites with the new formatDate() utility (same argument signature) across the 400-file TypeScript monorepo, call sites are scattered across many directories, and each affected file also contains unrelated code that must be preserved exactly as-is. The function name is unique enough that a plain text search won't produce false positives.",
     "question": "Which combination of built-in tools is the most appropriate way for Claude to carry out this task?",
     "options": {
       "A": "Use Grep to locate every file and line referencing formatLegacyDate, then use Edit on each file to replace the exact matched text with formatDate.",
@@ -1303,13 +1303,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.5-6c566d32",
+    "id": "D2.5-a103e406",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.4",
     "domain": "D2",
-    "scenario": "A developer productivity team configures Claude Code with three MCP servers — GitHub, Jira, and Confluence — to support engineers doing codebase exploration, ticket triage, and documentation lookups. Every engineer's Claude Code session and every subagent spawned in multi-agent workflows is given access to all tools from all three servers by default, regardless of the task at hand. Engineers report that Claude increasingly hesitates or picks the wrong tool when several servers expose similarly named actions (e.g., search_issues from Jira vs. search_content from Confluence), and that simple codebase-exploration tasks now involve unnecessary tool-selection overhead.",
+    "scenario": "When a subagent is spawned to explore an unfamiliar codebase, it is still handed every tool from the GitHub, Jira, and Confluence MCP servers by default. Reviewing its transcript, you see it stall between search_issues (Jira) and search_content (Confluence) before finally calling one, adding unnecessary tool-selection overhead to a task that only ever needed GitHub's tools.",
     "question": "What is the most effective way to address this tool-selection problem?",
     "options": {
       "A": "Add few-shot examples to the system prompt showing which server's tool to use for each type of request, pairing example queries with the correct tool name across GitHub, Jira, and Confluence so Claude can pattern-match before calling it.",
@@ -1330,13 +1330,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-f2636ca0",
+    "id": "D2.4-c634417f",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.1",
     "domain": "D3",
-    "scenario": "A platform engineering team maintains a monorepo containing a Python backend (services/api), a React frontend (apps/web), and a shared component library (packages/ui). Each area has distinct conventions: the API uses a strict internal error-handling pattern, the frontend follows a specific state-management approach, and the UI library has its own accessibility and prop-naming standards. There is also a small set of organization-wide rules (commit message format, license header, security review requirements) that must apply no matter which part of the repo Claude is working in.\n\nCurrently there is a single root-level CLAUDE.md that tries to describe all three areas' conventions in one long file. Engineers report that Claude frequently applies frontend state-management conventions when editing backend code, and misses the org-wide commit and license rules when working deep inside packages/ui.",
+    "scenario": "While using the agent to work across the monorepo's services/api, apps/web, and packages/ui, engineers tracking Claude's edit history find that the single root CLAUDE.md's combined conventions leak across boundaries: edits to services/api's error-handling code frequently follow apps/web's state-management pattern instead, and commits made deep inside packages/ui repeatedly omit the org-wide commit message format, license header, and security review requirements.",
     "question": "What is the most maintainable way to restructure the CLAUDE.md configuration to fix these cross-contamination and coverage problems?",
     "options": {
       "A": "Keep the single root CLAUDE.md but reorganize its content into clearly labeled sections (API, Web, UI, Org-Wide) with markdown headers and directory-name anchors under each section, so Claude reads the whole file and matches the current working path to the right heading before applying conventions.",
@@ -1357,13 +1357,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-cb90ae39",
+    "id": "D3.1-e0738897",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.2",
     "domain": "D3",
-    "scenario": "A platform team is packaging a repository-analysis workflow for Claude Code: it walks the dependency graph, reads dozens of files, and produces a long architectural report. Trial runs surfaced two problems: the exploration's verbose intermediate output floods the main conversation, crowding out the task the engineer was working on, and during one run the workflow modified a build file while \"tidying\" something it noticed. Engineers should keep invoking the analysis on demand, by name.",
+    "scenario": "You package one such repository-analysis workflow to walk the dependency graph, read dozens of files, and produce a long architectural report. Trial runs show the exploration's verbose intermediate output floods the main conversation, crowding out the task the engineer was working on, and in one run the workflow modified a build file while \"tidying\" something it noticed. Engineers should keep invoking the analysis on demand, by name.",
     "question": "Which configuration best addresses both problems?",
     "options": {
       "A": "Move the workflow's instructions into the project CLAUDE.md so they load automatically, and add a rule stating that analysis runs must treat all files as read-only and never modify build files.",
@@ -1384,13 +1384,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.2-886b61bf",
+    "id": "D3.2-7f451062",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.3",
     "domain": "D3",
-    "scenario": "A platform engineering team maintains a monorepo containing Python microservices, a shared Terraform module directory, and a Next.js frontend. Database migration files follow a strict naming and rollback-safety convention, but these migration files live inside each microservice's own directory (e.g., services/billing/migrations/, services/inventory/migrations/), interspersed with regular application code that follows different conventions. Developers report that Claude Code frequently generates new migration files without the required rollback block, even though it correctly applies each service's general coding style.",
+    "scenario": "On this monorepo, migration files under services/billing/migrations/ and services/inventory/migrations/ must follow a strict rollback-safety convention distinct from the surrounding application code. Developers report Claude Code matches each service's general style correctly but repeatedly omits the required rollback block when generating new migration files.",
     "question": "What is the most maintainable way to ensure Claude reliably applies the migration-specific convention whenever it edits a migration file, regardless of which service directory it lives in?",
     "options": {
       "A": "Add a rule file in .claude/rules/ with YAML frontmatter targeting a glob pattern like **/migrations/*.py, describing the required rollback-safety convention.",
@@ -1411,13 +1411,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.3-c6fae4a2",
+    "id": "D3.3-ba06196b",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.3",
     "domain": "D3",
-    "scenario": "A data engineering team uses Claude Code to maintain a monorepo where Python ETL scripts, SQL migration files, and Terraform infrastructure definitions are all interleaved within the same directories (e.g., a single pipelines/orders/ folder contains .py, .sql, and .tf files side by side). Each file type has its own established conventions: Python scripts must use a specific logging wrapper, SQL migrations must include a rollback block, and Terraform files must use a shared naming prefix. Because directory structure does not correspond to file type, the team cannot rely on folder-level placement to scope these conventions.",
+    "scenario": "While working in pipelines/orders/, engineers reviewing Claude's edit history notice its convention application is inconsistent purely by file type: a Python script it touched was missing the required logging wrapper, a SQL migration it edited lacked the rollback block, and a Terraform file it wrote used an inconsistent naming prefix — even though the directory itself was correct in every case.",
     "question": "What is the most maintainable way to ensure Claude automatically applies the correct convention set based on which file type it is editing, regardless of directory?",
     "options": {
       "A": "Create separate rule files in .claude/rules/ with YAML frontmatter glob patterns (e.g., **/*.py, **/*.sql, **/*.tf) so the matching convention set loads based on file extension rather than directory location.",
@@ -1438,13 +1438,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.3-54d2282b",
+    "id": "D3.3-88e3ae4b",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.4",
     "domain": "D3",
-    "scenario": "A developer asks Claude Code to fix a bug where a REST API endpoint returns a 500 error for a specific malformed request payload. The error message and stack trace point to a single validation function in one file, and the developer has already identified the line where an unguarded field access throws when the payload is missing an optional key.",
+    "scenario": "A developer asks Claude Code to fix a bug where a REST API endpoint returns a 500 error for a specific malformed request payload. Error monitoring shows this same 500 error has fired for 8% of requests hitting that endpoint over the past week, and the stack trace points to a single validation function in one file, where the developer has already identified the line where an unguarded field access throws when the payload is missing an optional key.",
     "question": "Which approach is most appropriate for this task?",
     "options": {
       "A": "Use direct execution, since the fix is localized to a known file and line with a clear, low-ambiguity change.",
@@ -1465,13 +1465,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.4-361573e5",
+    "id": "D3.4-c311af0c",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.5",
     "domain": "D3",
-    "scenario": "A developer asks Claude Code to convert a 3,000-line legacy jQuery module to React hooks. In the first attempt, the developer writes one exhaustive prompt describing every component, state variable, and edge case up front, then lets Claude Code run to completion before looking at any output. The resulting diff compiles but has several state-management bugs that trace back to a misunderstanding formed early in the conversion, and by the time the developer reviews the work, that misunderstanding has propagated through dozens of files, making the fix nearly as costly as starting over.",
+    "scenario": "A developer asks Claude Code to convert a 3,000-line legacy jQuery module to React hooks. In the first attempt, the developer writes one exhaustive prompt describing every component, state variable, and edge case, then lets Claude Code run to completion before reviewing anything; the resulting diff compiles but has state-management bugs traced to an early misunderstanding that propagated through dozens of files.",
     "question": "What change to the workflow would most effectively prevent this kind of compounding error going forward?",
     "options": {
       "A": "Write an even more detailed single prompt that enumerates every component, prop, state variable, hook dependency, and edge case, then let Claude Code run the entire conversion to completion.",
@@ -1492,13 +1492,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-0703259d",
+    "id": "D3.5-5f1b3fa7",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.5",
     "domain": "D3",
-    "scenario": "A developer uses Claude Code to generate a script that migrates records from a legacy CSV export into a new database schema, using Read to inspect sample rows and Write to produce the migration script. The first version Claude generates fails on 30 of 500 sample records: some have malformed date fields, others have currency values with inconsistent formatting. The developer wants the script corrected without starting over, since 94% of records already migrate correctly.",
+    "scenario": "A developer on your team uses Claude Code with Read to inspect sample rows and Write to produce a script that migrates records from a legacy CSV export into a new database schema. Running the generated script against 500 sample records, 30 fail — some have malformed date fields, others have currency values with inconsistent formatting — while the remaining 94% migrate correctly, and the developer wants the script refined rather than regenerated from scratch.",
     "question": "What is the most effective way to refine the script toward full correctness?",
     "options": {
       "A": "Run the script against the full sample set, capture the specific failing records and their error messages, and feed that concrete output back to Claude so it can target fixes for those exact cases, repeating the run-capture-fix cycle until all records pass.",
@@ -1519,13 +1519,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-795099c7",
+    "id": "D3.5-abf63221",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.5",
     "domain": "D3",
-    "scenario": "A developer productivity team maintains a CLAUDE.md-driven workflow that generates TypeScript API client boilerplate from OpenAPI specs. Initial testing against 40 sample specs shows the generated code compiles correctly only 65% of the time, with failures spanning several distinct causes: missing null checks on optional fields, incorrect enum handling, and wrong import paths for nested schemas.\n\nTo reach their 90% target, the team plans a series of refinement passes on the CLAUDE.md instructions and re-runs the 40-spec test set after each pass.",
+    "scenario": "One recurring CLAUDE.md-driven workflow generates TypeScript API client boilerplate from OpenAPI specs. Against a 40-sample-spec test set, generated code compiles correctly only 65% of the time, with failures spanning missing null checks on optional fields, incorrect enum handling, and wrong import paths for nested schemas; the target is 90%.",
     "question": "What is the most effective way to structure this refinement process?",
     "options": {
       "A": "Rewrite the CLAUDE.md instructions from scratch each pass, drafting a full new instruction set covering null checks, enum handling, and import paths, then re-run the 40-spec test set.",
@@ -1546,13 +1546,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-9c2ffef5",
+    "id": "D3.5-2f9b4beb",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.6",
     "domain": "D3",
-    "scenario": "An engineering team adds a Claude Code step to their CI pipeline that runs on every pull request to flag critical issues before merge. The pipeline invokes Claude Code non-interactively, captures its free-text response, and pipes it into a shell script that greps for the word \"approved\" to decide whether to pass or fail the build. Over several weeks, the team notices the gate is unreliable: some PRs with real critical issues still pass because Claude phrased its conclusion differently (\"this looks fine to merge\" instead of \"approved\"), and some clean PRs fail because the grep pattern doesn't match Claude's wording.",
+    "scenario": "On this PR-gating step, the shell script decides pass/fail by grepping Claude's free-text output for the word \"approved.\" Over several weeks you find PRs with real critical issues still pass because Claude wrote \"this looks fine to merge\" instead of \"approved,\" while some clean PRs fail because their wording never matches the grep pattern.",
     "question": "What is the most effective way to make the CI gate reliably reflect Claude's review verdict?",
     "options": {
       "A": "Lower the model's temperature setting to a low value in the CI invocation so Claude produces more consistent wording across runs, then keep matching the same free-text grep pattern against that steadier output to decide pass or fail.",
@@ -1573,13 +1573,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.6-9e75e85b",
+    "id": "D3.6-376ddfca",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D3.6",
     "domain": "D3",
-    "scenario": "A platform team wants pull requests to receive an automated Claude Code review before a human reviewer looks at them. The pipeline runs on every PR event on a shared CI runner: Claude Code checks out the PR diff, has no memory of prior runs, and must post its findings as a PR comment, then exit so the pipeline can report success or failure to the merge gate. The team also wants the check to fail the build (blocking merge) only when Claude Code finds a genuine correctness bug, not for style nits.",
+    "scenario": "The gate posts Claude Code's findings as a PR comment and then the job must exit for the merge gate to read a pass/fail signal, but on-call notes that last week Claude Code sat attached to the CI job's terminal in interactive mode, printing each finding and waiting on a typed confirmation before deciding whether to fail the build — so the job hung until it was manually killed.",
     "question": "Which CI/CD integration design correctly matches how Claude Code should be invoked in this non-interactive pipeline context?",
     "options": {
       "A": "Have Claude Code load a saved session log from the previous CI run for this PR, so it can recall which lines it already flagged and compare the current diff's changed hunks against that stored review history without the pipeline passing in any state.",
@@ -1600,13 +1600,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.6-0cfa119b",
+    "id": "D3.6-2ce01be8",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D4.1",
     "domain": "D4",
-    "scenario": "A team built a Claude-based content moderation prompt that flags user-submitted product reviews for \"policy violations\" before they are published. The prompt simply says: \"Review the following text and flag it if it violates our content policy.\" In production, the flag rate is far higher than expected — the model frequently flags reviews that merely contain strong negative sentiment (\"this product is garbage\") or mention competitor brand names, neither of which actually violates the policy (which prohibits hate speech, personal attacks on named individuals, and spam links). The false-positive rate is causing legitimate reviews to be held for manual review, creating a growing backlog.",
+    "scenario": "Your extraction pipeline also runs a content-moderation prompt—\"Review the following text and flag it if it violates our content policy\"—on customer-submitted document notes before routing them downstream. Production shows a high flag rate, mostly reviews with strong negative sentiment (\"this product is garbage\") or competitor brand mentions, neither of which violates the policy (hate speech, personal attacks on named individuals, spam links), backlogging manual review.",
     "question": "What is the most effective change to the prompt to reduce these false positives?",
     "options": {
       "B": "Replace the vague instruction with explicit, enumerated criteria defining exactly what counts as a violation (hate speech, personal attacks on named individuals, spam links), and explicitly state that negative sentiment or brand mentions alone do not qualify.",
@@ -1627,13 +1627,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-74c41f8c",
+    "id": "D4.1-b2ff7677",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.1",
     "domain": "D4",
-    "scenario": "A structured data extraction pipeline uses Claude to pull \"adverse event severity\" from clinical trial intake forms, classifying each as MILD, MODERATE, or SEVERE for downstream reporting to a safety database. The current prompt simply says: \"Extract the adverse event severity from the form text.\" Audit results show the model frequently labels ambiguous cases as SEVERE (e.g., a patient reporting \"some discomfort\" is flagged SEVERE), triggering unnecessary safety escalations and a manual review backlog. The team has confirmed the source documents are not the problem — the same ambiguous phrasing is handled correctly and consistently by human reviewers who use a written severity rubric.",
+    "scenario": "One extraction field asks Claude to classify \"adverse event severity\" as MILD, MODERATE, or SEVERE from clinical trial intake forms for downstream safety-database reporting, using only the instruction \"Extract the adverse event severity from the form text.\" Audits show ambiguous phrasing like \"some discomfort\" is frequently labeled SEVERE even though human reviewers, using a written rubric, consistently call such cases MILD or MODERATE.",
     "question": "What change to the prompt would most directly reduce these false-positive SEVERE classifications?",
     "options": {
       "A": "Add three few-shot examples to the prompt, one demonstrating a MILD case, one a MODERATE case, and one a SEVERE case, each pairing a short excerpt of form text with its correct label, so the model has a labeled example spanning the full severity range to pattern-match new intake narratives against.",
@@ -1654,13 +1654,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-5df315f6",
+    "id": "D4.1-0c28a0ae",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.1",
     "domain": "D4",
-    "scenario": "A support triage system uses Claude to read incoming tickets and flag those that need immediate escalation to on-call engineers. The current prompt simply says: \"Read the ticket and flag it as urgent if it seems important.\" In production, 38% of tickets are flagged urgent, but a manual audit finds that only about 9% actually warrant escalation — tickets like \"my dashboard font looks slightly off\" are being flagged alongside genuine outages, overwhelming the on-call rotation with false positives.",
+    "scenario": "Your resolution agent's prompt tells it to call escalate_to_human whenever a request \"seems important.\" In production the agent invokes escalate_to_human on 38% of tickets, but a manual audit finds only about 9% actually warranted a human handoff — tickets like \"my dashboard font looks slightly off\" are escalated alongside genuine billing disputes and account lockouts, overwhelming the on-call queue with false positives.",
     "question": "What is the most effective change to the prompt to reduce these false positives?",
     "options": {
       "D": "Replace \"seems important\" with explicit, objective criteria defining urgency (e.g., active service outage, data loss, security incident, or revenue-impacting bug affecting multiple customers), paired with examples of tickets that look severe but should NOT be flagged.",
@@ -1681,13 +1681,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-4d1646e7",
+    "id": "D4.1-20213870",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D4.2",
     "domain": "D4",
-    "scenario": "A structured data extraction pipeline uses Claude to pull line items (product code, quantity, unit price, discount) from vendor invoices and emit JSON consumed directly by an accounting system. The zero-shot prompt with a JSON schema works well for simple single-line invoices, but on invoices with multi-line discounts, bundled products, or handwritten annotations, the model inconsistently applies discounts at the line level versus the invoice total level, and sometimes omits the discount field entirely rather than setting it to zero.",
+    "scenario": "Monitoring the line-item extraction step, you find that on vendor invoices with multi-line discounts, bundled products, or handwritten annotations, Claude inconsistently applies discounts at the line-item level versus the invoice-total level, and sometimes omits the discount field entirely rather than setting it to zero, before the JSON reaches the accounting system.",
     "question": "What is the most effective change to improve consistency on these edge cases?",
     "options": {
       "A": "Add a JSON schema field description clarifying that discount is a required numeric field, and update the extraction call to pass that revised schema so the model validates each line item against the stricter field constraint before the output reaches the accounting system.",
@@ -1708,13 +1708,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-17d94839",
+    "id": "D4.2-d09b51ec",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.3",
     "domain": "D4",
-    "scenario": "A finance team built a pipeline that extracts vendor name, invoice amount, due date, and line items from scanned PDF invoices and feeds the result into an accounts-payable system that parses the response as JSON. The current prompt asks Claude to \"respond only with JSON matching this schema\" and includes the schema as text in the instructions. In production, roughly 8% of extractions fail downstream parsing because Claude prepends a short explanatory sentence before the JSON, wraps the payload in markdown code fences, or leaves trailing commentary after the closing brace.",
+    "scenario": "For the invoice-extraction pipeline, the prompt asks Claude to \"respond only with JSON matching this schema,\" with the schema given as text, and the downstream accounts-payable system parses the response directly as JSON. Logs show 8% of extractions fail that parse because Claude prepends an explanatory sentence, wraps the JSON in markdown code fences, or adds trailing commentary after the closing brace.",
     "question": "What is the most effective way to eliminate these parsing failures?",
     "options": {
       "A": "Set the temperature parameter to 0 in the API call, forcing deterministic sampling that always selects the highest-probability token, so the same invoice input produces the same output every time.",
@@ -1735,13 +1735,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-0e551ef4",
+    "id": "D4.3-a7b681af",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.4",
     "domain": "D4",
-    "scenario": "A document-processing pipeline uses Claude to extract structured line-item data (SKU, quantity, unit price, total) from scanned vendor invoices into a JSON schema, which then feeds an accounts-payable system. In production, roughly 8% of extractions fail downstream: some outputs are missing required fields, some have line-item totals that don't match quantity × unit price, and a few contain SKUs that don't exist in the vendor catalog. Currently the pipeline accepts whatever Claude returns and forwards it directly to accounts payable, where mismatches surface days later as payment errors.",
+    "scenario": "Reviewing accuracy metrics for the JSON extraction of vendor invoice line items (SKU, quantity, unit price, total), you find the pipeline forwards every extraction straight to accounts payable without checks, and roughly 8% fail downstream: some are missing required fields, some have totals that don't equal quantity × unit price, and a few carry SKUs absent from the vendor catalog — surfacing days later as payment errors.",
     "question": "What is the most effective way to reduce the rate of bad extractions reaching accounts payable?",
     "options": {
       "A": "Rewrite the system prompt with expanded instructions and worked examples that walk through computing quantity × unit price and cross-checking each SKU against a sample catalog listing, so Claude internalizes the correct extraction pattern before generating any output.",
@@ -1762,13 +1762,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-707c9c39",
+    "id": "D4.4-ae411e5a",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.4",
     "domain": "D4",
-    "scenario": "A document processing pipeline uses Claude to extract structured invoice data (vendor, line items, totals, due date) from scanned PDFs into a JSON schema required by the downstream accounts-payable system. Validation against the schema currently fails on about 18% of documents — most commonly totals that don't sum from line items, dates in inconsistent formats, and missing required fields on multi-page invoices. The current implementation validates the output once and, on failure, simply re-sends the identical extraction prompt with the same document and discards the first attempt.",
+    "scenario": "For invoice extraction, validation fails on 18% of documents — mostly totals not summing from line items, inconsistent date formats, and missing required fields on multi-page invoices — and the near-identical retry prompt matches the original error rate.",
     "question": "The retry success rate on the second attempt is nearly the same as the first (identical failures recur most of the time). What change would most effectively improve extraction quality on retry?",
     "options": {
       "A": "On validation failure, send a follow-up turn that includes the original output, the specific schema validation error (e.g., which field failed and why, such as \"totals field does not equal sum of line items\"), and a request to correct only that issue.",
@@ -1789,13 +1789,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-6a71535b",
+    "id": "D4.4-818e17ca",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.5",
     "domain": "D4",
-    "scenario": "A data engineering team uses Claude to classify and tag 200,000 support tickets each night into categories (billing, technical, account) for a downstream analytics dashboard. The dashboard is refreshed once per day at 9 AM, so the classification job only needs to finish sometime before then. The team currently sends each ticket as a separate synchronous API call, which costs roughly $4,000/month and occasionally causes the team to hit rate limits when the queue backs up.",
+    "scenario": "One extraction stage classifies and tags 200,000 support-ticket documents each night into categories (billing, technical, account) for a downstream analytics dashboard that refreshes once at 9 AM, so the job only needs to finish before then. The team currently sends each ticket as a separate synchronous API call, which costs roughly $4,000/month and occasionally hits rate limits when the queue backs up.",
     "question": "What is the most effective change to reduce cost while still reliably meeting the 9 AM dashboard deadline?",
     "options": {
       "D": "Submit the 200,000 tickets as a single Message Batches API job with a custom_id per ticket, kicked off with enough lead time before 9 AM, and poll for batch completion.",
@@ -1816,13 +1816,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.5-5117300d",
+    "id": "D4.5-e7e74253",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.5",
     "domain": "D4",
-    "scenario": "A data platform team runs a structured extraction pipeline that pulls line-item details from vendor invoices using Claude, validates the output against a JSON schema, and loads it into an accounts payable system. Two categories of work feed this pipeline: (1) a nightly ingestion of roughly 8,000 archived invoices scanned from a backlog of paper records, which has no deadline beyond \"done before the next morning's finance reconciliation,\" and (2) invoices submitted through a live vendor portal that must be parsed and validated within seconds so the portal can immediately confirm receipt to the vendor. A newly hired engineer proposes routing both workloads through the Message Batches API to cut costs, since both ultimately call the same extraction prompt and schema.",
+    "scenario": "The vendor invoice extraction pipeline handles two workloads: an 8,000-invoice nightly archive backlog needing only \"done before next morning's finance reconciliation,\" and live vendor-portal submissions needing sub-second parsing so the portal can confirm receipt instantly. A new engineer proposes routing both through the Message Batches API since they share the same extraction prompt and schema.",
     "question": "How should this proposal be evaluated?",
     "options": {
       "A": "Keep both workloads on real-time calls, processing each invoice synchronously through the standard Messages endpoint so the extraction output and schema validation result return within the same request-response cycle that submitted the invoice.",
@@ -1843,13 +1843,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.5-53829946",
+    "id": "D4.5-3d248b7e",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.5",
     "domain": "D4",
-    "scenario": "A financial services company extracts structured data (income, employment history, debt ratios) from roughly 40,000 scanned loan application PDFs each month, feeding the JSON output into an underwriting system for review by analysts the following business day. The team's current pipeline sends each document as a synchronous real-time API call, looping through the batch sequentially. This regularly trips rate limits, requires manual retry logic, and the per-request pricing has become the largest line item in the pipeline's operating budget. No part of this workflow blocks a user-facing action or requires sub-minute turnaround.",
+    "scenario": "Monitoring the 40,000-document monthly loan-application batch, you find the team's synchronous, sequential per-document API calls regularly trip rate limits, require manual retry logic, and have made per-request pricing the largest line item in the pipeline's operating budget—despite the extracted JSON only needing to be ready for analyst review the following business day.",
     "question": "What is the most effective change to this pipeline's processing strategy?",
     "options": {
       "B": "Submit the documents through the Message Batches API, assigning each request a custom_id to correlate extracted output back to its source document once the batch completes.",
@@ -1870,13 +1870,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.5-9e5accac",
+    "id": "D4.5-8270f040",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.6",
     "domain": "D4",
-    "scenario": "A legal-tech company uses Claude to extract indemnification, liability-cap, and termination clauses from 80-page vendor contracts into a structured JSON schema that feeds a downstream contract database. A single-pass review over the full contract text reliably catches clauses in the main body but misses clauses embedded in appendices and exhibits, and produces inconsistent extractions when a clause in the body is modified or superseded by language in a later exhibit - sometimes the original body clause is extracted, sometimes the exhibit override, and occasionally both are returned as conflicting entries with no indication of which governs.",
+    "scenario": "For an 80-page vendor contract, the extraction schema's indemnification, liability-cap, and termination clause fields sometimes pull the original body clause, sometimes the exhibit's superseding language, and occasionally both as conflicting entries with no indication of which governs, while clauses embedded only in appendices are frequently missed entirely.",
     "question": "How should the review architecture be redesigned to address these failures?",
     "options": {
       "A": "Run three independent full-document extraction passes and retain only the clauses that appear identically in at least two of the three outputs, tagging each with a confidence score.",
@@ -1897,13 +1897,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-087a172b",
+    "id": "D4.6-4739092d",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.6",
     "domain": "D4",
-    "scenario": "A structured data extraction pipeline uses Claude to pull line items, subtotals, and vendor tax IDs from scanned vendor invoices before loading them into an accounts-payable system. A single-pass extraction prompt performs well on simple one-page invoices, but on multi-page invoices with itemized tables spanning several pages, per-page subtotals, and handwritten annotations, the model frequently drops line items from page 2 onward, miscomputes the grand total, and occasionally hallucinates a tax ID when the field is illegible. Accuracy on these complex multi-page invoices is around 61%, well below the 95% threshold required for automated downstream posting.",
+    "scenario": "The pipeline's invoice-extraction accuracy sits at 61% on multi-page invoices with itemized tables spanning several pages, per-page subtotals, and handwritten annotations, versus near-perfect on simple one-page invoices: line items from page 2 onward get dropped, the grand total is miscomputed, and illegible tax IDs are sometimes hallucinated.",
     "question": "Which architecture change would most effectively raise extraction reliability on the complex multi-page invoices?",
     "options": {
       "A": "Keep the single-pass design but lengthen the prompt with highly detailed field-by-field extraction rules, explicit instructions for handling multi-page tables, and several additional few-shot examples of correctly extracted invoices with subtotals and tax IDs.",
@@ -1924,13 +1924,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-18f0c066",
+    "id": "D4.6-1c6cb123",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.6",
     "domain": "D4",
-    "scenario": "A security team uses Claude to review a 40-file pull request that touches authentication, database access, and third-party dependency updates before it can merge to production. Their current process runs one review pass over the entire diff with a general prompt asking Claude to \"check for security vulnerabilities.\" Post-merge incident analysis shows the reviews consistently miss the same categories of issues (a SQL injection pattern repeated across five files, a hardcoded secret in a config file, an outdated dependency with a known CVE) even though the issues that are found are usually accurate.",
+    "scenario": "Post-merge incident analysis of this PR review process shows recurring blind spots: a SQL injection pattern repeated across five files, a hardcoded secret in a config file, and an outdated dependency with a known CVE all slipped through, even though this 40-file pull request also touches authentication and database access and the findings the process does surface are usually accurate.",
     "question": "The team wants to restructure the review to catch more of these missed vulnerability categories without suppressing the valid findings the current process already produces. Which architecture should they adopt?",
     "options": {
       "A": "Split the review into one pass per file across all 40 files, feeding each file diff and its surrounding context to the model, with every pass using the same general check for security vulnerabilities instruction.",
@@ -1951,13 +1951,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-a6384b0f",
+    "id": "D4.6-9f30f3b0",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D5.1",
     "domain": "D5",
-    "scenario": "A customer support agent handles a single chat session that runs for over 200 turns as it walks a customer through a complex billing dispute. In turn 4, the customer states they are on a grandfathered legacy pricing plan with a contractual 48-hour SLA for refunds. By turn 150, the raw conversation history has grown large enough that the platform's context window management has begun dropping or summarizing the oldest turns to stay within limits. The agent then proposes a resolution that applies standard (non-legacy) pricing rules and quotes the standard 5-day refund timeline, contradicting facts established early in the conversation.",
+    "scenario": "In the same billing dispute conversation, the customer states in turn 4 that they hold a grandfathered legacy plan with a contractual 48-hour refund SLA; by turn 150 the platform's context window management has begun dropping or summarizing early turns, and the agent then proposes standard (non-legacy) pricing with the standard 5-day refund timeline via process_refund.",
     "question": "What is the most effective way to prevent this loss of critical information across the long conversation?",
     "options": {
       "A": "Rely on the platform's default automatic context summarization, which compresses older turns into a condensed narrative and drops or de-prioritizes turns it scores as less relevant, to retain whatever information is most relevant as the conversation grows.",
@@ -1978,13 +1978,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-2a72ef96",
+    "id": "D5.1-1ae10339",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D5.2",
     "domain": "D5",
-    "scenario": "A structured data extraction pipeline processes 10,000 commercial lease contracts per day, extracting fields (rent amount, renewal terms, termination date, indemnification clauses) into a JSON schema for a lease-management system. The agent has a flag_for_review field it can set when it cannot confidently populate a value. Audit logs show two failure patterns: contracts using unfamiliar but valid boilerplate (e.g., an indemnification clause worded differently than the training examples but semantically standard) are flagged for review at a high rate, burying the human review queue in false positives. Meanwhile, contracts with genuine internal conflicts - such as a termination date stated as \"March 1\" in the summary section but \"March 31\" in the body - are extracted and passed downstream without any flag, silently choosing one value over the other.",
+    "scenario": "Applied to commercial lease contracts at 10,000/day, extracting rent amount, renewal terms, termination date, and indemnification clauses, the flag_for_review field is flagging unfamiliar-but-valid indemnification boilerplate at a high false-positive rate while silently passing through genuine conflicts, like a termination date stated as \"March 1\" in the summary but \"March 31\" in the body, with no flag at all.",
     "question": "What is the most effective way to fix the agent's escalation calibration?",
     "options": {
       "A": "Add explicit escalation criteria to the extraction prompt that distinguish genuine data conflicts (contradictory values for the same field within a document) from merely unfamiliar phrasing of a standard clause, with few-shot examples of each category.",
@@ -2005,13 +2005,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.2-9cdb0bbb",
+    "id": "D5.2-d5f2fb8d",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D5.3",
     "domain": "D5",
-    "scenario": "A multi-agent customer support system has a coordinator that delegates billing questions to a billing subagent, which calls an external payment-processor tool. That tool sometimes fails with a transient timeout (the request can simply be retried) and sometimes fails with a permanent \"account not found\" error (retrying will never succeed and the case needs a human). Currently the billing subagent catches every failure the same way and returns the string \"Sorry, I couldn't process that\" to the coordinator.",
+    "scenario": "Your resolution agent's billing subagent calls an external payment-processor tool through process_refund; that tool sometimes fails with a transient timeout and sometimes with a permanent \"account not found\" error, but the subagent catches both the same way and returns \"Sorry, I couldn't process that\" to the coordinator either way.",
     "question": "Because the coordinator receives identical, unstructured error text for both failure types, it cannot decide whether to retry or escalate, so it currently just relays a generic apology to the customer in both cases. What is the most effective way to fix the error propagation between the billing subagent and the coordinator?",
     "options": {
       "A": "Have the billing subagent return structured error information that categorizes each failure as transient/retryable or permanent/non-retryable, so the coordinator can retry transient failures and escalate permanent ones appropriately.",
@@ -2032,13 +2032,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.3-6d3a2e5d",
+    "id": "D5.3-b64e597d",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D5.2",
     "domain": "D5",
-    "scenario": "An SRE team deploys a Claude Agent SDK-based incident-response agent with MCP tools query_metrics, restart_service, scale_replicas, and page_oncall. The agent is meant to handle routine remediation autonomously and page a human for anything with material blast radius. After a month in production, logs show the opposite pattern: the agent pages on-call engineers at 2 a.m. for well-understood, low-risk issues (e.g., a single pod restart loop with a known fix already documented in the runbook), while for an actual incident — a primary database connection pool exhausting during a traffic spike — it autonomously ran scale_replicas and restart_service against the production database tier without paging anyone, causing a brief but customer-visible outage.",
+    "scenario": "In one deployment, engineers building an incident-response agent give it MCP tools query_metrics, restart_service, scale_replicas, and page_oncall. A month of production logs shows it paging on-call at 2 a.m. for a routine, runbook-documented pod restart loop, while during an actual primary database connection pool exhaustion under traffic, it silently ran scale_replicas and restart_service against the production database tier and caused a brief customer-visible outage.",
     "question": "What is the most effective way to fix the agent's escalation calibration?",
     "options": {
       "A": "Train a separate classifier on historical incident tickets, using features such as alert type, affected service tier, and time of day, to predict whether a given alert should be auto-remediated or escalated, and feed that prediction into the agent's routing step ahead of any tool execution.",
@@ -2059,7 +2059,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.2-20da23d8",
+    "id": "D5.2-2de587b7",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
@@ -2092,7 +2092,7 @@ window.CCARF_BANK = [
   {
     "taskStatement": "D5.4",
     "domain": "D5",
-    "scenario": "A developer asks Claude Code to explain how authentication and session handling work across a 15-year-old monolith with over 6,000 files, most of which are unrelated to auth. The first attempt has Claude read files sequentially starting from the repository root, and it runs out of context budget partway through the services/ directory without ever reaching the auth/ or middleware/ folders where the relevant logic actually lives.",
+    "scenario": "While helping a developer trace how authentication and session handling work across the monolith, Claude reads files sequentially starting from the repository root and runs out of context budget partway through the services/ directory — over 6,000 files exist in the repo, most unrelated to auth, and Claude never reaches the auth/ or middleware/ folders where the relevant logic actually lives.",
     "question": "What is the most effective way to restructure this exploration so Claude reliably finds and explains the relevant auth logic?",
     "options": {
       "A": "Switch to a model with a larger context window, sized to fit the full 6,000-file repository in a single pass, loading every file's contents so the services/, auth/, and middleware/ directories are all analyzed together for auth logic.",
@@ -2113,13 +2113,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-d00d5f76",
+    "id": "D5.4-54d531f5",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D5.5",
     "domain": "D5",
-    "scenario": "A logistics company uses Claude to extract structured fields (SKU, quantity, unit price, delivery date) from photographed supplier packing slips into JSON records that feed their ERP system. To limit manual review load, the pipeline has Claude emit a self-reported confidence score (1-100) alongside each extraction, and anything below 70 is routed to a human review queue while everything else auto-posts to the ERP.\n\nA quarterly audit finds that overpayments from bad data are concentrated in extractions where Claude reported confidence above 90. Nearly all of these involve packing slips with handwritten quantity corrections or non-standard units of measure (e.g., \"cs\" vs \"case,\" or a quantity written over a crossed-out printed value) - cases where the model's output looked structurally complete and well-formed, but the underlying values were wrong.",
+    "scenario": "In your extraction pipeline, packing-slip fields feeding the ERP get a self-reported 1-100 confidence score, with anything below 70 routed to human review and the rest auto-posted; a quarterly audit finds overpayments concentrated in extractions Claude scored above 90, nearly all involving handwritten quantity corrections or non-standard units of measure (e.g., \"cs\" vs \"case,\" or a quantity written over a crossed-out printed value) where the JSON looked structurally complete but the underlying values were wrong.",
     "question": "What change would most effectively fix the confidence calibration problem driving these overpayments?",
     "options": {
       "A": "Have a second, independent Claude call review the same packing-slip photograph and the first call's JSON output, producing its own 1-100 confidence score for each of the four extracted fields, and route an extraction to human review whenever the two self-reported scores diverge by more than 20 points.",
@@ -2140,13 +2140,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-ef720684",
+    "id": "D5.5-e08e62fb",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D5.6",
     "domain": "D5",
-    "scenario": "A structured data extraction pipeline builds a medication reconciliation record for a hospital's care coordination system. For each patient, Claude extracts medication names and dosages from three sources: the hospital EHR export, an OCR'd scanned discharge summary, and a faxed pharmacy record. For one patient, the EHR lists a medication dose as 10mg while the discharge summary lists the same medication at 20mg; the faxed pharmacy record is illegible for that field. The pipeline must emit a single JSON object per medication for downstream ingestion, and the care team relies on this output to decide what to administer.",
+    "scenario": "Reconciling one patient's record, the pipeline extracts a medication dose as 10mg from the EHR export and 20mg from the OCR'd discharge summary, while the faxed pharmacy record is illegible for that field.",
     "question": "How should the extraction pipeline handle this dosage discrepancy in its JSON output?",
     "options": {
       "D": "Emit a record for the medication that includes both conflicting dosage values, tags each with its source document, and sets a needs_review flag so the discrepancy is surfaced to a human rather than silently resolved.",
@@ -2167,13 +2167,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-80ce40fa",
+    "id": "D5.6-7fc78684",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.7",
     "domain": "D1",
-    "scenario": "A structured-data-extraction service uses the Claude Agent SDK to pull line items, coverage limits, and exclusions from insurance claim PDFs into a JSON schema for a downstream claims system. Each claim runs through a multi-step session: the agent reads the PDF, extracts candidate fields, and cross-checks them against policy tables. For roughly 10% of claims, one clause is genuinely ambiguous (e.g., a coverage limit that could be read as either a per-incident or an aggregate cap), and the team wants to try two different extraction strategies on that clause to see which one produces output that validates cleanly against the JSON schema and downstream reconciliation rules.",
+    "scenario": "While extracting insurance claim line items, coverage limits, and exclusions from PDFs into your JSON schema, you find that for roughly 10% of claims one clause is genuinely ambiguous (e.g., a per-incident vs. aggregate coverage limit), and the team wants to trial two extraction strategies on that clause to see which validates cleanly.",
     "question": "The team wants to test both extraction strategies on the ambiguous clause without letting a failed attempt contaminate the reasoning that carries forward into the rest of the claim's processing. What is the best way to structure this?",
     "options": {
       "A": "After the ambiguous clause is reached, serialize the full session transcript to a file on disk, then for each strategy spin up a fresh session that reloads that saved transcript as its starting context, appends the strategy-specific extraction turn, and writes the resulting output back to its own file for schema validation.",
@@ -2194,7 +2194,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-04a4ecb5",
+    "id": "D1.7-7d83fcef",
     "scenarioType": "Structured Data Extraction"
   },
   {
@@ -2281,7 +2281,7 @@ window.CCARF_BANK = [
   {
     "taskStatement": "D2.5",
     "domain": "D2",
-    "scenario": "A developer is using Claude Code to fix a single incorrect timeout value in a 300-line `config/production.yaml` file that also contains dozens of other service settings, inline comments explaining historical incidents, and precise indentation that downstream deployment tooling depends on. The developer asks Claude Code to change `request_timeout_ms: 3000` to `request_timeout_ms: 8000` and nothing else.",
+    "scenario": "A developer asks Claude Code to fix a single incorrect timeout value in `config/production.yaml`, changing `request_timeout_ms: 3000` to `request_timeout_ms: 8000` and nothing else. The 300-line file also holds dozens of other service settings, inline comments explaining historical incidents, and precise indentation that downstream deployment tooling depends on.",
     "question": "Which approach best accomplishes this change while minimizing risk to the rest of the file?",
     "options": {
       "A": "Use Bash with a `sed -i` command to substitute the value in place, since it avoids invoking the model's file tools entirely.",
@@ -2302,13 +2302,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.5-a32abc6a",
+    "id": "D2.5-fdac9985",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.5",
     "domain": "D2",
-    "scenario": "A multi-agent research system investigating \"regulatory risk in fintech lending\" has a coordinator that dispatches dozens of subagents, each of which writes its findings to a timestamped file like fintech_lending_20260614_0912.md inside a shared /workspace/findings/ directory. Filenames only reflect the general research topic and timestamp — they don't indicate which specific subtopics each file discusses. The synthesis agent's job is to identify only the ~12 files (out of 50+) that actually discuss \"regulatory risk\" specifically, then combine their content into a new consolidated report at /workspace/report.md, which does not yet exist.",
+    "scenario": "Running dozens of subagents on \"regulatory risk in fintech lending,\" each writes findings to a timestamped file like fintech_lending_20260614_0912.md in a shared /workspace/findings/ directory, with filenames reflecting only the general topic and timestamp. The synthesis agent must identify the ~12 of 50+ files actually discussing regulatory risk and consolidate them into a new /workspace/report.md.",
     "question": "Which combination of built-in tools is the most effective and correct way for the synthesis agent to accomplish this task?",
     "options": {
       "D": "Use Glob with a pattern like *regulatory* to locate the relevant files in /workspace/findings/, then Read each match and Write the combined content to report.md.",
@@ -2329,13 +2329,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.5-208e3d79",
+    "id": "D2.5-5ba84a40",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.1",
     "domain": "D3",
-    "scenario": "A backend team relies on Claude Code to generate service code across a repo with a root CLAUDE.md covering shared build commands, lint rules, and test framework conventions. Six months ago, an engineer setting up the payments service copied the entire root CLAUDE.md into services/payments/CLAUDE.md and appended payment-specific rules (PCI-related validation, a stricter error-handling pattern) at the bottom. Since then, the root file has been updated twice — the lint command changed and the team migrated test frameworks — but nobody updated the payments copy. Now, whenever Claude Code generates code inside services/payments, it produces test files using the old test framework and references the outdated lint command, contradicting the conventions used everywhere else in the repo.",
+    "scenario": "Your root CLAUDE.md covers shared build, lint, and test conventions. Six months ago an engineer bootstrapping services/payments copied the entire root file into services/payments/CLAUDE.md and appended PCI validation and error-handling rules; the root has since had its lint command and test framework updated twice, but the payments copy wasn't, so Claude Code now generates payments code with the old test framework and stale lint command.",
     "question": "What is the most maintainable way to fix this drift while still preserving the payments team's directory-specific rules?",
     "options": {
       "A": "Move the PCI validation and error-handling rules into the root CLAUDE.md under a \"Payments\" header, consolidating the lint command and test framework references there too, then delete services/payments/CLAUDE.md so every rule for every service lives in one shared file going forward.",
@@ -2356,13 +2356,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-0cb457d6",
+    "id": "D3.1-04a15995",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D4.2",
     "domain": "D4",
-    "scenario": "A team uses Claude Code to auto-generate unit tests for newly added API endpoint handlers as part of their local dev workflow. The system prompt gives detailed natural-language instructions: \"use descriptive test names, mock external dependencies, assert on both status code and response body, and group related tests in describe blocks.\" Despite this, generated test files vary widely in practice - some use inline mocks while others use fixture files, assertion styles mix expect(res.body).toEqual() with expect(res.body).toMatchObject() inconsistently, and describe-block nesting depth differs from file to file. Developers spend significant time reformatting generated tests to match the codebase's established conventions before merging.",
+    "scenario": "Auto-generated unit test files for newly added API endpoint handlers pass CLAUDE.md's natural-language instructions, but still vary widely: some use inline mocks while others use fixture files, assertions mix `expect(res.body).toEqual()` with `expect(res.body).toMatchObject()`, and describe-block nesting depth differs by file, forcing reformatting before merge.",
     "question": "What change would most effectively reduce this style inconsistency across generated test files?",
     "options": {
       "A": "Lower the temperature setting toward zero to reduce sampling randomness, producing more deterministic token choices and consistent output across repeated generation runs of the same prompt.",
@@ -2383,13 +2383,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-40759f76",
+    "id": "D4.2-4997a9a6",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D4.2",
     "domain": "D4",
-    "scenario": "A multi-agent research system assigns a document-analysis agent to summarize each source (academic papers, blog posts, press releases) found by the web-search agent before passing summaries to a synthesis agent. QA review finds the summaries are wildly inconsistent: some are three sentences focused only on conclusions, others are dense paragraphs quoting methodology and statistics, and a few omit publication dates or author affiliations entirely. The system prompt tells the agent to \"summarize each source clearly and consistently,\" and a JSON schema already enforces fields for title, summary, and key_findings, but the free-text content inside those fields still varies enormously in depth and framing from one source to the next. The synthesis agent's output quality suffers because it receives summaries that are not comparable to one another.",
+    "scenario": "QA review of the document-analysis agent's output finds that summaries of academic papers, blog posts, and press releases are wildly inconsistent: some are three sentences on conclusions only, others dense paragraphs quoting methodology and statistics, and a few omit publication dates or author affiliations, despite a JSON schema enforcing title, summary, and key_findings fields.",
     "question": "What change would most directly fix the inconsistency in summary depth and framing?",
     "options": {
       "A": "Increase the max_tokens parameter for the document-analysis agent so it has room to write longer, more thorough summaries, removing the output ceiling that may be truncating the denser sources into shallower summaries.",
@@ -2410,13 +2410,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-fe2ab52d",
+    "id": "D4.2-43307c72",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.1",
     "domain": "D5",
-    "scenario": "A multi-agent research system investigates a technology policy question over many hours. A coordinator agent delegates to a rotating pool of web-search and document-analysis subagents, each returning findings that the coordinator folds into a running research log before spawning the next subagent. Partway through, the engineering team notices the coordinator's context window is approaching its limit, so they configure automatic conversation compaction to summarize older turns once a token threshold is hit.\n\nAfter compaction runs for the first time, the synthesis agent produces a final report that contradicts an early methodological constraint the user specified at the very start of the session (\"exclude any sources published before 2020\"). Investigation shows the constraint was stated once in an early turn and never restated, and compaction's summary of that turn dropped it while preserving later, less critical search results.",
+    "scenario": "During an hours-long run investigating a technology policy question, the coordinator's context window nears its limit, so the team enables automatic compaction to summarize older turns; after it first fires, the synthesis agent's report contradicts the user's early constraint (\"exclude sources published before 2020\"), stated once and never restated, because compaction's summary dropped it while keeping later, less critical search results.",
     "question": "What is the most effective way to prevent this class of failure going forward?",
     "options": {
       "C": "Increase the token threshold at which compaction triggers so it runs less frequently, leaving the original constraint in the uncompacted conversation history for far longer before any summarization step can drop it.",
@@ -2437,13 +2437,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-39ac2650",
+    "id": "D5.1-ceaed194",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.4",
     "domain": "D5",
-    "scenario": "A developer uses Claude Code to add a new discount-eligibility rule to a shared PricingEngine module inside an 8,000-file monorepo used by a dozen internal services. Before making any edit, the developer tells Claude in the main session to \\\"explore thoroughly so you understand every place PricingEngine is used.\\\" Claude proceeds to Read dozens of service files inline, one after another, in the same conversation. By the time exploration finishes, the context window is nearly full, and the subsequent multi-file edit is inconsistent - it correctly updates the PricingEngine module but misses two call sites that were surfaced early in the exploration, as if that earlier context had faded.",
+    "scenario": "Before letting Claude touch the shared PricingEngine module, the developer tells it in the main session to \"explore thoroughly so you understand every place PricingEngine is used,\" and Claude Reads dozens of service files inline in that same conversation until the context window is nearly full; the subsequent edit correctly updates PricingEngine but misses two call sites surfaced early in the exploration.",
     "question": "What is the most effective way to restructure this workflow to manage context?",
     "options": {
       "A": "Break the task into many small prompts, each editing one file, and skip upfront exploration entirely.",
@@ -2464,13 +2464,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-53208303",
+    "id": "D5.4-08da07bd",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D5.4",
     "domain": "D5",
-    "scenario": "A multi-agent research system is tasked with explaining how the billing pipeline works across a 40,000-file monorepo. The coordinator spawns five subagents, each assigned a different module (invoicing, payments, tax calculation, dunning, and reporting), and instructs each to \"read all relevant files and report back everything you find.\" Each subagent dutifully reads dozens of full files and returns the complete raw file contents to the coordinator so it can write the final explanation.\n\nBy the time the fourth subagent's results arrive, the coordinator's context is dominated by raw source code from the first three modules, and it begins losing track of earlier findings and truncating parts of the conversation. The final synthesized explanation omits key details about the invoicing module even though that subagent's report was accurate and complete when it was submitted.",
+    "scenario": "Applied to the monorepo research task, telemetry shows that by the time the fourth of the five subagents (invoicing, payments, tax calculation, dunning, reporting) reports back, the coordinator's token usage has spiked and it starts dropping earlier turns from context — the invoicing subagent's report, submitted first and verified accurate at the time, is the one that goes missing from the final write-up.",
     "question": "What change would most effectively fix this context management problem?",
     "options": {
       "A": "Have subagents use Grep instead of Read for all file exploration, searching each module for matching function definitions, call sites, and configuration keys, then passing the raw matched lines and snippets forward to the coordinator to assemble into the final explanation.",
@@ -2491,13 +2491,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-f3d0ed02",
+    "id": "D5.4-e490c188",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.5",
     "domain": "D5",
-    "scenario": "A multi-agent research system produces investment due-diligence briefs. The synthesis agent tags each claim in its output with a self-reported confidence score (1-100) generated by asking Claude to rate its own certainty. Claims scoring above 70 are published directly to analysts; claims scoring 70 or below are routed to a human reviewer queue. After three months, an audit compares the self-reported scores against analyst-verified outcomes: claims the system rated 85+ were wrong nearly as often as claims rated in the 50s, and several high-confidence claims that turned out to be fabricated financial figures were never queued for review.",
+    "scenario": "You adapt the system to produce investment due-diligence briefs, having the report-generation agent tag each claim with a self-reported confidence score (1-100), publishing scores above 70 directly and routing 70-or-below to human review. A three-month audit finds claims rated 85+ were wrong nearly as often as those rated in the 50s, and several fabricated financial figures scored high enough to bypass review entirely.",
     "question": "What is the most effective fix for the review-routing failure?",
     "options": {
       "A": "Raise the publish threshold from 70 to 90 so fewer claims bypass human review, tightening the cutoff so that only the claims the model rates most confidently are published without a reviewer seeing them first.",
@@ -2518,13 +2518,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-d3615a68",
+    "id": "D5.5-2f2fab7e",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.5",
     "domain": "D5",
-    "scenario": "An engineering team uses Claude Code to automatically generate small bug-fix PRs across a monorepo. To manage reviewer load, they route PRs by diff size: fixes under 10 changed lines auto-merge without human review, while anything 10 lines or more is queued for a human reviewer. A post-incident review finds that a 3-line auto-merged change to the payment authorization module silently disabled a fraud check, causing a week of unvalidated transactions, while that same week a 40-line refactor of a logging utility (with no behavioral risk) sat in the human review queue for two days, consuming reviewer time.",
+    "scenario": "A post-incident review of your diff-size routing rule finds that a 3-line auto-merged fix (under the 10-line threshold) silently disabled a fraud check in the payment authorization module, leading to a week of unvalidated transactions, while a 40-line logging-utility refactor with no behavioral risk sat in the human review queue for two days that same week, tying up reviewer time.",
     "question": "What is the most effective way to redesign the review routing?",
     "options": {
       "A": "Reconfigure the CI diff-size gate to raise the auto-merge threshold from 10 to 20 changed lines, so fixes in that expanded range skip the review queue and merge automatically across every package in the monorepo, cutting reviewer backlog.",
@@ -2545,13 +2545,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-a7188db3",
+    "id": "D5.5-14e2e85b",
     "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D5.6",
     "domain": "D5",
-    "scenario": "A developer asks Claude Code to generate a migration script for upgrading an internal library from v2 to v3. To scope the change, Claude reads the vendor's CHANGELOG.md (fetched via WebFetch), which states that the function `fetchLegacyToken()` was removed in v3. It then greps the actual vendored source under `node_modules/`, which shows `fetchLegacyToken()` still defined and exported. A linked GitHub issue thread has two conflicting maintainer comments: one says the function was fully removed, the other says it was kept behind a compatibility flag for one more major version.",
+    "scenario": "While scoping a migration script to upgrade an internal library from v2 to v3, Claude Code fetches the vendor's CHANGELOG.md via WebFetch, which states that `fetchLegacyToken()` was removed in v3, then greps the vendored source under `node_modules/`, which still shows `fetchLegacyToken()` defined and exported, and a linked GitHub issue thread has two maintainer comments disagreeing on whether the function was fully removed or kept behind a compatibility flag.",
     "question": "Given these conflicting sources, what is the best way for Claude Code to produce the migration script and its accompanying summary?",
     "options": {
       "A": "Trust the grepped source code in node_modules as ground truth over the documentation, and write the migration script to leave every call site invoking fetchLegacyToken() untouched exactly as it appears in v2, with a summary stating plainly that the function remains available and that no further changes are required for the v3 upgrade.",
@@ -2572,13 +2572,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-825f82e6",
+    "id": "D5.6-80104be3",
     "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D5.6",
     "domain": "D5",
-    "scenario": "A multi-agent research system investigates a company's projected 2027 revenue growth for an investment memo. Three subagents return figures from different sources: the SEC filings agent extracts 8% from the company's official guidance, the analyst-reports agent finds a 14% consensus estimate from sell-side analysts, and the news agent surfaces a 22% figure from a single optimistic op-ed. The synthesis agent currently outputs one sentence: \"The company is projected to grow revenue by approximately 14% in 2027,\" with no mention of the other two figures or where any number came from.",
+    "scenario": "While researching a company's projected 2027 revenue growth for an investment memo, the document-analysis subagent extracts 8% from SEC filings, the web-search subagent surfaces a 14% sell-side consensus and a 22% figure from a single op-ed, and the synthesis agent outputs only: \"The company is projected to grow revenue by approximately 14% in 2027,\" with no sourcing.",
     "question": "What is the most effective way to fix how the synthesis agent handles this conflicting information?",
     "options": {
       "A": "Instruct the synthesis agent to defer to the SEC filings agent's figure and present it as the projected growth rate, since official regulatory filings are the most authoritative source for guidance figures.",
@@ -2599,13 +2599,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-4b45573c",
+    "id": "D5.6-077e334f",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.4",
     "domain": "D3",
-    "scenario": "A multi-agent research system has a coordinator, a web-search agent, a document-analysis agent, and a synthesis agent, each defined in its own well-documented file with a stable interface. A developer needs to add a single new parameter, max_results, to the web-search agent's existing search_web tool, clamp it to a documented range, and update the one call site in the coordinator that invokes it. The change touches two files, the tool's input schema is already well-specified, and there is exactly one correct way to wire the parameter through.",
+    "scenario": "The web-search agent's search_web tool needs a new max_results parameter, clamped to a documented range, wired through the tool's already-specified input schema and the coordinator's one existing call site that invokes it — the change touches only those two files, and there is exactly one correct way to pass the parameter through.",
     "question": "Which approach should the developer take with Claude Code?",
     "options": {
       "D": "Enter plan mode first so Claude can explore the entire multi-agent system before touching any file.",
@@ -2626,13 +2626,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.4-0c5bf96e",
+    "id": "D3.4-7f3c3097",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.2",
     "domain": "D3",
-    "scenario": "A multi-agent research system has a coordinator, a web-search agent, a document-analysis agent, and a synthesis agent that compiles the final report. Only during the final compilation step, the synthesis agent needs to apply a lengthy internal citation style guide (source ranking rules, quote-attribution format, footnote numbering) — a capability that is irrelevant to every other stage of the pipeline. The team wants this applied consistently without bloating every agent's system prompt with formatting rules it will rarely need.",
+    "scenario": "The synthesis agent's report-compilation step also needs to apply a lengthy internal citation style guide - source ranking rules, quote-attribution format, footnote numbering - a capability irrelevant to the coordinator's delegation, the web-search agent, or the document-analysis agent. The team wants it applied consistently at that one step without bloating every agent's system prompt with formatting rules it will rarely need.",
     "question": "Which approach best fits this situation?",
     "options": {
       "A": "Create a skill (e.g., citation-style/SKILL.md) with a description referencing citation formatting and report compilation, so the synthesis agent can discover and invoke it only when it reaches that step.",
@@ -2653,13 +2653,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.2-1f63cb66",
+    "id": "D3.2-8274553f",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D4.4",
     "domain": "D4",
-    "scenario": "A multi-agent research system assigns a claim-extraction subagent to pull structured findings (claim_text, source_url, supporting_quote) from web pages into a JSON schema that a synthesis agent later cites in its report. The extraction subagent's output passes JSON schema validation on nearly every run — all required fields are present and correctly typed. However, a manual audit of last week's reports found that in roughly 20% of extracted records, the supporting_quote field does not actually appear anywhere in the source page at source_url; the model fabricated a plausible-sounding quote and attached it to a real URL. Because these records are schema-valid, the pipeline's current retry loop — which only re-invokes the extraction subagent when JSON parsing or schema validation fails — never flags them, and the fabricated citations flow straight into published reports.",
+    "scenario": "The claim-extraction subagent pulls claim_text, source_url, and supporting_quote into a JSON schema the synthesis agent cites from. A manual audit finds that in roughly 20% of records, supporting_quote never appears on the page at source_url — the retry loop only fires on schema validation failure, so these schema-valid fabrications reach published reports.",
     "question": "What change would most effectively catch this failure mode before reports are published?",
     "options": {
       "A": "Add a verification step that checks each supporting_quote against the actual text of the page at source_url, and feeds any mismatch back to the extraction subagent as the reason for a retry.",
@@ -2680,13 +2680,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-260c23b8",
+    "id": "D4.4-58631487",
     "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.1",
     "domain": "D3",
-    "scenario": "A platform team maintains a modular Claude Code setup: the root CLAUDE.md uses @import to pull in three standards files (api-standards.md, testing.md, security.md), and several packages have their own CLAUDE.md files. One developer reports that Claude Code applies the security conventions inconsistently across sessions - sometimes citing the rules verbatim, other times behaving as if they don't exist. The standards files themselves have not changed.",
+    "scenario": "For this tool, the platform team maintains a modular Claude Code setup: the root CLAUDE.md uses @import to pull in three standards files (api-standards.md, testing.md, security.md), and several packages have their own CLAUDE.md files. One developer reports that Claude Code applies the security conventions inconsistently across sessions—sometimes citing the rules verbatim, other times behaving as if they don't exist—even though the standards files themselves have not changed.",
     "question": "What is the most effective first step to diagnose why the instructions are applied inconsistently?",
     "options": {
       "A": "Run the /memory command to verify which memory files are actually loaded in the session and confirm the @import chain resolves to the expected files.",
@@ -2707,13 +2707,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-06c5be45",
+    "id": "D3.1-71407301",
     "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D4.3",
     "domain": "D4",
-    "scenario": "A structured data extraction pipeline uses a schema-defined extraction tool to pull purchase-order fields (vendor, PO number, delivery date, payment terms) from supplier emails. The schema marks every field as required. QA sampling finds that when an email genuinely omits payment terms, the extraction still returns a plausible-looking value such as \"Net 30\" - fabricated to satisfy the schema - and these invented values are flowing into the ERP system.",
+    "scenario": "The extraction tool's schema pulls vendor, PO number, delivery date, and payment terms from supplier emails, with every field marked required. QA sampling finds that when an email genuinely omits payment terms, the tool still returns a plausible-looking value such as \"Net 30\" — fabricated to satisfy the schema — and these invented values are flowing into the downstream ERP system.",
     "question": "Which schema change most directly prevents the fabricated values?",
     "options": {
       "A": "Keep all fields required, but add a system-prompt instruction telling the model to write 'unknown' as a placeholder when a field like payment terms is missing from the email.",
@@ -2734,13 +2734,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-0a962374",
+    "id": "D4.3-35d6887a",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.3",
     "domain": "D4",
-    "scenario": "A document intake system receives a mixed stream of contracts, invoices, and resumes. Claude has three schema-defined extraction tools (extract_contract, extract_invoice, extract_resume), and the document type is not known in advance. In production, some runs return a conversational reply (\"This appears to be an employment contract...\") instead of calling any extraction tool, and downstream automation fails on those runs.",
+    "scenario": "One extraction stage handles a mixed intake stream of contracts, invoices, and resumes using three schema-defined tools — extract_contract, extract_invoice, extract_resume — where the document type is not known in advance. Production logs show that in some runs Claude instead returns a conversational reply, such as \"This appears to be an employment contract...\", without calling any extraction tool, causing downstream automation to fail on those runs.",
     "question": "Which tool_choice configuration fixes the failures while preserving correct routing across document types?",
     "options": {
       "D": "Set tool_choice to \"any\", requiring the model to call one of the extraction tools while leaving it free to choose the tool matching the document type.",
@@ -2761,13 +2761,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-951c4bbc",
+    "id": "D4.3-e8f58662",
     "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D5.1",
     "domain": "D5",
-    "scenario": "A customer support agent handles long multi-issue conversations. Each order lookup returns a record with more than 40 fields (shipping history, warehouse codes, internal flags), of which only a handful matter for the customer's return question. After several lookups, sessions degrade: the agent starts losing track of amounts and dates the customer stated earlier, and context usage balloons.",
+    "scenario": "During a long returns conversation, the customer states specific refund amounts and order dates across several turns; after multiple lookup_order calls each returning records with 40+ fields of shipping history, warehouse codes, and internal flags, you notice the agent begins misstating amounts and dates the customer gave earlier, and the conversation's context usage keeps climbing.",
     "question": "Which change most directly addresses the degradation?",
     "options": {
       "C": "Instruct the agent to re-ask the customer for amounts and dates whenever it is unsure, so that any detail lost from context is recovered directly from the customer rather than misremembered.",
@@ -2788,13 +2788,13 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-d17564bc",
+    "id": "D5.1-7933e256",
     "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D3.3",
     "domain": "D3",
-    "scenario": "Rule files under .claude/rules/ already scope Python, SQL, and Terraform conventions by glob pattern. A developer adds a new rule file with frontmatter matching **/*.py, intending it to apply only within the payments service subdirectory, but it silently applies its conventions to Python files across every service in the monorepo.",
+    "scenario": "While using rule files under .claude/rules/ to scope Python, SQL, and Terraform conventions by glob pattern, an engineer adds a new rule file with frontmatter matching **/*.py, intending it to apply only within the payments service subdirectory, but Claude silently applies its conventions to Python files across every service in the monorepo.",
     "question": "What is the most effective fix so this rule applies only within the payments service?",
     "options": {
       "A": "Narrow the glob pattern to a path-anchored form such as services/payments/**/*.py so the match is scoped by directory as well as file extension.",
@@ -2817,12 +2817,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.3-b85fb5b7"
+    "id": "D3.3-906ae9ae"
   },
   {
     "taskStatement": "D3.2",
     "domain": "D3",
-    "scenario": "One engineer has built a personal shortcut that runs a specific grep-and-read sequence to trace dependency chains through the legacy billing module — a workflow the rest of the team doesn't use and that shouldn't appear in their command list when they pull the repo.",
+    "scenario": "Investigating why the legacy billing module's dependency chains keep getting misread, one engineer builds a personal grep-and-read sequence that traces the chains correctly; the workflow is specific to their debugging style, unused by the rest of the team, and they want it available whenever they open the repo without it showing up in teammates' command lists after a pull.",
     "question": "Where should this developer store the command file so it stays available only in their own environment and never reaches teammates through version control?",
     "options": {
       "A": "In .claude/commands/ inside the project repository, so version control keeps it available to everyone who clones or pulls.",
@@ -2845,12 +2845,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.2-1c351b7e"
+    "id": "D3.2-891f252b"
   },
   {
     "taskStatement": "D3.5",
     "domain": "D3",
-    "scenario": "While generating integration tests for a legacy billing API, a developer asks across six consecutive turns for the output to be \"improved,\" each time bundling several requests together (error handling, mock setup, assertion coverage, naming). By turn six, error handling that was fixed in turn two has silently broken again, and the developer can't tell which turn reintroduced it.",
+    "scenario": "The developer is using this agent to generate integration tests for a legacy billing API endpoint. Across six consecutive turns of \"improve this\" requests — each bundling error handling, mock setup, assertion coverage, and naming together — the error handling fixed in turn two has silently broken again by turn six, and the developer can't tell which of the intervening turns reintroduced it.",
     "question": "Which approach to structuring these follow-up turns would have prevented the regression from going unnoticed?",
     "options": {
       "A": "Bundle all four requested improvements into a single detailed follow-up turn so the agent has the complete target state up front and needs only one revision pass.",
@@ -2873,12 +2873,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.5-aed43477"
+    "id": "D3.5-06155ce0"
   },
   {
     "taskStatement": "D3.4",
     "domain": "D3",
-    "scenario": "A developer asks the agent to \"reduce database load on the legacy billing service\" without specifying a mechanism. The service has no existing caching layer, several subsystems read overlapping data through different query paths, and at least three caching strategies (in-memory, a shared cache tier, query-level result caching) would each touch different files with different tradeoffs.",
+    "scenario": "A developer working with this agent on the legacy billing service reports that request latency during peak hours has degraded over the past month, and a profiling pass shows the database is repeatedly serving identical reads for the same customer records because several subsystems query overlapping data through different paths — no caching layer exists anywhere in the service today.",
     "question": "Given that the request names a goal but not a mechanism, and multiple viable implementations exist with different tradeoffs across the service's query paths, which approach should the developer take?",
     "options": {
       "A": "Use direct execution, having the agent implement an in-memory caching layer immediately, since caching is a common pattern the model already understands well and can apply without further design.",
@@ -2901,12 +2901,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.4-a985ec02"
+    "id": "D3.4-b3d38f9d"
   },
   {
     "taskStatement": "D3.6",
     "domain": "D3",
-    "scenario": "Your CI pipeline runs a headless Claude Code review job for every open pull request. When five PRs are open at once, the runner launches five concurrent jobs against the same repository checkout, and reviewers start seeing feedback that references code changes from a different PR than the one actually under review.",
+    "scenario": "The team also wires this agent into CI as a headless reviewer, invoking it via the Claude Agent SDK against the same repository checkout for every open pull request. With five PRs open simultaneously, the pipeline launches five concurrent headless runs, and reviewers start seeing feedback that references code changes from a different PR than the one actually under review.",
     "question": "What change would most directly fix this cross-PR contamination?",
     "options": {
       "A": "Before each headless invocation, check out an isolated working-tree copy of the repository for that run, so concurrent jobs never share the same files on disk.",
@@ -2929,12 +2929,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.6-0f3e52aa"
+    "id": "D3.6-51917cfe"
   },
   {
     "taskStatement": "D3.1",
     "domain": "D3",
-    "scenario": "One engineer on the team wants Claude Code to always append extra verbose debug logging instructions when they personally use it to explore the legacy codebase, but the rest of the team does not want those instructions applied when they load the same repository.",
+    "scenario": "While using the agent to explore the legacy codebase, one engineer wants Claude Code to always append extra verbose debug logging instructions to its exploration steps, but only for their own sessions; teammates who check out the same repository and load the same project instructions do not want that verbose logging behavior applied when they explore the codebase.",
     "question": "What is the current best-practice way to apply this one developer's personal instructions without changing the shared, version-controlled CLAUDE.md that every teammate loads?",
     "options": {
       "A": "Add an @import line to the shared project CLAUDE.md that points to a path inside the developer's home directory, so the personal file loads for everyone who has that path present.",
@@ -2957,12 +2957,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.1-388dae07"
+    "id": "D3.1-83f035e2"
   },
   {
     "taskStatement": "D5.1",
     "domain": "D5",
-    "scenario": "Around turn 60 of a billing-dispute conversation, an engineer notices the agent has stopped referencing the customer's account tier (a fact stated once, early on, that determines whether a fee waiver is permitted), even though nothing has removed it from the transcript.",
+    "scenario": "In one such billing-dispute conversation now around turn 60, an engineer reviewing the transcript notices the agent's recent replies no longer reference the customer's account tier — a fact the customer stated once, early on, that determines whether a fee waiver is permitted — even though nothing in the pipeline has removed that line from the raw transcript.",
     "question": "The account tier fact is still present verbatim in the raw transcript, yet the agent's recent responses behave as if it doesn't know it. What is the most likely explanation, and what should the fix target?",
     "options": {
       "D": "The agent is deliberately withholding the account tier because escalate_to_human was never invoked, treating tier-based waivers as out of its scope; the fix is to add an account tier field to the escalate_to_human tool schema so a human reviewer receives it.",
@@ -2985,12 +2985,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D5.1-9c832718"
+    "id": "D5.1-81918e6b"
   },
   {
     "taskStatement": "D2.5",
     "domain": "D2",
-    "scenario": "Before shipping the escalation-criteria fix, an engineer wants to confirm test coverage exists by enumerating every test file whose filename matches the pattern *escalation*.test.ts across a monorepo with hundreds of nested packages, without opening or inspecting any file's contents yet.",
+    "scenario": "Before shipping a fix to the escalation criteria used by escalate_to_human, an engineer wants to confirm test coverage exists by enumerating every test file whose filename matches the pattern *escalation*.test.ts across the agent's monorepo of hundreds of nested packages, without opening or inspecting any file's contents yet.",
     "question": "Which built-in capability should the engineer reach for to complete this filename-enumeration step, before any file is opened?",
     "options": {
       "C": "A general-purpose shell command execution capability that can run arbitrary operating-system commands, including its own file-listing utilities, to produce a comparable listing of paths.",
@@ -3013,12 +3013,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D2.5-a562e6b8"
+    "id": "D2.5-0f4c57b5"
   },
   {
     "taskStatement": "D2.2",
     "domain": "D2",
-    "scenario": "When process_refund fails, it currently returns the same generic message string in every case. Log review shows the agent responds identically whether the failure occurred because the refund had already been issued earlier that day or because the payment gateway timed out — in the former case it re-attempts the refund, risking a duplicate payout, and in the latter it immediately escalates instead of retrying.",
+    "scenario": "Log review of process_refund calls shows the tool returns the identical generic failure message string regardless of cause: in cases where the refund had already been issued earlier that same day, the agent re-attempts the refund (risking a duplicate payout), while in cases where the payment gateway simply timed out, the agent immediately escalates instead of retrying.",
     "question": "What change to how process_refund reports failure would let the agent tell these two cases apart and choose the correct next action for each, without relying on the model's judgment to parse a free-text message?",
     "options": {
       "B": "Have process_refund retry internally with exponential backoff before returning a failure, so that only failures which persist after several attempts are ever surfaced to the agent for a decision at all.",
@@ -3041,12 +3041,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D2.2-f79a5657"
+    "id": "D2.2-9695bd09"
   },
   {
     "taskStatement": "D1.1",
     "domain": "D1",
-    "scenario": "In a billing dispute case, the loop lets the model choose escalate_to_human as its very first action whenever the customer's message reads as frustrated, without ever attempting get_customer or lookup_order first. A review of transcripts shows the needed account and order data was retrievable in most of these cases, and many could have been resolved without a human.",
+    "scenario": "Reviewing a batch of billing dispute transcripts, you find that whenever the customer's message reads as frustrated, the agent's very first action is calling escalate_to_human — it never attempts get_customer or lookup_order first. Checking the underlying account and order data for those same cases afterward shows it was retrievable in most of them, and many disputes could plausibly have been resolved without a human.",
     "question": "Which change to the loop's design would most reliably prevent this premature escalation?",
     "options": {
       "B": "Add a sentiment-detection step that suppresses the escalation trigger whenever the customer's measured frustration score falls below a preset numeric threshold.",
@@ -3069,12 +3069,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D1.1-cef6ee83"
+    "id": "D1.1-1e80b42f"
   },
   {
     "taskStatement": "D5.4",
     "domain": "D5",
-    "scenario": "A developer asks Claude Code to trace how inventory reservations flow through a warehouse management system spanning 3,200 files across a dozen services. Midway through the session, the transcript already holds the full contents of several large files that turned out to be irrelevant, and the developer notices response quality degrading as the conversation continues.",
+    "scenario": "While debugging your warehouse management system, a developer asks Claude Code to trace how inventory reservations flow across the 3,200 files spanning a dozen services. Midway through the session, the transcript already holds the full contents of several large files that turned out to be irrelevant, and the developer notices response quality degrading as the conversation continues.",
     "question": "The developer wants to keep exploring the codebase without the irrelevant file contents continuing to crowd every subsequent turn. Given that the harness offers a way to condense the conversation into a summary and discard the bulk of what generated it, which action best addresses the problem right now, mid-session?",
     "options": {
       "C": "Ask Claude to re-read the irrelevant files a second time and write an inline summary, reasoning that a summary placed later in the transcript will outweigh the original content earlier in it.",
@@ -3097,12 +3097,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D5.4-34f5ebd0"
+    "id": "D5.4-a8ea8ee1"
   },
   {
     "taskStatement": "D3.1",
     "domain": "D3",
-    "scenario": "After a Claude Code upgrade, a developer notices their personal CLAUDE.local.md file at the project root (previously gitignored) is no longer being picked up, and asks how to restore personal, unshared instructions without committing them to the shared repo.",
+    "scenario": "A developer on your team recently upgraded Claude Code and notices their personal CLAUDE.local.md file at the project root — previously gitignored and used to hold their own unshared instructions — is no longer being picked up. They ask how to restore personal, unshared instructions going forward without committing them to the shared repo.",
     "question": "What is the current, correct way to configure this developer's personal instructions going forward?",
     "options": {
       "B": "Recreate a CLAUDE.local.md file at the project root, since adding it to .gitignore is enough to keep it personal to each developer.",
@@ -3125,12 +3125,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.1-5ef800a6"
+    "id": "D3.1-f6981813"
   },
   {
     "taskStatement": "D3.2",
     "domain": "D3",
-    "scenario": "A team wants docstring generation to kick in automatically whenever Claude is editing a Python file, without any developer typing a command — but they are unsure whether to package the workflow as a slash command or as a skill.",
+    "scenario": "A subset of your team wants docstring generation to fire automatically the moment Claude Code is editing any Python file in the repo, with no developer typing a slash command to invoke it, and they're deciding whether to build this as a custom slash command or package it as a skill.",
     "question": "Which approach correctly achieves automatic, hands-free triggering?",
     "options": {
       "A": "Build it as a slash command stored in the project's commands directory, since project-scoped commands become the automatic default behavior applied to every file edit in that repository.",
@@ -3153,12 +3153,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.2-aaf5d1ab"
+    "id": "D3.2-987b09ef"
   },
   {
     "taskStatement": "D5.2",
     "domain": "D5",
-    "scenario": "While running a large database-migration task in direct execution, the agent hits two conflicting existing patterns in the codebase for handling nullable foreign keys and silently picks one, applying the change across 20 files before anyone notices the inconsistency — triggering a full rework cycle.",
+    "scenario": "Last week, one engineer let the agent run a large database-migration task in direct execution without pausing for review. Midway through, it hit two conflicting existing patterns in the codebase for handling nullable foreign keys, silently picked one, and applied that change across 20 files before anyone noticed the inconsistency — triggering a full rework cycle.",
     "question": "Which workflow change would most reliably prevent this kind of costly rework when the agent encounters a genuine ambiguity in requirements or existing conventions?",
     "options": {
       "D": "Have the agent proceed with its best guess and leave a comment in the diff noting the assumption, so reviewers can catch it during code review.",
@@ -3181,12 +3181,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D5.2-dbbbbe5c"
+    "id": "D5.2-d7351fed"
   },
   {
     "taskStatement": "D5.3",
     "domain": "D5",
-    "scenario": "Your team built a custom /audit-deps slash command that uses the Task tool to spawn a subagent per legacy service directory to scan for outdated dependencies. When a subagent hits a directory it lacks read permissions for, the main session currently just sees a bare \"subtask failed\" message, with no indication of which service was skipped or which dependency checks never ran.",
+    "scenario": "Your team's custom /audit-deps slash command uses the Task tool to spawn a subagent per legacy service directory to scan for outdated dependencies. On the last run, one subagent hit a directory it lacked read permissions for, and the main session only saw a bare \"subtask failed\" message, with no indication of which service was skipped or which dependency checks never ran.",
     "question": "How should the subagent's failure information be structured so the orchestrating session can respond intelligently?",
     "options": {
       "B": "Have the subagent return structured output naming the failed directory, the permission error type, and which services were already audited, so the session can decide how to proceed.",
@@ -3209,12 +3209,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D5.3-a1e62732"
+    "id": "D5.3-b04007e4"
   },
   {
     "taskStatement": "D3.3",
     "domain": "D3",
-    "scenario": "Developers notice that database-model conventions load into context the moment Claude opens a file under the models/ directory, but never appear when Claude is editing a React component elsewhere in the repo. The team now wants the same automatic, path-based behavior for a new file type: GraphQL resolver files, which share the extension .resolver.ts but are scattered across many unrelated service directories with no common parent folder.",
+    "scenario": "Your team's GraphQL resolver files carry a shared `.resolver.ts` extension but live scattered across a dozen unrelated service directories with no common parent, and developers want resolver conventions to load automatically whenever Claude opens any of them.",
     "question": "What is the most maintainable way to make resolver conventions load automatically for any .resolver.ts file, regardless of which directory it lives in?",
     "options": {
       "D": "Create a new convention file whose header declares a pattern matching the .resolver.ts extension, so it loads automatically for any matching file, regardless of directory.",
@@ -3237,12 +3237,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.3-31afefee"
+    "id": "D3.3-f6e29013"
   },
   {
     "taskStatement": "D4.1",
     "domain": "D4",
-    "scenario": "Your automated PR-review prompt tells Claude to flag any \"significant\" change to error handling. Reviewers report Claude flags a renamed exception variable with the same severity as a removed try/catch block around a database write, so the team stops reading flags in order of severity.",
+    "scenario": "Two weeks after deployment, reviewers report that Claude's error-handling flags on pull requests are technically correct but useless: a renamed exception variable is flagged with the same \"significant\" label as a removed try/catch block around a database write, so the team has stopped reading the flags in severity order.",
     "question": "What is the most effective way to reduce this noise and restore reviewers' trust in the flagged output?",
     "options": {
       "A": "Instruct the prompt to only flag changes over a minimum line-count threshold, since larger diffs are more likely to contain the changes reviewers actually care about.",
@@ -3265,12 +3265,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D4.1-7f16a8c1"
+    "id": "D4.1-0309001d"
   },
   {
     "taskStatement": "D3.5",
     "domain": "D3",
-    "scenario": "After the first two weeks in production, the review prompt correctly flags SQL injection risks but also flags roughly a third of PRs for trivial style preferences (variable naming, import ordering) that the team does not want surfaced. The team wants to reduce the style false positives without weakening the security detection that is already working.",
+    "scenario": "Two weeks of production data show your review prompt correctly flags SQL injection risks in the automated PR feedback, but roughly a third of PRs also get flagged for trivial style preferences—variable naming, import ordering—that the team never asked the pipeline to surface. The team wants those style false positives gone without touching the security detection that's already working correctly.",
     "question": "Before making any further changes to the review prompt, what is the most effective refinement approach?",
     "options": {
       "C": "Run the existing prompt five times per PR and average the flags across runs, on the assumption that variation across runs will cancel out the style false positives.",
@@ -3293,12 +3293,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.5-0e66837e"
+    "id": "D3.5-ddb09ce5"
   },
   {
     "taskStatement": "D3.4",
     "domain": "D3",
-    "scenario": "One PR waiting on automated review simply bumps a test timeout value in a CI config file from 30 seconds to 90 seconds, citing one named flaky test as the reason; the change touches a single file and there is no alternative implementation under consideration.",
+    "scenario": "This particular pull request in the pipeline bumps a test timeout value in a CI config file from 30 seconds to 90 seconds, citing one named flaky test as the reason; the change touches that single file and there is no alternative implementation under consideration.",
     "question": "Before the agent modifies the file, which approach should it take to decide how to proceed?",
     "options": {
       "B": "Have the agent first request a risk classifier to categorize the change before deciding whether an exploratory pass or a direct edit is warranted, deferring the choice to that classifier's output.",
@@ -3321,12 +3321,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D3.4-a1bc5556"
+    "id": "D3.4-cc0a4a36"
   },
   {
     "taskStatement": "D4.2",
     "domain": "D4",
-    "scenario": "The automated code review step in the pipeline has a 30% false-positive rate specifically on pull requests that only rename variables or reformat whitespace, with the model repeatedly treating these cosmetic diffs as logic changes worth flagging.",
+    "scenario": "Two weeks of production data on this automated code review step show a 30% false-positive rate isolated to pull requests that only rename variables or reformat whitespace, with the model repeatedly flagging these cosmetic diffs as logic changes worth review.",
     "question": "Which change would most effectively reduce this specific false-positive pattern while preserving genuine bug detection on other pull requests?",
     "options": {
       "D": "Add a system prompt instruction stating that purely cosmetic changes such as variable renames or reformatting should never be flagged as logic issues, leaving the rest of the prompt unchanged.",
@@ -3349,12 +3349,12 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D4.2-61fb6bfd"
+    "id": "D4.2-53fe438c"
   },
   {
     "taskStatement": "D1.2",
     "domain": "D1",
-    "scenario": "Leadership asks whether to refactor the single support agent into a coordinator that delegates to three specialized subagents — billing, returns, and escalation — hoping specialization will lift resolution rates. Each subagent would need the same customer record and order history from get_customer and lookup_order, and every case must still be resolved within one continuous conversation turn.",
+    "scenario": "Production data shows that in 12% of cases, your agent skips get_customer entirely and calls lookup_order using only the customer's stated name.",
     "question": "Given these constraints, what is the most appropriate architectural decision?",
     "options": {
       "C": "Keep the single-agent design: get_customer, lookup_order, and the refund decision all depend on the same customer and order state within one continuous turn, so splitting into subagents would only fragment that shared context and add coordination overhead with no resolution benefit.",
@@ -3377,6 +3377,6 @@ window.CCARF_BANK = [
       "generatedAt": "2026-08-03",
       "reviewed": true
     },
-    "id": "D1.2-a988fb46"
+    "id": "D1.2-9225ae75"
   }
 ];

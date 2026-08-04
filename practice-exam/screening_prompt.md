@@ -37,11 +37,9 @@ For each assigned question:
    https://code.claude.com/docs. Apply the grounding rule above to decide
    between "fabrication" and "product-docs divergence."
 2. **SINGLE ANSWER** — is the marked-correct option clearly the best answer?
-   Every bank question is single-answer by design. The real exam also has
-   multiple-response items, but with no worked example published there is nothing
-   to calibrate them against, so reject any candidate that expects more than one
-   selection rather than trying to score it. See "Known fidelity gaps" in
-   local_practice_exam_spec.md.
+   Every bank question is single-answer, which matches the real exam — the
+   guide describes multiple-response items but a real sitting found none. Reject
+   any candidate that expects more than one selection.
    Argue *for* each distractor: does any have a defensible case of being
    equally or more correct given the scenario? If yes, flag it.
 3. **QUALITY** — realistic production scenario in one of the exam's six

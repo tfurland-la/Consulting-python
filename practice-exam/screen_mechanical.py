@@ -211,12 +211,20 @@ def screen(items, bank, source):
             longest_correct += 1
     if comparable:
         share = longest_correct / comparable
+        target = exam_lib.LENGTH_LONGEST_FRACTION
         print(f"longest-is-correct : {longest_correct}/{comparable} = {share:.0%}"
-              + ("  (chance is ~25%)" if share else ""))
+              + (f"  (target {target:.0%}, chance is ~25%)" if share else ""))
         if share > 0.50:
             print(f"  ^ EXPLOITABLE: picking the longest option scores ~{share:.0%} "
                   f"without reading the material. Fix by giving distractors the same "
                   f"specificity, not by trimming correct answers.")
+        elif abs(share - target) > 0.10:
+            # The posture is planned per question, so a realized rate this far
+            # from the plan means the plan is not surviving generation — the
+            # usual cause is retries and dedup discards falling unevenly.
+            print(f"  ^ OFF TARGET: planned for {target:.0%}, realized {share:.0%}. "
+                  f"The posture is a generation input, so a gap this size means "
+                  f"the plan is being lost between assignment and merge.")
 
     positions = Counter(k for q in items for k in correct_keys(q))
     total_keys = sum(positions.values())

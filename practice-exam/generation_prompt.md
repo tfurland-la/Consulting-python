@@ -26,21 +26,20 @@ Requirements:
 - Provide exactly one correct answer and three plausible distractors. The
   distractors must represent the kinds of mistakes a candidate with incomplete
   knowledge would make.
-  (Single-answer is a deliberate constraint, not exam fidelity: the real exam
-  also has multiple-response items, but the guide publishes no worked example of
-  one, so their option count and scoring are unknown. Do not invent
-  multiple-response items. See "Known fidelity gaps" in
-  local_practice_exam_spec.md.)
-- Keep all four options within roughly the same length — no option more than about
-  1.3x the longest of the others. This is a scoring-integrity rule, not a style
-  preference: measured on the committed bank, the correct option was the longest in
-  92 of 103 questions, so a candidate who simply picks the longest option scores
-  about 89% without knowing any of the material. The failure mode is writing the
-  correct answer as a fully-qualified statement ("...because X, which ensures Y
-  under condition Z") while the distractors stay short flat assertions. Give the
-  distractors the same specificity and hedging as the correct answer, so length
-  carries no signal. If the correct answer genuinely needs the extra words, add
-  comparable substance to the distractors rather than trimming the correct one.
+  (Single-answer matches the real exam. The exam guide describes
+  multiple-response items, but someone who sat the exam reports encountering
+  none — the guide overstates the format. Do not write multiple-response
+  items.)
+- Give all four options comparable substance. This is a scoring-integrity rule,
+  not a style preference: a bank built without it reached 81% "correct option is
+  the longest", so a candidate who read nothing and picked the longest option
+  scored 81%, which makes the whole score meaningless. The failure mode is
+  writing the correct answer as a fully-qualified statement ("...because X,
+  which ensures Y under condition Z") while the distractors stay short flat
+  assertions. Give the distractors the same specificity and hedging as the
+  correct answer. Where a question below specifies which of the four should be
+  longest, that instruction governs; either way, never achieve it by trimming —
+  add substance to the shorter options instead.
 - Provide an explanation of why the correct answer is right and why each
   distractor is wrong.
 - You are NOT to invent specific technical facts — flag names, environment
@@ -110,13 +109,7 @@ Before you answer, re-check the two rules most often lost at this distance —
 the standing brief above is long, and these are the two whose violation is
 invisible in the finished question:
 
-- OPTION LENGTH. Count the characters of all four options. If the correct one
-  is the longest, rewrite until it is not, by adding substance to the
-  distractors rather than trimming the correct answer. Measured on the
-  committed bank, the correct option was the longest in 85% of questions — a
-  candidate who reads nothing and picks the longest option scores 85%. This is
-  a scoring-integrity failure, not a style nit.
-- NO INVENTED SPECIFICS. Every flag, environment variable, file path, and
+{{LENGTH_POSTURE}}- NO INVENTED SPECIFICS. Every flag, environment variable, file path, and
   configuration behaviour must be one you can point to in the exam content
   above. If you need a detail you are not certain of, describe the behaviour
   instead of naming the thing.

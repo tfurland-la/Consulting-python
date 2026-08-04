@@ -558,24 +558,86 @@ FUNCTIONAL_REGISTER_INSTRUCTIONS = (
 # official terminology, so the bank trains both named- and functional-recognition.
 FUNCTIONAL_FRACTION = 0.45
 
+# Share of generated questions in which the correct option is ALLOWED to be the
+# longest. This is the aggregate control that LENGTH_TELL_MAX_RATIO is not: the
+# ratio caps one question's margin, this caps how often the tell appears at all.
+#
+# 0.35 against a chance rate of 0.25 (four options, one correct) leaves the
+# "pick the longest" shortcut worth about nine points over blind guessing —
+# far below what knowing the material scores, so it is not a strategy worth
+# playing, and the practice score goes back to measuring competence. Set
+# deliberately below the guide's own observed 58%: reproducing that rate would
+# reinstate a shortcut that scores 58% without reading, which is the defect the
+# bank repair removed. Set deliberately above 0 because a bank with no tell
+# teaches that the longest option is never right, which is false on the real
+# exam.
+LENGTH_LONGEST_FRACTION = 0.35
 
-def register_plan(count, fraction=None, rng=None):
-    """`count` register labels, exactly `fraction` of them functional, shuffled.
+# How the correct option's length is planned for one question. Assigned as a
+# generation input, never stamped: unlike the register, posture is recoverable
+# from the option text by measuring it, so a stored field could only disagree
+# with the content it describes.
+LENGTH_POSTURES = ("longest", "not-longest")
+
+# Stated as a requirement on THIS question rather than as a statistic about the
+# bank. The bank-wide framing is what failed before: the model reads "the
+# correct option is longest in 85% of questions", agrees it is bad, and then
+# writes one more question in which the correct option is longest, because
+# nothing in the instruction bites on the question in front of it.
+NOT_LONGEST_POSTURE_INSTRUCTIONS = (
+    "- OPTION LENGTH FOR THIS QUESTION: the correct option must NOT be the "
+    "longest of the four. Count the characters of all four before you answer. "
+    "At least one distractor must be longer than the correct option. Achieve "
+    "that by giving the distractors the same specificity, qualification and "
+    "hedging the correct answer has — never by trimming the correct answer, "
+    "whose qualifying clauses are what make it correct.\n"
+    "  Do NOT pad a distractor with the reason it is wrong. Clauses like "
+    "\"without addressing the root cause\" or \"rather than verifying the "
+    "result\" give the answer away more cheaply than length does, because the "
+    "correct option becomes the only one not arguing against itself. Every "
+    "distractor must read as a confident proposal by someone who believes it "
+    "is right; its wrongness belongs in the explanation, never in the option "
+    "text.\n"
+)
+
+LONGEST_POSTURE_INSTRUCTIONS = (
+    "- OPTION LENGTH FOR THIS QUESTION: the correct option MUST be the longest "
+    "of the four, but by no more than "
+    f"{LENGTH_TELL_MAX_RATIO}x the longest distractor. Count the characters "
+    "before you answer. Achieve it by extending the correct option, NEVER by "
+    "trimming or shortening the distractors — they still need full "
+    "specificity, and a short flat assertion beside a fully-qualified "
+    "correct answer is the defect this bank exists to remove.\n"
+)
+
+# Used when no posture was planned for this call. Callers that plan one get a
+# rate; callers that do not still get the margin cap, which is what the code
+# enforces either way.
+UNPLANNED_LENGTH_INSTRUCTIONS = (
+    "- OPTION LENGTH. Count the characters of all four options. The correct "
+    f"option must not exceed {LENGTH_TELL_MAX_RATIO}x the longest distractor, "
+    "and preferably should not be the longest at all. Fix any excess by adding "
+    "substance to the distractors, never by trimming the correct answer. A "
+    "candidate who picks the longest option without reading must not score by "
+    "doing so; this is a scoring-integrity rule, not a style nit.\n"
+)
+
+
+def _shuffled_plan(count, fraction, marked, rest, rng=None):
+    """`count` labels, exactly `fraction` of them `marked`, shuffled.
 
     Shuffled rather than bucket-spread. Bucket-spreading is right for the
     difficulty tiers, where 9 hard questions over 60 need a guaranteed spread
     and the buckets are ~7 wide. At a 45% share the buckets are barely 2 wide,
-    so one functional per bucket produces a near-perfect alternation — a runs
+    so one marked item per bucket produces a near-perfect alternation — a runs
     test on the bucket-spread version scored z=6.4, i.e. far MORE regular than
-    chance. A candidate who notices the rhythm can predict the register, which
-    is the pattern-matching this whole change exists to defeat. A shuffle keeps
-    the count exact and the sequence unguessable.
+    chance. A candidate who notices the rhythm can predict the next label,
+    which is the pattern-matching this whole change exists to defeat. A shuffle
+    keeps the count exact and the sequence unguessable.
     """
-    if fraction is None:
-        fraction = FUNCTIONAL_FRACTION
     draw = rng or random.random
     wanted = max(0, min(count, round(count * fraction)))
-    plan = ["functional"] * wanted + ["named"] * (count - wanted)
+    plan = [marked] * wanted + [rest] * (count - wanted)
     # Fisher-Yates against the supplied rng, so tests stay deterministic.
     for i in range(len(plan) - 1, 0, -1):
         j = int(draw() * (i + 1))
@@ -583,8 +645,30 @@ def register_plan(count, fraction=None, rng=None):
     return plan
 
 
+def register_plan(count, fraction=None, rng=None):
+    """`count` register labels, exactly `fraction` of them functional, shuffled."""
+    if fraction is None:
+        fraction = FUNCTIONAL_FRACTION
+    return _shuffled_plan(count, fraction, "functional", "named", rng)
+
+
+def length_plan(count, fraction=None, rng=None):
+    """`count` length postures, exactly `fraction` of them "longest", shuffled.
+
+    This is the control on the batch RATE. LENGTH_TELL_MAX_RATIO bounds how far
+    the correct option may outrun its rivals on one question; it says nothing
+    about how often the correct option is longest, and generation drifts to sit
+    just under the cap — every question passes while the rate climbs. Assigning
+    the posture up front makes the rate a property of the plan instead.
+    """
+    if fraction is None:
+        fraction = LENGTH_LONGEST_FRACTION
+    return _shuffled_plan(count, fraction, "longest", "not-longest", rng)
+
+
 def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
-                 scenario_type=None, difficulty="standard", register="named"):
+                 scenario_type=None, difficulty="standard", register="named",
+                 length_posture=None):
     if task_statement not in TASK_STATEMENTS:
         raise ValueError(f"unknown task statement: {task_statement!r}")
     if scenario_type is not None and scenario_type not in SCENARIO_TYPES:
@@ -593,6 +677,8 @@ def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
         raise ValueError(f"unknown difficulty: {difficulty!r}")
     if register not in REGISTERS:
         raise ValueError(f"unknown register: {register!r}")
+    if length_posture is not None and length_posture not in LENGTH_POSTURES:
+        raise ValueError(f"unknown length posture: {length_posture!r}")
     domain = task_statement.split(".")[0]
     if bank is None:
         bank = load_bank()
@@ -643,6 +729,10 @@ def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
     register_block = (
         FUNCTIONAL_REGISTER_INSTRUCTIONS if register == "functional" else ""
     )
+    length_block = {
+        "longest": LONGEST_POSTURE_INSTRUCTIONS,
+        "not-longest": NOT_LONGEST_POSTURE_INSTRUCTIONS,
+    }.get(length_posture, UNPLANNED_LENGTH_INSTRUCTIONS)
     difficulty_block = {
         "harder": HARDER_DIFFICULTY_INSTRUCTIONS,
         "hard": HARD_DIFFICULTY_INSTRUCTIONS,
@@ -657,6 +747,7 @@ def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
         ("{{SCENARIO_TYPE}}", scenario_block),
         ("{{DIFFICULTY}}", difficulty_block),
         ("{{REGISTER}}", register_block),
+        ("{{LENGTH_POSTURE}}", length_block),
         ("{{AVOID}}", avoid_block),
         ("{{RETRY_FEEDBACK}}", retry_block),
     ):
@@ -742,7 +833,8 @@ def run_claude(prompt, schema=None, timeout=None):
 
 
 def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=None,
-                      difficulty="standard", register="named"):
+                      difficulty="standard", register="named",
+                      length_posture=None):
     """Generate and validate one question; retry once with error feedback.
 
     The retry-with-error-feedback loop is the exam's own D4.4 pattern applied
@@ -776,6 +868,7 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
             scenario_type=scenario_type,
             difficulty=difficulty,
             register=register,
+            length_posture=length_posture,
         )
         try:
             candidate = extract_candidate(run(prompt))
@@ -802,6 +895,44 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
                     "to a distractor rather than trimming the correct answer — "
                     "being marginally longest is fine, being conspicuously "
                     "longest is not."
+                )
+            # Planned to carry the tell and does not. Enforced in both
+            # directions deliberately: a one-sided rule is not a rate control,
+            # because an unenforced permission can only lose "longest" slots,
+            # never gain them, leaving the realized rate below the plan by
+            # however often generation declines to comply. A live run declined
+            # once in two.
+            if (length_posture == "longest"
+                    and not longest_option_is_correct(candidate)):
+                lengths = {k: len(v) for k, v in candidate["options"].items()}
+                raise ValueError(
+                    f"option {candidate['correct']} is the correct answer and is "
+                    f"NOT the longest of the four ({lengths}). This question was "
+                    "planned to be one where the correct option is longest, so "
+                    "that the bank keeps the mild length tell the real exam has "
+                    "rather than teaching that the longest option is never "
+                    f"right. Extend the correct option past its rivals, by up to "
+                    f"{LENGTH_TELL_MAX_RATIO}x the longest of them. Do NOT trim "
+                    "or shorten the distractors to achieve it — short flat "
+                    "distractors beside a qualified correct answer are the "
+                    "defect this bank exists to remove."
+                )
+            # The margin gate above passes a correct option that is longest by
+            # a hair, which is how the batch rate climbed while every single
+            # question stayed legal. When this slot was planned not-longest,
+            # being longest at all is the failure.
+            if (length_posture == "not-longest"
+                    and longest_option_is_correct(candidate)):
+                lengths = {k: len(v) for k, v in candidate["options"].items()}
+                raise ValueError(
+                    f"option {candidate['correct']} is the correct answer and is "
+                    "the longest of the four "
+                    f"({lengths}) — this question was planned to have a correct "
+                    "option that is NOT the longest, so that the bank as a whole "
+                    "does not reward picking the longest option. Lengthen a "
+                    "distractor past it by adding matching specificity, rather "
+                    "than trimming the correct answer, and do not pad a "
+                    "distractor with the reason it is wrong."
                 )
             candidate["register"] = register
             if scenario_type is not None:

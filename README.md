@@ -50,10 +50,16 @@ generation goes through your own authenticated Claude Code CLI. Run these from t
 repository root (the paths are relative to it):
 
 ```
-cd Consulting-python
-pip install pywebview
-python3 practice-exam/exam_app.py
+python3 -m venv .venv                        # first run only
+.venv/bin/pip install pywebview              # first run only
+.venv/bin/python practice-exam/exam_app.py
 ```
+
+Use `.venv/bin/python`, not a bare `python3` — pywebview is installed into the
+project venv, and system Python will fail with `ModuleNotFoundError: No module
+named 'webview'`. `.venv/bin/python practice-exam/exam_app.py --selfcheck`
+prints where the app is reading its resources from and whether it found the
+Claude Code CLI, without opening a window.
 
 Fresh questions are generated on demand and your progress lives in a plain JSON
 file. Without the Claude Code CLI the app still works, drawing from the reviewed
@@ -63,10 +69,9 @@ browser storage. Either way, a **Timed exam** mode runs a full 60-question,
 120-minute simulation matching the real exam's domain weighting (27/18/20/20/15)
 and its 4-of-6 scenario structure, with question skipping, mark-for-review,
 backward navigation, an always-reachable review screen, and an approximate
-scaled score against the 720 bar. **Known gap:** the real exam also includes
-multiple-response items ("select how many responses" questions); every question
-here is single-answer, because the guide publishes no worked multiple-response
-example to calibrate against. Read a score as a floor, not a prediction — see
+scaled score against the 720 bar. Every question is single-answer, which matches
+the real exam: the guide describes multiple-response items, but a real sitting
+found none. Remaining differences are listed under
 [Known fidelity gaps][fidelity]. In the
 desktop app, **fresh questions generated live** carry the exam's difficulty
 spread — mostly mid, a quarter harder, a ~15% hard tail — making it the faithful

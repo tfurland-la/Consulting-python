@@ -360,13 +360,29 @@ Requirements:
     cases, integrating with downstream systems).
   - Require exactly one correct answer and three plausible distractors that
     represent mistakes a partially-knowledgeable candidate would make.
-    Single-answer is a deliberate constraint, not exam fidelity: the real exam
-    also has multiple-response items, but the guide publishes no worked example
-    of one, so their option count and scoring are unknown. Do not generate
-    multiple-response items. Surface this as a known gap in the built artifact
-    so a score is read as a floor, not a prediction.
+    Single-answer matches the real exam. The exam guide describes
+    multiple-response items, but a real sitting encountered none, so the guide
+    overstates the format. Do not generate multiple-response items, and do not
+    describe their absence as a gap in the built artifact.
   - Require an explanation for why the correct answer is right and why each
     distractor is wrong.
+  - Control the OPTION-LENGTH TELL, and control it in two places, because one
+    is not enough. Cap how far the correct option may exceed its longest rival
+    (1.20x), and separately plan how OFTEN it is allowed to be longest at all
+    (~35%, against a chance rate of 25% for four options). A cap alone does not
+    work: generation settles just under it, so every question passes while the
+    rate climbs. Measured on a real bank built with the cap and a prompt rule
+    but no rate plan, the correct option was the longest in 81% of questions —
+    a candidate who read nothing and picked the longest scored 81%, which makes
+    the readiness estimate meaningless. Assign the posture per question up
+    front from a shuffled plan, put it in the prompt, and reject a candidate
+    that violates it. Do not drive the rate to zero: that teaches the candidate
+    that the longest option is never right, which the real exam refutes.
+  - When lengthening a distractor to even out the options, add concrete detail
+    about what that option would involve — never the reason it is wrong.
+    Clauses like "without addressing the root cause" trade a length tell for a
+    worse one, because the correct answer becomes the only option not arguing
+    against itself. A distractor's wrongness belongs in its explanation.
   - Include the ten Phase 1 sample questions as few-shot examples of the
     desired style and difficulty.
   - Instruct the model NOT to invent specific technical facts — flag names,

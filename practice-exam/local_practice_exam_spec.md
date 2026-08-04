@@ -127,12 +127,20 @@ to return to, the other permanently discards a flawed bank question.
 
 ## Two ways to run
 
-**Desktop app (dynamic — the primary mode).** Requires Python, `pip install
-pywebview`, and an authenticated Claude Code CLI:
+**Desktop app (dynamic — the primary mode).** Requires a project venv with
+pywebview installed, and an authenticated Claude Code CLI:
 
 ```
-python3 practice-exam/exam_app.py
+python3 -m venv .venv && .venv/bin/pip install pywebview   # first run only
+.venv/bin/python practice-exam/exam_app.py
 ```
+
+Run it with the venv's interpreter, not a bare `python3`. This is the one entry
+point that needs a third-party package — `generate_bank.py` and both screeners
+import only the standard library through `exam_lib`, so system Python runs those
+fine, which is exactly why a bare `python3` looks like it works right up until
+the app fails with `ModuleNotFoundError: No module named 'webview'`.
+`--selfcheck` reports resource paths and CLI discovery without opening a window.
 
 `exam.html` opens in a native window. Questions are generated on demand by
 shelling out to `claude -p` with a JSON-schema-constrained prompt; progress
@@ -316,18 +324,68 @@ max 1.19, none over threshold.** Chance is 25%, so neither "pick the longest"
 One official sample exceeds the threshold at 1.29. That is the guide's own
 wording, so it is left alone; the gate is enforced on generation only.
 
-**Residual, not yet solved:** the threshold bounds the *margin* per question,
-not the *rate* across a batch. Generation tends to land just under the limit, so
-the rate drifts up even when every individual margin is exam-like. The repair
-pass reset the committed bank to 34%, but nothing holds it there — it is a
-one-time correction, not a control, and each refill pulls back toward the gate.
-`screen_mechanical.py` reports the rate; an aggregate control does not exist yet.
+**The rate is controlled separately from the margin.** `LENGTH_TELL_MAX_RATIO`
+bounds how far the correct option may outrun its rivals on *one* question. It
+says nothing about how *often* the correct option is longest, and that gap is not
+theoretical: generation settles just under the cap, so every question passes
+while the batch rate climbs. A margin gate alone cannot hold a rate, because it
+only ever says "not this much", never "not this often".
 
-Note the repaired bank sits *below* the guide's own 58%, not above it, because
-repair targeted a ratio of ≤0.98 rather than the 1.20 gate — landing on the gate
-would have left every repaired question still longest-is-correct, which is the
-tell itself. 34% against a chance rate of 25% is the intended resting place; the
-exam's 58% is a description of the exam, not a target to reproduce.
+So the posture is planned, not filtered. Each question is assigned `"longest"` or
+`"not-longest"` up front from a shuffled plan with an exact count
+(`length_plan`), the assignment goes into the prompt, and `generate_question`
+rejects a candidate that violates it — feeding the retry loop that already
+exists. The rate is then a property of the plan rather than of whatever
+generation drifts to. `LENGTH_LONGEST_FRACTION` is **0.35**.
+
+**Enforced in both directions, which is not optional.** The first build only
+rejected a `"longest"` result in a `"not-longest"` slot, leaving `"longest"`
+as a permission the model could decline. That is not a rate control: an
+unenforced permission can only ever *lose* longest-is-correct slots, never gain
+them, so the realized rate is bounded above by the plan and sits below it by
+however often generation declines. A live run declined once in two. Both
+directions now raise. The `"longest"` rejection says explicitly not to shorten
+the distractors to comply — the cheap fix would reinstate the short-flat-
+distractor defect the whole exercise removes. Measured on a live run after the
+change, four of four completed generations honoured the posture with distractors
+still full (a `"longest"` question at 370 chars correct against distractors of
+297/319/342).
+
+Three properties of that shape are load-bearing:
+
+- **Shuffled, not bucket-spread**, for the same reason as the register: a
+  predictable posture is its own tell, since a candidate who works out which
+  stretch of the form rewards the shortcut can play it there.
+- **Concurrency-safe.** The plan is computed up front, so each worker carries its
+  own assignment. A running-rate feedback loop would need shared state and would
+  break under the statement-sharded parallelism.
+- **Never stamped on the question.** Unlike the register — a generation intent
+  not recoverable from the text — posture is measurable from the options, so a
+  stored field could only ever disagree with the content it describes. Nothing
+  was added to the schema and no ids moved.
+
+Reaches all three generation paths, as the register does: refill
+(`plan_length_postures`, which repays a partial batch's shortfall rather than
+restarting the mix), the fresh timed form (`examLengthPlan`), and the drill
+(`drawLengthPosture`, drawn per question because a drill has no sequence to
+spread a plan across, so its rate holds in expectation rather than exactly).
+`generate_bank.py --merge` reports the realized rate on the merged bank, not just
+the batch — a batch can sit on target while the bank it joins does not.
+
+**Why 0.35 and not 0.25 or 0.58.** Chance is 25% (four options, one correct), so
+at 0.35 the "pick the longest" shortcut is worth about nine points over blind
+guessing — far below what knowing the material scores, and therefore not a
+strategy worth playing. Deliberately *below* the guide's own 58%: reproducing
+that would reinstate a shortcut scoring 58% without reading, which is the defect
+the repair removed. Deliberately *above* 0, because a bank with no tell teaches
+that the longest option is never right, which the real exam refutes.
+
+**Still open:** the plan aims at the batch, not at the bank's history. A batch
+held on target converges the bank on it, but a bank already off-target is not
+actively corrected — that was a deliberate choice, since correcting history from
+one batch would swing a small batch to all-one-posture. If the bank drifts
+(screening deletions correlating with posture would do it), the merge report
+surfaces it and a repair pass, not the plan, is the remedy.
 
 **`scenarioType` backfill.** `classify_scenarios.py --classify` proposes a
 scenario genre for every unlabelled banked question into a gitignored file for
@@ -576,29 +634,20 @@ the seed configuration, no code edit required).
 Places where this tool knowingly diverges from the real exam. Each is recorded
 with what would close it, so a gap is never mistaken for a bug or for fidelity.
 
-**Multiple-response items are not modeled.** Exam guide v1.0 §3 states the item
-format is "multiple-choice and multiple-response items; each item states how many
-responses to select." Every question in this tool is single-answer: `correct` is
-one option key, options render mutually exclusive, and scoring is an equality
-check. All 103 banked questions are single-answer, and `generation_prompt.md`
-asks for one correct answer and three distractors by design.
+**~~Multiple-response items are not modeled.~~ CLOSED — single-answer is
+fidelity, not a gap.** Exam guide v1.0 §3 states the item format is
+"multiple-choice and multiple-response items; each item states how many responses
+to select." This section used to record that as a gap, and named its own closing
+condition: *"a first-hand account of the item format after a real sitting."*
 
-*Why it is not built:* the guide publishes no worked multiple-response example —
-all 12 sample questions in §9 are single-answer — so three parameters are simply
-unknown: how many options such items carry, how many are correct, and whether
-scoring is all-or-nothing or partial credit. An implementation would have to
-invent all three, and a practice exam that invents its own scoring
-misrepresents readiness in the one direction that matters.
+That account now exists. **A real sitting encountered no multiple-response items
+at all.** So the guide overstates the format, every question here being
+single-answer is correct behaviour, and a score is no longer a floor for this
+reason. Nothing to build.
 
-*Effect on you:* a scored result here reflects single-answer performance only.
-Treat it as a floor rather than a calibrated prediction, since multiple-response
-items are usually harder than single-answer ones on the same content.
-
-*What would close it:* an authoritative example — a multiple-response sample in a
-future guide revision, or a first-hand account of the item format after a real
-sitting. With that in hand the change is contained: `correct` becomes an array
-normalized at bank load, a `selectCount` field drives a "Select N" stem and an
-N-selection gate in the UI, and the equality check becomes set equality.
+*Reopen if:* a later sitting does encounter them, or a guide revision publishes a
+worked example. The two traps below are kept because they are the expensive part
+and would otherwise have to be rediscovered — not because anything is pending.
 
 *Two traps, learned from implementing this in the Associate repo.* Both come from
 changing the answer's data shape and missing a consumer, and neither is caught by

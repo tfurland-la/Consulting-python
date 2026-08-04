@@ -399,11 +399,21 @@ function drawExamBlockedForm(bank, state, opts) {
   });
   if (eligible.length < EXAM_BLOCKS) return null;
 
-  // Try several 4-subsets before giving up: whether a draw can be filled
-  // depends on the domains inside the chosen scenarios, not just their totals,
-  // so one unlucky subset says nothing about the next.
-  for (let attempt = 0; attempt < BLOCKED_FORM_ATTEMPTS; attempt++) {
-    const types = sampleN(eligible, EXAM_BLOCKS, rng);
+  // Try every 4-subset before giving up, in random order. Whether a subset can
+  // be filled depends on the domains inside it, not just its totals — and
+  // sampling subsets at random repeats some while never reaching others. With
+  // six eligible types there are only fifteen subsets, so the chance of
+  // missing a given one across 24 random draws was (14/15)^24, about 19%.
+  // Against the committed bank — three of six types sitting at exactly
+  // EXAM_BLOCK_SIZE — that measured as a 24% fallback rate, and the fallback
+  // is silent: the sitting simply stops being blocked. Enumerating is both
+  // cheaper and complete, so a form exists whenever one is possible.
+  //
+  // Per subset the outcome is deterministic: scenario types own disjoint
+  // question sets, so `used` never collides across blocks and the shuffle
+  // changes which questions are drawn, never how many are available. One
+  // attempt each is therefore enough.
+  for (const types of shuffled(combinations(eligible, EXAM_BLOCKS), rng)) {
     const plan = planBlockedDomains(types, byScenario);
     if (!plan) continue;
 
@@ -433,7 +443,21 @@ function drawExamBlockedForm(bank, state, opts) {
   return null;
 }
 
-const BLOCKED_FORM_ATTEMPTS = 24;
+// Every way to choose `k` of `items`, order-insensitive.
+function combinations(items, k) {
+  if (k > items.length) return [];
+  const out = [];
+  const walk = (start, picked) => {
+    if (picked.length === k) { out.push(picked.slice()); return; }
+    for (let i = start; i < items.length; i++) {
+      picked.push(items[i]);
+      walk(i + 1, picked);
+      picked.pop();
+    }
+  };
+  walk(0, []);
+  return out;
+}
 
 // How many questions of each domain each block should contribute, so that the
 // blocks total exactly EXAM_FORM_QUOTAS. Same round-robin dealing as
@@ -611,6 +635,40 @@ function examRegisterPlan(rng) {
   const labels = new Array(total)
     .fill("named")
     .fill("functional", 0, wanted);
+  return shuffled(labels, draw);
+}
+
+// Share of questions in which the correct option is ALLOWED to be the longest.
+// Mirrors LENGTH_LONGEST_FRACTION in exam_lib.py; the two must agree or a live
+// form reinstates the shortcut the bank suppresses.
+//
+// The margin cap (LENGTH_TELL_MAX_RATIO) bounds how far the correct option may
+// outrun its rivals on ONE question. It says nothing about how often, and
+// generation settles just under it — so every question passes while the rate
+// climbs. Planning the posture is what fixes the rate. 0.35 against a chance
+// rate of 0.25 leaves "pick the longest" worth ~9 points over guessing: not a
+// strategy worth playing, but not zero either, since a bank with no tell at all
+// teaches that the longest option is never right, which the real exam refutes.
+const LENGTH_LONGEST_FRACTION = 0.35;
+
+// One posture for one question. Used by the practice drill, which generates a
+// question at a time and so has no plan to index into.
+function drawLengthPosture(rng, fraction) {
+  const draw = rng || Math.random;
+  const share = fraction === undefined ? LENGTH_LONGEST_FRACTION : fraction;
+  return draw() < share ? "longest" : "not-longest";
+}
+
+// A per-question length-posture plan for the timed form: exactly the target
+// share, shuffled for the same reason the register plan is — a posture a
+// candidate can predict is a stretch of form where the shortcut pays.
+function examLengthPlan(rng) {
+  const draw = rng || Math.random;
+  const total = Object.values(EXAM_FORM_QUOTAS).reduce((s, n) => s + n, 0);
+  const wanted = Math.round(total * LENGTH_LONGEST_FRACTION);
+  const labels = new Array(total)
+    .fill("not-longest")
+    .fill("longest", 0, wanted);
   return shuffled(labels, draw);
 }
 
@@ -1056,6 +1114,9 @@ const CCARF_ADAPTIVE = {
   EXAM_BLOCK_PRIMARY_TARGET,
   examDifficultyPlan,
   examRegisterPlan,
+  drawLengthPosture,
+  examLengthPlan,
+  LENGTH_LONGEST_FRACTION,
   drawRegister,
   FUNCTIONAL_FRACTION,
   sampleN,

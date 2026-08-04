@@ -572,7 +572,7 @@ def test_generate_passes_scenario_type_through(exam_app, monkeypatch):
     calls = {}
 
     def fake_generate(
-        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named", length_posture=None,
         scenario=None,
     ):
         calls["ts"] = ts
@@ -594,7 +594,7 @@ def test_generate_passes_difficulty_through(exam_app, monkeypatch):
     calls = {}
 
     def fake_generate(
-        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named", length_posture=None,
         scenario=None,
     ):
         calls["difficulty"] = difficulty
@@ -614,7 +614,7 @@ def test_generate_passes_register_through(exam_app, monkeypatch):
     calls = {}
 
     def fake_generate(
-        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named", length_posture=None,
         scenario=None,
     ):
         calls["register"] = register
@@ -638,7 +638,7 @@ def test_generate_wraps_success(exam_app, monkeypatch):
         exam_app.exam_lib,
         "generate_question",
         lambda ts, avoid=None, scenario_type=None, difficulty="standard",
-        register="named", scenario=None: candidate,
+        register="named", scenario=None, length_posture=None: candidate,
     )
     assert exam_app.ExamApi().generate("D5.1") == {"question": candidate}
 
@@ -647,7 +647,7 @@ def test_generate_appends_extra_avoid_to_bank_summaries(exam_app, monkeypatch):
     captured = {}
 
     def fake_generate(
-        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named", length_posture=None,
         scenario=None,
     ):
         captured["avoid"] = avoid
@@ -665,14 +665,14 @@ def test_generate_rejects_non_string_extra_avoid(exam_app, monkeypatch):
         exam_app.exam_lib,
         "generate_question",
         lambda ts, avoid=None, scenario_type=None, difficulty="standard",
-        register="named", scenario=None: make_candidate(ts),
+        register="named", scenario=None, length_posture=None: make_candidate(ts),
     )
     result = exam_app.ExamApi().generate("D1.2", [{"not": "a string"}])
     assert "error" in result
 
 
 def test_generate_wraps_errors_instead_of_raising(exam_app, monkeypatch):
-    def boom(ts, avoid=None, scenario_type=None, difficulty="standard", register="named", scenario=None):
+    def boom(ts, avoid=None, scenario_type=None, difficulty="standard", register="named", scenario=None, length_posture=None):
         raise exam_lib.GenerationError("still not valid JSON")
 
     monkeypatch.setattr(exam_app.exam_lib, "generate_question", boom)
@@ -718,6 +718,87 @@ def test_fresh_exam_assigns_a_register_to_every_slot():
 def test_prep_worker_forwards_the_assigned_register():
     body = EXAM_HTML.split("async function prepWorker(prep)")[1].split("\nfunction ")[0]
     assert "register" in body.split("bridge.generate(")[1].split(")")[0]
+
+
+# The length posture has to reach all three paths for the same reason the
+# register does: whichever path is left out keeps generating at whatever rate
+# the margin cap happens to permit, and that path is where the shortcut lives.
+
+
+def test_drill_generation_draws_a_length_posture():
+    body = EXAM_HTML.split("async function generateFor(")[1].split("\n  async function ")[0]
+    assert "A.drawLengthPosture(" in body
+    assert "Posture" in body.split("bridge.generate(")[1].split(")")[0]
+
+
+def test_fresh_exam_assigns_a_length_posture_to_every_slot():
+    body = EXAM_HTML.split("function startFreshExam()")[1].split("\nasync function ")[0]
+    assert "A.examLengthPlan(" in body
+    assert "lengthPosture:" in body
+
+
+def test_prep_worker_forwards_the_assigned_length_posture():
+    body = EXAM_HTML.split("async function prepWorker(prep)")[1].split("\nfunction ")[0]
+    assert "Posture" in body.split("bridge.generate(")[1].split(")")[0]
+
+
+# The real exam holds one fixed scenario on the left for a whole run of 15 and
+# puts the branch, question and options on the right. Every timed variant should
+# look like that, not just the one that happens to carry a prep object.
+
+
+def test_every_timed_variant_gets_the_split_scenario_layout():
+    """The bank sitting used to pass prep=null, and the split was gated on
+    `prep && prep.blocks` — so a bank form that WAS blocked into 4 runs of 15
+    still rendered single-column and looked nothing like the real exam."""
+    body = EXAM_HTML.split("function beginExam(")[1].split("\nfunction ")[0]
+    assert "exam-blocked" in body
+    # A caller may state it outright; the prep shape is only the fallback.
+    assert "blocked === undefined" in body, (
+        "the split must be statable by a caller with no prep object"
+    )
+    bank = EXAM_HTML.split("function startBankExam()")[1].split("\nfunction ")[0]
+    assert "beginExam(form, null)" not in bank, (
+        "startBankExam must tell beginExam whether the form is blocked"
+    )
+
+
+def test_the_branch_renders_in_its_own_element_not_glued_to_the_stem():
+    """Concatenating the branch into the stem put both in one undifferentiated
+    block. They are different things: standing situation vs the question asked."""
+    assert 'id="q-fork"' in EXAM_HTML
+    body = EXAM_HTML.split("function renderExamQuestion(")[1].split("\nfunction ")[0]
+    assert 'el("q-fork")' in body
+    assert "${branch}\\n\\n${question.question}" not in body
+
+
+def test_the_drill_shows_the_fixed_scenario_not_just_the_branch():
+    """Learning mode showed only `question.scenario`. Once that is a BRANCH of a
+    fixed scenario, showing it alone strands the candidate with a symptom and no
+    system — the drill has to show the standing context too."""
+    body = EXAM_HTML.split("function renderQuestion(")[1].split("\nfunction ")[0]
+    assert "scenarioPanelFor(" in body, "the drill must resolve the fixed scenario"
+    assert 'el("q-fork")' in body
+
+
+def test_official_samples_keep_their_own_standalone_scenario():
+    """Guide sample questions are quoted verbatim and were never branches, so
+    pairing one with a fixed scenario would show the candidate two overlapping
+    setups. They render their own scenario and no branch."""
+    body = EXAM_HTML.split("function scenarioPanelFor(")[1].split("\nfunction ")[0]
+    assert "official-sample" in body
+
+
+def test_bridge_generate_accepts_a_length_posture(exam_app, monkeypatch):
+    seen = {}
+
+    def fake_generate(task_statement, **kwargs):
+        seen.update(kwargs)
+        return make_candidate(task_statement)
+
+    monkeypatch.setattr(exam_app.exam_lib, "generate_question", fake_generate)
+    exam_app.ExamApi().generate("D1.4", length_posture="not-longest")
+    assert seen["length_posture"] == "not-longest"
 
 
 def test_exam_offers_skip_and_mark_controls():
@@ -1263,7 +1344,7 @@ def test_highest_risk_rules_are_restated_next_to_the_task():
     assert "NO INVENTED SPECIFICS" in tail
     # And the full rules must still be in the cached prefix, not moved.
     head = prompt[:divider]
-    assert "Keep all four options within roughly the same length" in head
+    assert "Give all four options comparable substance" in head
     assert "NOT to invent specific technical facts" in head
 
 
@@ -1369,6 +1450,131 @@ def test_a_clean_question_still_costs_only_one_call():
     assert len(calls) == 1
 
 
+# ── Length posture: controlling the RATE, not just the margin ──────────────
+# LENGTH_TELL_MAX_RATIO bounds how far the correct option may outrun its
+# rivals, one question at a time. It says nothing about how OFTEN the correct
+# option is longest, and generation drifts to just under the cap — every
+# question passes while the batch rate climbs. So the posture is assigned up
+# front from a shuffled plan, exactly like the register, which makes the rate a
+# property of the plan rather than of whatever generation happens to produce.
+#
+# Nothing is stamped on the question: unlike the register, posture is
+# recoverable from the option text by measuring it, so a stored field could
+# only ever disagree with the content.
+
+
+def test_length_plan_hits_the_target_fraction():
+    plan = exam_lib.length_plan(20, fraction=0.35, rng=_seeded_rng())
+    assert len(plan) == 20
+    assert plan.count("longest") == 7  # round(20 * 0.35)
+    assert set(plan) <= set(exam_lib.LENGTH_POSTURES)
+
+
+def test_length_plan_spreads_rather_than_clustering():
+    """A predictable posture is its own tell — a candidate who knows which
+    questions allow a long correct answer can play the shortcut on those."""
+    plan = exam_lib.length_plan(20, fraction=0.5, rng=_seeded_rng())
+    first_half = plan[:10].count("longest")
+    assert 3 <= first_half <= 7, f"clustered: {plan}"
+
+
+def test_length_plan_handles_the_degenerate_fractions():
+    assert exam_lib.length_plan(10, fraction=0.0) == ["not-longest"] * 10
+    assert exam_lib.length_plan(10, fraction=1.0) == ["longest"] * 10
+
+
+def test_build_prompt_rejects_unknown_posture():
+    with pytest.raises(ValueError):
+        exam_lib.build_prompt("D1.4", length_posture="shortest")
+
+
+def test_build_prompt_asks_for_a_shorter_correct_option_under_not_longest():
+    prompt = " ".join(exam_lib.build_prompt(
+        "D1.4", length_posture="not-longest").split())
+    assert "must NOT be the longest" in prompt
+
+
+def test_build_prompt_permits_a_longest_correct_option_under_longest():
+    prompt = " ".join(exam_lib.build_prompt(
+        "D1.4", length_posture="longest").split())
+    assert "MUST be the longest" in prompt
+    # The margin cap still binds, or "longest" becomes a licence to run away.
+    assert str(exam_lib.LENGTH_TELL_MAX_RATIO) in prompt
+
+
+def test_not_longest_posture_rejects_a_longest_correct_option():
+    """The whole point: a question that would pass the 1.20x margin gate is
+    still wrong if this slot was planned to be not-longest."""
+    prompts = []
+
+    def fake_run(prompt):
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            # 1.1x — comfortably inside the margin cap, but still longest.
+            return {"structured_output": _with_option_lengths(
+                {"A": 50, "B": 110, "C": 40, "D": 100})}
+        return {"structured_output": _with_option_lengths(
+            {"A": 90, "B": 60, "C": 40, "D": 50})}
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, length_posture="not-longest")
+    assert len(prompts) == 2, "a longest correct option must cost a retry here"
+    assert not exam_lib.longest_option_is_correct(got)
+    assert "longest" in prompts[1]
+
+
+def test_longest_posture_accepts_a_longest_correct_option():
+    """Not every question may be flattened, or the bank teaches the inverse:
+    that the longest option is never right, which is false on the real exam."""
+    calls = []
+
+    def fake_run(prompt):
+        calls.append(prompt)
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 110, "C": 40, "D": 100})}
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, length_posture="longest")
+    assert len(calls) == 1, "an allowed longest answer must not cost a retry"
+    assert exam_lib.longest_option_is_correct(got)
+
+
+def test_longest_posture_rejects_a_not_longest_correct_option():
+    """Enforced in BOTH directions or the control is one-sided. A permission
+    the model may decline can only ever lose "longest" slots, never gain them,
+    so the realized rate would sit below the plan by however often generation
+    happens to comply — which a live run showed it does not always do."""
+    prompts = []
+
+    def fake_run(prompt):
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            # Perfectly legal under the margin cap, but this slot was planned
+            # to carry the tell, and it does not.
+            return {"structured_output": _with_option_lengths(
+                {"A": 90, "B": 60, "C": 40, "D": 50})}
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 110, "C": 40, "D": 100})}
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, length_posture="longest")
+    assert len(prompts) == 2, "a not-longest answer must cost a retry here"
+    assert exam_lib.longest_option_is_correct(got)
+    # The feedback must not invite the cheap fix of shortening distractors —
+    # that reinstates the short-flat-distractor defect this bank exists to fix.
+    assert "trim" in prompts[1] or "shorten" in prompts[1]
+
+
+def test_longest_posture_still_obeys_the_margin_cap():
+    def fake_run(prompt):
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 150, "C": 40, "D": 60})}  # 2.5x
+
+    with pytest.raises(exam_lib.GenerationError):
+        exam_lib.generate_question(
+            "D1.4", run=fake_run, length_posture="longest")
+
+
 # ── The exam's scenarios are fixed, not generated ──────────────────────────
 # Exam guide v1.0 section 5: the exam draws 4 of 6 scenarios and shows the
 # drawn one as standing context while its questions branch from it. Generating
@@ -1423,9 +1629,10 @@ def test_fresh_exam_looks_the_scenario_up_rather_than_generating_it():
 def test_the_panel_shows_the_fixed_scenario_and_the_branch_goes_with_the_stem():
     """The real exam holds the scenario on screen and puts the branch with the
     question. A bank substitute has no fixed scenario, so it falls back."""
-    body = EXAM_HTML.split("function renderExamQuestion()")[1].split("\n// Progress over")[0]
-    assert "question.offScenario ? null : examScenario(question.scenarioType)" in body
-    assert "blockScenario || question.scenario" in body
+    panel = EXAM_HTML.split("function scenarioPanelFor(")[1].split("\nfunction ")[0]
+    assert "question.offScenario" in panel
+    assert "examScenario(question.scenarioType)" in panel
+    assert "fixed || question.scenario" in panel
 
 
 def test_examScenario_falls_back_to_the_bundled_mirror():
