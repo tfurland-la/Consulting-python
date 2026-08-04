@@ -448,7 +448,8 @@ sources, chosen at start:
   for the same statement, stamped `offScenario` because it brings its own
   scenario and so breaks the block's shared text. Generated questions are
   ephemeral: no ids in `seen`, nothing persisted beyond the attempt record. A
-  fresh exam makes ~64 Claude Code calls.
+  fresh exam makes ~60 Claude Code calls — one per question, and none for the
+  scenarios (see below).
 
   A block's scenario is **not generated**. The exam has six fixed scenarios
   (exam guide v1.0 section 5) and shows the drawn one as standing context while

@@ -495,10 +495,10 @@ const CCARF_SEED = {
           <button class="ghost" id="btn-exam-abort">Cancel</button>
         </div>
         <p class="note" style="margin-top:10px">Like the real exam, this form is four scenarios of
-        15 consecutive questions each. The four scenarios are written first, then the exam begins
-        when the first 10 questions are ready; the rest keep generating in the background while you
-        work. If you ever catch up to the generator, the clock pauses until the next question
-        arrives.</p>
+        15 consecutive questions each. The four are drawn from the exam guide's six fixed scenarios
+        and shown verbatim — nothing about them is generated. The exam begins when the first 10
+        questions are ready; the rest keep generating in the background while you work. If you ever
+        catch up to the generator, the clock pauses until the next question arrives.</p>
       </div>
     </div>
 
@@ -867,8 +867,9 @@ function startExam() {
   el("gen-banner").hidden = true; // drill-only signal; don't let it bleed into exam mode
   el("btn-exam-fresh").disabled = !app.bridge;
   el("setup-fresh-note").textContent = app.bridge
-    ? "Fresh questions make ~64 Claude Code calls — four scenarios, then 60 questions " +
-      "branching off them. The first ten take a few minutes to prepare."
+    ? "Fresh questions make ~60 Claude Code calls, one per question. The four scenarios " +
+      "are drawn from the guide's fixed six, not generated. The first ten take a few " +
+      "minutes to prepare."
     : "Fresh questions need the desktop app with the Claude Code CLI. This page can run the bank exam.";
   // Prepared forms need the bridge to store them; hide the whole section
   // rather than offer a button that cannot work in the browser-only page.
