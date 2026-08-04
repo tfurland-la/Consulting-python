@@ -547,6 +547,29 @@ function pickPerBucket(positions, count, rng) {
 // runs with no bridge and still has to show the scenario. A test asserts the
 // two stay byte-identical. Do not paraphrase or reword: the fidelity IS the
 // wording, which is the whole reason these are stored rather than generated.
+// What the scenario panel shows for one question, and what its branch is.
+//
+// The panel carries the exam's FIXED scenario and must hold still for a whole
+// block — that persistence is what the split layout is for. So this keys off
+// scenarioType alone and never off provenance: an earlier version gave the
+// guide's own sample questions their standalone scenario in the panel, to
+// avoid restating context. Reasonable per question, wrong in aggregate — the
+// bank's samples are scattered, so 61% of blocks flipped the panel mid-run and
+// back. Their scenario is shown as the branch instead, which is where a
+// question's own situation belongs.
+//
+// The single exception is an off-scenario substitute: a bank question dropped
+// into a block when generation fails may belong to a different scenario
+// entirely, so the block's fixed text would simply be wrong for it. That flip
+// is declared degradation rather than a silent one.
+function scenarioPanelFor(question) {
+  const fixed = question.offScenario ? null : EXAM_SCENARIOS[question.scenarioType];
+  return {
+    panel: fixed || question.scenario || "",
+    fork: fixed ? question.scenario || "" : "",
+  };
+}
+
 const EXAM_SCENARIOS = {
   "Customer Support Resolution Agent":
     "You are building a customer support resolution agent using the Claude Agent SDK. The agent handles high-ambiguity requests like returns, billing disputes, and account issues. It has access to your backend systems through custom Model Context Protocol (MCP) tools (get_customer, lookup_order, process_refund, escalate_to_human). Your target is 80%+ first-contact resolution while knowing when to escalate.",
@@ -1108,6 +1131,7 @@ const CCARF_ADAPTIVE = {
   drawExamBlocks,
   SCENARIO_TYPES,
   EXAM_SCENARIOS,
+  scenarioPanelFor,
   SCENARIO_PRIMARY_DOMAINS,
   EXAM_BLOCKS,
   EXAM_BLOCK_SIZE,

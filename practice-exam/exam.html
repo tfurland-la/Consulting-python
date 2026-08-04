@@ -812,7 +812,7 @@ function renderQuestion(question) {
     `${A.DOMAINS[question.domain]} — ${A.TASK_STATEMENTS[question.taskStatement]}`;
   // The drill shows the same two parts as the exam, single-column: a branch on
   // its own is a symptom with no system attached.
-  const view = scenarioPanelFor(question);
+  const view = A.scenarioPanelFor(question);
   el("q-scenario").textContent = view.panel;
   el("q-fork").textContent = view.fork;
   el("q-stem").textContent = question.question;
@@ -913,20 +913,6 @@ function startBankExam() {
 
 // The exam's six scenarios are fixed text. health() reports them; adaptive.js
 // mirrors them so the bank exam, which runs with no bridge, can still show one.
-// What the scenario panel shows for one question, and what (if anything) is its
-// branch. Official samples are quoted verbatim from the exam guide and were
-// never written as branches of anything, so pairing one with a fixed scenario
-// would put two overlapping setups on screen; they show their own text and have
-// no branch. A bank substitute dropped into a block is off-scenario for the
-// same reason.
-function scenarioPanelFor(question) {
-  const standalone =
-    question.offScenario ||
-    (question.provenance && question.provenance.source === "official-sample");
-  const fixed = standalone ? null : examScenario(question.scenarioType);
-  return { panel: fixed || question.scenario || "", fork: fixed ? question.scenario : "" };
-}
-
 function examScenario(scenarioType) {
   return (app.examScenarios && app.examScenarios[scenarioType])
     || A.EXAM_SCENARIOS[scenarioType]
@@ -1560,7 +1546,7 @@ function renderExamQuestion() {
   // what the real exam holds on screen — and the question's own `scenario` is
   // its branch, which belongs with the question rather than in the panel. A
   // bank substitute is off-scenario, so it falls back to showing its own.
-  const view = scenarioPanelFor(question);
+  const view = A.scenarioPanelFor(question);
   setExamScenario(view.panel);
   el("q-fork").textContent = view.fork;
   el("q-stem").textContent = question.question;

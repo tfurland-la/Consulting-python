@@ -1028,6 +1028,39 @@ test("drawExamBlockedForm returns null rather than a short form", () => {
   assert.equal(form, null);
 });
 
+test("scenarioPanelFor holds the panel still for every question in a block", () => {
+  // The panel is the point of the split layout: it is the exam's standing
+  // context, and it must not move while a block runs. An earlier version gave
+  // official samples their own standalone scenario in the panel — reasonable
+  // on one question, but the bank's 13 samples are scattered through it, so
+  // 61% of blocks flipped the panel mid-run and back. Observed live as the
+  // scenario changing between questions 4, 5 and 6.
+  const scenarioType = A.SCENARIO_TYPES[0];
+  const block = [
+    { scenarioType, scenario: "branch one", provenance: { source: "seed-generated" } },
+    { scenarioType, scenario: "a whole standalone scenario",
+      provenance: { source: "official-sample" } },
+    { scenarioType, scenario: "branch three", provenance: { source: "refill" } },
+    { scenarioType, scenario: "branch four" },
+  ];
+  const panels = new Set(block.map((q) => A.scenarioPanelFor(q).panel));
+  assert.equal(panels.size, 1, `panel moved: ${[...panels]}`);
+  assert.equal([...panels][0], A.EXAM_SCENARIOS[scenarioType]);
+  // The question's own text still shows, as the branch beside the question.
+  assert.equal(A.scenarioPanelFor(block[1]).fork, "a whole standalone scenario");
+});
+
+test("scenarioPanelFor falls back for an off-scenario substitute", () => {
+  // A bank question dropped into a block when generation fails may belong to a
+  // different scenario, so the block's fixed text would be wrong for it. That
+  // one is declared degradation, not a silent flip.
+  const q = {
+    scenarioType: A.SCENARIO_TYPES[0], scenario: "its own scenario", offScenario: true,
+  };
+  assert.equal(A.scenarioPanelFor(q).panel, "its own scenario");
+  assert.equal(A.scenarioPanelFor(q).fork, "");
+});
+
 test("drawExamBlockedForm exhausts the subsets instead of sampling blindly", () => {
   // It used to pick a random 4-of-6 up to BLOCKED_FORM_ATTEMPTS times. With
   // only 15 distinct subsets, random draws retry some and never reach others:

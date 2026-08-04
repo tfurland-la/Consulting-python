@@ -460,6 +460,21 @@ sources, chosen at start:
   fidelity: inventing a scenario the exam never uses is the same class of drift
   as the official-terminology over-fit.
 
+  **The panel keys off `scenarioType` alone, never off provenance**
+  (`scenarioPanelFor` in `adaptive.js`). Holding still for a whole block is the
+  entire point of the split, so anything that can move it mid-run defeats it.
+  A version that gave the guide's own sample questions their standalone
+  scenario in the panel — to avoid restating context for a question that never
+  was a branch — read fine on any single question and was wrong in aggregate:
+  the bank's 13 samples are scattered, so **61% of blocks flipped the panel
+  mid-run and back**, observed live as the scenario changing between questions
+  4, 5 and 6. Their scenario shows as the branch instead. The one exception is
+  an `offScenario` substitute, whose scenario may genuinely belong to a
+  different block — that flip is declared degradation, not a silent one.
+
+  The rule lives in `adaptive.js` rather than in the page because it is pure
+  logic, so it is asserted against real inputs instead of by grepping `exam.html`.
+
   Blocks satisfy the global domain quotas exactly, and each block's 15 are
   **weighted** toward its scenario's primary domains (`SCENARIO_PRIMARY_DOMAINS`,
   target ≥8 of 15) rather than restricted to them. The primary-domain map is

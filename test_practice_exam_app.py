@@ -781,14 +781,6 @@ def test_the_drill_shows_the_fixed_scenario_not_just_the_branch():
     assert 'el("q-fork")' in body
 
 
-def test_official_samples_keep_their_own_standalone_scenario():
-    """Guide sample questions are quoted verbatim and were never branches, so
-    pairing one with a fixed scenario would show the candidate two overlapping
-    setups. They render their own scenario and no branch."""
-    body = EXAM_HTML.split("function scenarioPanelFor(")[1].split("\nfunction ")[0]
-    assert "official-sample" in body
-
-
 def test_bridge_generate_accepts_a_length_posture(exam_app, monkeypatch):
     seen = {}
 
@@ -1629,10 +1621,11 @@ def test_fresh_exam_looks_the_scenario_up_rather_than_generating_it():
 def test_the_panel_shows_the_fixed_scenario_and_the_branch_goes_with_the_stem():
     """The real exam holds the scenario on screen and puts the branch with the
     question. A bank substitute has no fixed scenario, so it falls back."""
-    panel = EXAM_HTML.split("function scenarioPanelFor(")[1].split("\nfunction ")[0]
-    assert "question.offScenario" in panel
-    assert "examScenario(question.scenarioType)" in panel
-    assert "fixed || question.scenario" in panel
+    # The rule itself is pure logic and lives in adaptive.js, asserted there
+    # against real inputs; the page must route through it rather than keep a
+    # second copy that can drift.
+    assert "A.scenarioPanelFor(question)" in EXAM_HTML
+    assert "function scenarioPanelFor(" not in EXAM_HTML
 
 
 def test_examScenario_falls_back_to_the_bundled_mirror():
