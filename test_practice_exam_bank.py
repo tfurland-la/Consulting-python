@@ -558,3 +558,24 @@ def test_a_failed_reviewer_is_recorded_as_a_concern_not_a_pass(tmp_path, monkeyp
     verdicts = json.loads((tmp_path / "verdicts.json").read_text())
     assert verdicts[0]["verdict"] == "concern"
     assert "screening failed" in verdicts[0]["concerns"][0]
+
+
+def test_scenario_override_pins_every_question_in_a_run():
+    """Topping up a thin scenario needs targeting. The default rotation spreads
+    scenario types across a statement's questions, which is right for diversity
+    and useless when a specific (scenario, domain) cell has to be filled."""
+    work = generate_bank.build_work_list(
+        {"D1.1": 2, "D2.1": 1}, existing={}, scenario="Multi-Agent Research System"
+    )
+    assert len(work) == 3
+    assert {item[1] for item in work} == {"Multi-Agent Research System"}
+
+
+def test_the_default_still_rotates_scenario_types():
+    work = generate_bank.build_work_list({"D1.1": 3}, existing={}, scenario=None)
+    assert len({item[1] for item in work}) == 3, "a statement's questions must vary"
+
+
+def test_scenario_override_rejects_an_unknown_scenario():
+    with pytest.raises(ValueError):
+        generate_bank.build_work_list({"D1.1": 1}, existing={}, scenario="Space Opera")

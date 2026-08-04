@@ -2949,5 +2949,425 @@ window.CCARF_BANK = [
       "reviewed": true
     },
     "id": "D3.1-388dae07"
+  },
+  {
+    "taskStatement": "D5.1",
+    "domain": "D5",
+    "scenario": "Around turn 60 of a billing-dispute conversation, an engineer notices the agent has stopped referencing the customer's account tier (a fact stated once, early on, that determines whether a fee waiver is permitted), even though nothing has removed it from the transcript.",
+    "question": "The account tier fact is still present verbatim in the raw transcript, yet the agent's recent responses behave as if it doesn't know it. What is the most likely explanation, and what should the fix target?",
+    "options": {
+      "D": "The agent is deliberately withholding the account tier because escalate_to_human was never invoked, treating tier-based waivers as out of its scope; the fix is to add an account tier field to the escalate_to_human tool schema so a human reviewer receives it.",
+      "C": "The system prompt does not repeat the account tier on every turn, so the model treats the fact as stale; the fix is to have get_customer re-run automatically before every single response regardless of whether new customer data is actually needed.",
+      "A": "The MCP tool results exchanged between turns 1 and 60 have overwritten the conversation buffer, silently dropping the account tier line; the fix is to enlarge the context window so no turns are evicted before the conversation ends.",
+      "B": "The model's attention degrades over very long contexts, so critical early facts effectively become invisible as more turns accumulate; the fix is to periodically re-surface such facts into a structured, refreshed summary rather than relying on raw transcript position."
+    },
+    "correct": "B",
+    "explanations": {
+      "D": "Invents an intentional scoping decision with no supporting evidence; the observed symptom is the agent forgetting a fact, not the agent correctly declining to act on it pending escalation.",
+      "C": "Relies on a nonexistent staleness mechanism, and re-running get_customer on every turn addresses tool-call frequency, not the actual problem of a fact losing salience across a long transcript.",
+      "A": "Describes a mechanism inconsistent with the evidence given: the fact is confirmed still present verbatim, so no eviction or overwrite occurred, and enlarging the window would not fix an attention problem happening within an already-intact context.",
+      "B": "Correct. Presence in the raw transcript does not guarantee the model weighs a fact correctly once many turns have accumulated after it; explicitly extracting critical facts into a structured, periodically-refreshed summary counters this degradation without depending on where the fact sits in the transcript."
+    },
+    "register": "named",
+    "scenarioType": "Customer Support Resolution Agent",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D5.1-9c832718"
+  },
+  {
+    "taskStatement": "D2.5",
+    "domain": "D2",
+    "scenario": "Before shipping the escalation-criteria fix, an engineer wants to confirm test coverage exists by enumerating every test file whose filename matches the pattern *escalation*.test.ts across a monorepo with hundreds of nested packages, without opening or inspecting any file's contents yet.",
+    "question": "Which built-in capability should the engineer reach for to complete this filename-enumeration step, before any file is opened?",
+    "options": {
+      "C": "A general-purpose shell command execution capability that can run arbitrary operating-system commands, including its own file-listing utilities, to produce a comparable listing of paths.",
+      "D": "A pattern-matching lookup that returns the paths of files whose names match a wildcard pattern across nested directories, without opening or reading any file's contents.",
+      "A": "An operation that opens one specified file at a time and returns its full contents, intended for viewing a file whose path is already known rather than discovering unknown ones.",
+      "B": "A content-search operation that scans the text inside every file for a matching string or expression, returning matching lines together with each file's path."
+    },
+    "correct": "D",
+    "explanations": {
+      "C": "This is Bash, which could shell out to an OS listing utility to approximate the same result, but reaching for general-purpose command execution when a purpose-built pattern-matching lookup already exists is unnecessary indirection for a simple filename query.",
+      "D": "Correct. This is Glob: a purpose-built name-pattern matcher that resolves filenames across nested directories without touching file contents, which is exactly what a filename-only inventory step needs.",
+      "A": "This is Read, which requires a specific known file path and returns that file's contents. It cannot discover files matching a pattern in the first place, since discovery is the exact step still needed here.",
+      "B": "This is Grep, which searches inside file contents for a match. The engineer hasn't opened any files yet and only cares about filenames, so a content scan solves a different problem than the one described."
+    },
+    "register": "functional",
+    "scenarioType": "Customer Support Resolution Agent",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D2.5-a562e6b8"
+  },
+  {
+    "taskStatement": "D2.2",
+    "domain": "D2",
+    "scenario": "When process_refund fails, it currently returns the same generic message string in every case. Log review shows the agent responds identically whether the failure occurred because the refund had already been issued earlier that day or because the payment gateway timed out — in the former case it re-attempts the refund, risking a duplicate payout, and in the latter it immediately escalates instead of retrying.",
+    "question": "What change to how process_refund reports failure would let the agent tell these two cases apart and choose the correct next action for each, without relying on the model's judgment to parse a free-text message?",
+    "options": {
+      "B": "Have process_refund retry internally with exponential backoff before returning a failure, so that only failures which persist after several attempts are ever surfaced to the agent for a decision at all.",
+      "D": "Have process_refund return a machine-readable failure category, such as already_processed versus transient_timeout, alongside its message, so the agent can branch its next action on that field instead of parsing free text.",
+      "A": "Add few-shot examples to the system prompt showing the agent how to word its reply to the customer differently depending on which of the two failure messages process_refund happens to return in a given case.",
+      "C": "Have process_refund raise one generic exception for every kind of failure and route each occurrence straight to escalate_to_human, letting a person sort out which failures were transient and which were not."
+    },
+    "correct": "D",
+    "explanations": {
+      "B": "Internal retries only address the transient_timeout case, and they do nothing to stop the agent from re-attempting a refund that already succeeded, since that failure is not transient and retrying it internally would itself risk a duplicate payout.",
+      "D": "Correct. A distinct, machine-readable field for the failure's cause gives the agent a deterministic signal to branch on — stop and report for already_processed, retry or wait for transient_timeout — without depending on the model correctly interpreting a message string.",
+      "A": "Relies on the model correctly parsing and generalizing from free-text examples every time, which is probabilistic and insufficient when a wrong branch causes a duplicate refund.",
+      "C": "Collapses both failure types into the same generic path and sends every case to a human, which forfeits the retry that the transient_timeout case actually calls for and adds unnecessary escalation volume."
+    },
+    "register": "functional",
+    "scenarioType": "Customer Support Resolution Agent",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D2.2-f79a5657"
+  },
+  {
+    "taskStatement": "D1.1",
+    "domain": "D1",
+    "scenario": "In a billing dispute case, the loop lets the model choose escalate_to_human as its very first action whenever the customer's message reads as frustrated, without ever attempting get_customer or lookup_order first. A review of transcripts shows the needed account and order data was retrievable in most of these cases, and many could have been resolved without a human.",
+    "question": "Which change to the loop's design would most reliably prevent this premature escalation?",
+    "options": {
+      "B": "Add a sentiment-detection step that suppresses the escalation trigger whenever the customer's measured frustration score falls below a preset numeric threshold.",
+      "A": "Restructure the loop so escalate_to_human only becomes available once the model has completed at least one get_customer or lookup_order call for the case, rather than on tone alone.",
+      "C": "Add several few-shot examples to the system prompt showing the agent attempting get_customer and lookup_order before it escalates on a frustrated customer tone.",
+      "D": "Add an explicit system prompt instruction that the agent must attempt available information-gathering tools before escalating, regardless of the customer's tone."
+    },
+    "correct": "A",
+    "explanations": {
+      "B": "Tunes the wrong signal: it adjusts when tone triggers escalation but does nothing to ensure get_customer or lookup_order are actually attempted first, so a case could still reach escalation with no data gathered.",
+      "A": "Correct. Making escalate_to_human's availability conditional on the loop's recorded state - at least one completed information-gathering call - is a programmatic gate the model cannot bypass by tone or wording, giving a deterministic guarantee that prompt-based fixes cannot.",
+      "C": "Few-shot examples raise the odds of the right order of operations but still rely on probabilistic compliance; the model can still choose to escalate first on a sufficiently frustrated message.",
+      "D": "A system prompt instruction is the same probabilistic mechanism as A - reasonable as a supplement, but it does not prevent the model from skipping tool calls under emotional pressure in the input."
+    },
+    "register": "named",
+    "scenarioType": "Customer Support Resolution Agent",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D1.1-cef6ee83"
+  },
+  {
+    "taskStatement": "D5.4",
+    "domain": "D5",
+    "scenario": "A developer asks Claude Code to trace how inventory reservations flow through a warehouse management system spanning 3,200 files across a dozen services. Midway through the session, the transcript already holds the full contents of several large files that turned out to be irrelevant, and the developer notices response quality degrading as the conversation continues.",
+    "question": "The developer wants to keep exploring the codebase without the irrelevant file contents continuing to crowd every subsequent turn. Given that the harness offers a way to condense the conversation into a summary and discard the bulk of what generated it, which action best addresses the problem right now, mid-session?",
+    "options": {
+      "C": "Ask Claude to re-read the irrelevant files a second time and write an inline summary, reasoning that a summary placed later in the transcript will outweigh the original content earlier in it.",
+      "D": "Manually trigger conversation condensation so the irrelevant file reads are reduced to a summary and their bulk is dropped, then keep exploring with the freed-up space.",
+      "A": "Open a second terminal running a fresh session and re-ask the original question there, abandoning the degraded session and its accumulated file-structure knowledge entirely.",
+      "B": "Instruct Claude to mentally disregard the irrelevant files it already read, since once content lands in the transcript the harness has no mechanism for removing it."
+    },
+    "correct": "D",
+    "explanations": {
+      "C": "Adds more tokens rather than fewer - it re-reads the same irrelevant files and appends new content, worsening the crowding it's meant to fix instead of discarding the original bulk.",
+      "D": "Correct. Manually condensing the conversation summarizes what's been learned and discards the bulky original file contents, directly freeing context that the irrelevant reads were occupying while preserving useful progress.",
+      "A": "Discards the file-structure knowledge and progress already built up in the current session, and doesn't actually solve the underlying crowding problem for the remainder of a long exploration task.",
+      "B": "Incorrect: an instruction to disregard content doesn't remove it from the transcript, so the irrelevant tokens keep consuming context and degrading response quality regardless of what Claude is told."
+    },
+    "register": "functional",
+    "scenarioType": "Code Generation with Claude Code",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D5.4-34f5ebd0"
+  },
+  {
+    "taskStatement": "D3.1",
+    "domain": "D3",
+    "scenario": "After a Claude Code upgrade, a developer notices their personal CLAUDE.local.md file at the project root (previously gitignored) is no longer being picked up, and asks how to restore personal, unshared instructions without committing them to the shared repo.",
+    "question": "What is the current, correct way to configure this developer's personal instructions going forward?",
+    "options": {
+      "B": "Recreate a CLAUDE.local.md file at the project root, since adding it to .gitignore is enough to keep it personal to each developer.",
+      "C": "Move the personal preferences directly into the home-directory CLAUDE.md and drop any reference to them from the project, since that file already loads automatically for that user.",
+      "D": "Create a .claude/personal/ folder inside the repo and add just that folder to .gitignore, so Claude Code keeps loading it without the content being committed.",
+      "A": "In the project's CLAUDE.md, add an @import line pointing to a file under the developer's home directory, so the reference lives in the repo but the personal content never does."
+    },
+    "correct": "A",
+    "explanations": {
+      "B": "CLAUDE.local.md is a deprecated pattern that Claude Code no longer loads; gitignoring it does not restore that behavior, which is exactly the symptom in the scenario.",
+      "C": "The home-directory CLAUDE.md does load automatically for that user, but it applies across every project rather than being scoped to this one, and removing the project-side reference loses the connection to this specific repo's context.",
+      "D": "Invents an undocumented loading mechanism; Claude Code's memory hierarchy is not defined by ad hoc gitignored subdirectories inside the repo.",
+      "A": "Correct. This is the current replacement for CLAUDE.local.md: the project's CLAUDE.md carries a home-directory @import, so the personal file lives outside the repo entirely while still being pulled in whenever this project is opened."
+    },
+    "register": "named",
+    "scenarioType": "Code Generation with Claude Code",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.1-5ef800a6"
+  },
+  {
+    "taskStatement": "D3.2",
+    "domain": "D3",
+    "scenario": "A team wants docstring generation to kick in automatically whenever Claude is editing a Python file, without any developer typing a command — but they are unsure whether to package the workflow as a slash command or as a skill.",
+    "question": "Which approach correctly achieves automatic, hands-free triggering?",
+    "options": {
+      "A": "Build it as a slash command stored in the project's commands directory, since project-scoped commands become the automatic default behavior applied to every file edit in that repository.",
+      "D": "Build it as a skill but document its purpose only in CLAUDE.md, since CLAUDE.md content loads once per session and is applied automatically without needing a separate description field to match against.",
+      "B": "Build it as a skill, since Claude discovers and loads skills automatically when their description matches the current context, while slash commands only run when a developer explicitly types the command name.",
+      "C": "Build it as a slash command with a default argument, since a default argument lets the command run on its own without the developer supplying extra input each time it's invoked."
+    },
+    "correct": "B",
+    "explanations": {
+      "A": "Project-scoping controls who can access a command (every developer who clones the repo), not whether it fires automatically - a slash command still requires an explicit typed invocation regardless of where it's stored.",
+      "D": "This inverts the mechanism: it is the skill's own description field that enables automatic, context-matched discovery. Relying on CLAUDE.md instead removes the very matching mechanism that makes automatic triggering possible.",
+      "B": "Correct. Skills are discovered and loaded automatically when their description matches the current context, so a skill can trigger on a Python-file edit with no typed command. Slash commands are explicit-invocation only.",
+      "C": "A default argument only changes what value a command receives if invoked - it does not change the trigger. Slash commands still require the developer to type the command name."
+    },
+    "register": "named",
+    "scenarioType": "Code Generation with Claude Code",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.2-aaf5d1ab"
+  },
+  {
+    "taskStatement": "D5.2",
+    "domain": "D5",
+    "scenario": "While running a large database-migration task in direct execution, the agent hits two conflicting existing patterns in the codebase for handling nullable foreign keys and silently picks one, applying the change across 20 files before anyone notices the inconsistency — triggering a full rework cycle.",
+    "question": "Which workflow change would most reliably prevent this kind of costly rework when the agent encounters a genuine ambiguity in requirements or existing conventions?",
+    "options": {
+      "D": "Have the agent proceed with its best guess and leave a comment in the diff noting the assumption, so reviewers can catch it during code review.",
+      "C": "Add explicit instructions to the project's shared configuration file telling the agent to always ask before resolving ambiguous conventions, then continue with direct execution as before.",
+      "A": "For changes touching ambiguous or conflicting conventions, require the agent to first explore the codebase and present its planned approach for confirmation before any files are edited.",
+      "B": "Have the agent default to whichever convention appears in the most recently modified file, on the theory that recent code reflects current team practice."
+    },
+    "correct": "A",
+    "explanations": {
+      "D": "Detects the problem only after the change has already been applied across 20 files — catching an assumption in review is not the same as preventing the rework it already caused.",
+      "C": "Written instructions still rely on the model choosing to comply in the moment; nothing about direct execution actually stops file edits from happening before the ambiguity is surfaced to anyone.",
+      "A": "Correct. This describes the behavior of exploring and proposing an approach before any edits land: for large or ambiguous changes, it turns a silent guess into a checkpoint the user can correct before 20 files are touched instead of after.",
+      "B": "An arbitrary heuristic with no basis in which convention is actually correct; it resolves the ambiguity by guessing differently, not by surfacing it for a decision."
+    },
+    "register": "functional",
+    "scenarioType": "Code Generation with Claude Code",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D5.2-dbbbbe5c"
+  },
+  {
+    "taskStatement": "D5.3",
+    "domain": "D5",
+    "scenario": "Your team built a custom /audit-deps slash command that uses the Task tool to spawn a subagent per legacy service directory to scan for outdated dependencies. When a subagent hits a directory it lacks read permissions for, the main session currently just sees a bare \"subtask failed\" message, with no indication of which service was skipped or which dependency checks never ran.",
+    "question": "How should the subagent's failure information be structured so the orchestrating session can respond intelligently?",
+    "options": {
+      "B": "Have the subagent return structured output naming the failed directory, the permission error type, and which services were already audited, so the session can decide how to proceed.",
+      "A": "Configure the subagent to keep retrying the same directory with the same credentials until the permission error resolves, then report success once access is granted.",
+      "D": "Have the orchestrating session catch the generic failure and abort the entire slash command run immediately, rather than surface any partial audit results.",
+      "C": "Have the subagent silently treat the inaccessible directory as fully audited and report the run as complete, since permission gaps are common in legacy repos."
+    },
+    "correct": "B",
+    "explanations": {
+      "B": "Correct. Structured error context - the specific directory, the permission error type, and which services were already audited before the failure - gives the orchestrating session the information it needs to decide whether to retry, skip that directory and continue, or ask the user for access, rather than guessing from a generic failure message.",
+      "A": "Retrying with the same credentials cannot resolve a permission error that requires different access, so this either loops indefinitely or falsely reports success without ever fixing the underlying access problem.",
+      "D": "Aborting the whole run over one inaccessible directory throws away the audits already completed successfully for other services, when a targeted retry or skip-and-continue could preserve that partial progress.",
+      "C": "Masking the failure as success discards the fact that a real error occurred, so the orchestrating session has no way to know the audit is incomplete or to flag the skipped service for review."
+    },
+    "register": "named",
+    "scenarioType": "Code Generation with Claude Code",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D5.3-a1e62732"
+  },
+  {
+    "taskStatement": "D3.3",
+    "domain": "D3",
+    "scenario": "Developers notice that database-model conventions load into context the moment Claude opens a file under the models/ directory, but never appear when Claude is editing a React component elsewhere in the repo. The team now wants the same automatic, path-based behavior for a new file type: GraphQL resolver files, which share the extension .resolver.ts but are scattered across many unrelated service directories with no common parent folder.",
+    "question": "What is the most maintainable way to make resolver conventions load automatically for any .resolver.ts file, regardless of which directory it lives in?",
+    "options": {
+      "D": "Create a new convention file whose header declares a pattern matching the .resolver.ts extension, so it loads automatically for any matching file, regardless of directory.",
+      "C": "Add the resolver conventions to the root-level project instruction file, since it is the only mechanism guaranteed to load into context on every turn regardless of which file is being edited.",
+      "A": "Package the conventions into an invocable reference document that a developer must explicitly request before Claude edits any resolver file, so the conventions load only when asked for.",
+      "B": "Place a directory-level instruction file in every directory that contains resolver files, so each file inherits the conventions defined for its containing directory."
+    },
+    "correct": "D",
+    "explanations": {
+      "D": "Correct. A path-scoped convention file is matched by its declared pattern, not by folder location, so a pattern targeting the .resolver.ts extension loads the conventions for every matching file no matter which of the scattered service directories it sits in — the same mechanism already producing the models/-only behavior the team observed.",
+      "C": "The root-level instruction file is the mechanism that loads on every turn for every file type; putting resolver conventions there works but reintroduces the exact always-on behavior the team is trying to avoid, adding irrelevant content when Claude is editing unrelated files.",
+      "A": "An invocable reference document only loads when a developer explicitly requests it, so conventions would be silently skipped any time someone edits a resolver file without remembering to ask for it first.",
+      "B": "A directory-level file only covers files inside that one directory, so it would need to be duplicated and kept in sync across every unrelated service directory that happens to contain a resolver file — the opposite of matching by extension regardless of location."
+    },
+    "register": "functional",
+    "scenarioType": "Code Generation with Claude Code",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.3-31afefee"
+  },
+  {
+    "taskStatement": "D4.1",
+    "domain": "D4",
+    "scenario": "Your automated PR-review prompt tells Claude to flag any \"significant\" change to error handling. Reviewers report Claude flags a renamed exception variable with the same severity as a removed try/catch block around a database write, so the team stops reading flags in order of severity.",
+    "question": "What is the most effective way to reduce this noise and restore reviewers' trust in the flagged output?",
+    "options": {
+      "A": "Instruct the prompt to only flag changes over a minimum line-count threshold, since larger diffs are more likely to contain the changes reviewers actually care about.",
+      "B": "Lower the temperature setting used for the review call, since more deterministic output will apply the existing \"significant\" standard more consistently across similar diffs.",
+      "D": "Replace \"significant\" with a defined severity rubric (e.g., criteria distinguishing changes that alter failure behavior from cosmetic renames) and require each flag to state which criterion it met.",
+      "C": "Add a second review pass that re-ranks the first pass's flags by severity, so reviewers see the reordered list instead of the original flat one."
+    },
+    "correct": "D",
+    "explanations": {
+      "A": "Line count does not track behavioral significance - a one-line removed try/catch is exactly the high-severity case being missed, while a large cosmetic diff would still get flagged under this rule.",
+      "B": "Determinism only makes the same undefined guess more repeatable across runs; it does not supply the missing criteria needed to distinguish cosmetic renames from behavior-altering changes.",
+      "D": "Correct. \"Significant\" is undefined, so the model is guessing at a boundary between cosmetic and behavior-changing edits; replacing it with explicit criteria tied to failure behavior gives the model a real boundary to apply and lets reviewers see which criterion justified each flag.",
+      "C": "Reordering flags produced by a pass that never had a severity definition just relabels the same undifferentiated judgments; it does not fix the root cause of the model guessing at what \"significant\" means."
+    },
+    "register": "functional",
+    "scenarioType": "Claude Code for Continuous Integration",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D4.1-7f16a8c1"
+  },
+  {
+    "taskStatement": "D3.5",
+    "domain": "D3",
+    "scenario": "After the first two weeks in production, the review prompt correctly flags SQL injection risks but also flags roughly a third of PRs for trivial style preferences (variable naming, import ordering) that the team does not want surfaced. The team wants to reduce the style false positives without weakening the security detection that is already working.",
+    "question": "Before making any further changes to the review prompt, what is the most effective refinement approach?",
+    "options": {
+      "C": "Run the existing prompt five times per PR and average the flags across runs, on the assumption that variation across runs will cancel out the style false positives.",
+      "A": "Rewrite the review prompt from scratch in one pass, folding in every suspected fix for style flagging and security wording at once, then measure the aggregate false-positive rate on the next batch of live PRs.",
+      "D": "Ask Claude to self-evaluate which of its own flags were false positives, then strip out any instruction category it identifies as unreliable.",
+      "B": "Narrow the style-flagging instruction alone, then re-run the prompt against a fixed set of past PRs to confirm the style false-positive rate drops while the security flags remain intact before changing anything else."
+    },
+    "correct": "B",
+    "explanations": {
+      "C": "Averaging across repeated runs of an unchanged prompt does not address the root cause, which is that the instruction itself is too broad; it only adds inference cost without narrowing what gets flagged.",
+      "A": "Bundling multiple changes into one rewrite means that if the false-positive rate shifts, there is no way to attribute the effect to a specific instruction change, and a regression in security detection could be masked by an improvement in style flagging.",
+      "D": "LLM self-assessment of its own past outputs is unreliable for the same reason confidence self-scoring is - it substitutes probabilistic self-judgment for measurement against known outcomes.",
+      "B": "Correct. Iterative refinement means isolating one change - here, the style-flagging instruction - and measuring its effect against a fixed test set before layering on the next change, so each step's impact is verifiable and regressions in the working security detection are caught immediately."
+    },
+    "register": "named",
+    "scenarioType": "Claude Code for Continuous Integration",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.5-0e66837e"
+  },
+  {
+    "taskStatement": "D3.4",
+    "domain": "D3",
+    "scenario": "One PR waiting on automated review simply bumps a test timeout value in a CI config file from 30 seconds to 90 seconds, citing one named flaky test as the reason; the change touches a single file and there is no alternative implementation under consideration.",
+    "question": "Before the agent modifies the file, which approach should it take to decide how to proceed?",
+    "options": {
+      "B": "Have the agent first request a risk classifier to categorize the change before deciding whether an exploratory pass or a direct edit is warranted, deferring the choice to that classifier's output.",
+      "C": "Have the agent proceed directly to editing the value, since the task names one file, one value, and one clear rationale, leaving no competing implementation paths for an exploratory pass to weigh.",
+      "D": "Have the agent proceed straight to editing the value and applying the change, then explain its reasoning afterward in a PR comment so reviewers can check the choice retroactively rather than beforehand.",
+      "A": "Route the agent into an exploratory planning pass that maps out several possible timeout values and configuration locations, since any CI file change is inherently risky and merits upfront investigation."
+    },
+    "correct": "C",
+    "explanations": {
+      "B": "Introduces an extra classification step before a decision that the task description already resolves - the scope and rationale given leave nothing for a risk classifier to determine.",
+      "C": "Correct. An exploration-first mode is warranted when there are multiple valid approaches or unclear scope to weigh; here the file, the value, and the rationale are all already fixed, so there is nothing left to explore and direct execution is the appropriate, proportionate choice.",
+      "D": "Skips the actual decision by making the edit first and rationalizing afterward; explaining a choice after the fact does not substitute for deciding, before editing, whether exploration was needed at all.",
+      "A": "Treats every CI-adjacent change as equally deserving of upfront investigation regardless of whether alternatives actually exist, which turns a single-path, well-specified edit into unneeded overhead."
+    },
+    "register": "functional",
+    "scenarioType": "Claude Code for Continuous Integration",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.4-a1bc5556"
+  },
+  {
+    "taskStatement": "D4.2",
+    "domain": "D4",
+    "scenario": "The automated code review step in the pipeline has a 30% false-positive rate specifically on pull requests that only rename variables or reformat whitespace, with the model repeatedly treating these cosmetic diffs as logic changes worth flagging.",
+    "question": "Which change would most effectively reduce this specific false-positive pattern while preserving genuine bug detection on other pull requests?",
+    "options": {
+      "D": "Add a system prompt instruction stating that purely cosmetic changes such as variable renames or reformatting should never be flagged as logic issues, leaving the rest of the prompt unchanged.",
+      "C": "Add few-shot examples pairing cosmetic-only diffs, such as renames and reformatting, with a no-issue verdict, alongside logic-changing diffs paired with a substantive flag, so the boundary is demonstrated directly.",
+      "B": "Lower the model's temperature setting to 0, since deterministic sampling is commonly assumed to fix inconsistent classification of a diff as cosmetic versus substantive across repeated runs.",
+      "A": "Add a diff-size threshold so pull requests below a set number of changed lines skip automated review entirely, on the assumption that small diffs are the ones most often misclassified as bugs."
+    },
+    "correct": "C",
+    "explanations": {
+      "D": "Relies on probabilistic compliance with a general instruction rather than demonstrating the boundary with concrete cases, so it is less reliable at correcting a specific, already-observed misclassification pattern.",
+      "C": "Correct. Concrete few-shot examples that demonstrate the exact boundary the model is missing - showing cosmetic-only diffs paired with a no-issue verdict alongside logic-changing diffs paired with a flag - calibrate the distinction directly, which is more reliable than an abstract instruction.",
+      "B": "Temperature affects sampling variance, not the model's underlying classification boundary between cosmetic and substantive changes; it would not resolve a systematic misclassification pattern.",
+      "A": "Bypasses review for an entire class of diffs by size rather than by content, which would also skip genuine small bugs and does not address why the model misclassifies cosmetic changes when it does review them."
+    },
+    "register": "named",
+    "scenarioType": "Claude Code for Continuous Integration",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D4.2-61fb6bfd"
+  },
+  {
+    "taskStatement": "D1.2",
+    "domain": "D1",
+    "scenario": "Leadership asks whether to refactor the single support agent into a coordinator that delegates to three specialized subagents — billing, returns, and escalation — hoping specialization will lift resolution rates. Each subagent would need the same customer record and order history from get_customer and lookup_order, and every case must still be resolved within one continuous conversation turn.",
+    "question": "Given these constraints, what is the most appropriate architectural decision?",
+    "options": {
+      "C": "Keep the single-agent design: get_customer, lookup_order, and the refund decision all depend on the same customer and order state within one continuous turn, so splitting into subagents would only fragment that shared context and add coordination overhead with no resolution benefit.",
+      "D": "Split into a billing subagent, a returns subagent, and an escalation subagent so each can carry a specialized system prompt tuned to its case type, since specialized prompts reliably raise first-contact resolution regardless of whether the subtasks share underlying context.",
+      "B": "Split into subagents but have the coordinator forward the full conversation transcript to each one on every turn, which preserves the shared customer and order context that the subagents would otherwise lose once they are separated out.",
+      "A": "Split into subagents and let each one independently call get_customer and lookup_order rather than sharing a single fetch, since duplicating these tool calls per subagent is preferable to routing shared context through a coordinator."
+    },
+    "correct": "C",
+    "explanations": {
+      "C": "Correct. The coordinator-subagent pattern pays off when subtasks are separable and benefit from isolated context; here the subtasks are tightly coupled, sequential, and share one customer/order state within a single turn, so splitting them only adds coordination overhead without isolating anything useful.",
+      "D": "Assumes specialization always helps, but the benefit of separate subagents comes from isolating independent work, not from prompt specialization alone — and it ignores that these subtasks aren't actually independent.",
+      "B": "Forwarding the full transcript to every subagent defeats the main reason to isolate subagents in the first place and adds the overhead of multiple agents without any of the context-isolation benefit.",
+      "A": "Duplicating get_customer and lookup_order calls across subagents multiplies tool calls and risks the same customer resolving to inconsistent state across subagents, which is worse than the coordination overhead it claims to avoid."
+    },
+    "register": "named",
+    "scenarioType": "Customer Support Resolution Agent",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D1.2-a988fb46"
   }
 ];

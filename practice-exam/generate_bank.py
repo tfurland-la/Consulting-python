@@ -118,6 +118,28 @@ def merge_pending(bank, pending):
     return merged
 
 
+def build_work_list(targets, existing, scenario=None):
+    """(task statement, scenario type) pairs for this run.
+
+    By default each question for a statement gets a DIFFERENT scenario type,
+    rotating from however many already exist, so a batch cannot reskin one
+    template. `scenario` overrides that and pins every question to one type —
+    the rotation is right for diversity and useless when a specific
+    (scenario, domain) cell in the bank has to be filled, which is what topping
+    up a thin scenario means.
+    """
+    if scenario is not None and scenario not in exam_lib.SCENARIO_TYPES:
+        raise ValueError(f"unknown scenario type: {scenario!r}")
+    work = []
+    for ts, needed in targets.items():
+        for k in range(needed):
+            rotated = exam_lib.SCENARIO_TYPES[
+                (existing.get(ts, 0) + k) % len(exam_lib.SCENARIO_TYPES)
+            ]
+            work.append((ts, scenario or rotated))
+    return work
+
+
 def statement_work_queues(work):
     """Group a flat work list into one ordered queue per task statement.
 
@@ -132,7 +154,7 @@ def statement_work_queues(work):
     return queues
 
 
-def generate(per_task, tasks, workers, functional_fraction=None):
+def generate(per_task, tasks, workers, functional_fraction=None, scenario=None):
     bank = exam_lib.load_bank()
     bank_ids = {entry["id"] for entry in bank}
     pending = load_pending()
@@ -147,11 +169,7 @@ def generate(per_task, tasks, workers, functional_fraction=None):
     existing = {}
     for entry in bank + pending:
         existing[entry["taskStatement"]] = existing.get(entry["taskStatement"], 0) + 1
-    work = [
-        (ts, exam_lib.SCENARIO_TYPES[(existing.get(ts, 0) + k) % len(exam_lib.SCENARIO_TYPES)])
-        for ts, needed in targets.items()
-        for k in range(needed)
-    ]
+    work = build_work_list(targets, existing, scenario)
     if not work:
         print("Nothing to generate — all targeted task statements are covered.")
         return
@@ -344,6 +362,13 @@ def main():
         help="merge reviewed scenarioType labels from classify_scenarios.py",
     )
     parser.add_argument(
+        "--scenario",
+        help=(
+            "pin every question to one exam scenario type instead of rotating "
+            "(use when topping up a thin scenario)"
+        ),
+    )
+    parser.add_argument(
         "--functional-fraction",
         type=float,
         default=None,
@@ -360,7 +385,8 @@ def main():
         merge_classification_labels()
     elif args.per_task:
         tasks = args.tasks.split(",") if args.tasks else None
-        generate(args.per_task, tasks, args.workers, args.functional_fraction)
+        generate(args.per_task, tasks, args.workers, args.functional_fraction,
+                 args.scenario)
     else:
         status()
 
