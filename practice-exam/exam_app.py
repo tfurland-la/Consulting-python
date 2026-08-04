@@ -67,28 +67,20 @@ class ExamApi:
             "ok": True,
             "claude": "available" if available else "missing",
             "scenarioTypes": list(exam_lib.SCENARIO_TYPES),
+            # The exam's scenarios are fixed text, not generated: the page
+            # shows them as standing context while questions branch from them.
+            "examScenarios": dict(exam_lib.EXAM_SCENARIOS),
             "progressPath": str(PROGRESS_PATH),
         }
 
-    def generate_scenario(self, scenario_type):
-        """One shared scenario for a block of 15 questions.
-
-        Separate from generate() because it is one cheap call per block rather
-        than one per question, and because a failure here should abort the form
-        before 15 question calls have been spent against a scenario that does
-        not exist."""
-        try:
-            return {"scenario": exam_lib.generate_scenario(scenario_type)}
-        except Exception as err:  # surfaced to the page as a friendly error
-            return {"error": type(err).__name__, "detail": str(err)}
-
     def generate(self, task_statement, extra_avoid=None, scenario_type=None,
-                 difficulty="standard", register="named", scenario=None):
+                 difficulty="standard", register="named"):
         """extra_avoid: summaries of questions generated earlier in the same
         exam form for this statement, so streamed form generation doesn't
         produce within-form near-duplicates. scenario_type pins one of
-        exam_lib.SCENARIO_TYPES for variety; difficulty selects the standard or
-        hard tier (the page decides it from adaptive state). Drill mode omits
+        exam_lib.SCENARIO_TYPES, which also selects the fixed exam scenario the
+        question must branch from; difficulty selects the standard or hard
+        tier (the page decides it from adaptive state). Drill mode omits
         scenario_type and passes the tier.
 
         register selects named or functional phrasing. The page decides it for
@@ -113,7 +105,6 @@ class ExamApi:
                     scenario_type=scenario_type,
                     difficulty=difficulty or "standard",
                     register=register or "named",
-                    scenario=scenario,
                 )
             }
         except Exception as err:  # surfaced to the page as a friendly error

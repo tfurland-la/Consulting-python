@@ -895,6 +895,14 @@ function startBankExam() {
       "bank — run classify_scenarios.py to enable it.";
 }
 
+// The exam's six scenarios are fixed text. health() reports them; adaptive.js
+// mirrors them so the bank exam, which runs with no bridge, can still show one.
+function examScenario(scenarioType) {
+  return (app.examScenarios && app.examScenarios[scenarioType])
+    || A.EXAM_SCENARIOS[scenarioType]
+    || null;
+}
+
 // Mirrors exam_lib.summarize_for_avoid so within-form generations diversify.
 // The question stem is included because block-mates SHARE a scenario: the
 // scenario prefix is identical for all 15 and so carries no signal about what
@@ -921,6 +929,11 @@ async function startFreshExam() {
     ? app.scenarioTypes
     : A.SCENARIO_TYPES;
   const blocks = A.drawExamBlocks({ scenarioTypes: allTypes.length > 4 ? undefined : allTypes });
+  // A block's scenario is not generated — the exam has six fixed ones and
+  // shows the drawn scenario as standing context while its questions branch
+  // from it. Looking it up removes four generation calls per form and, more
+  // importantly, removes the drift of inventing a scenario the exam never uses.
+  blocks.forEach((b) => { b.scenario = examScenario(b.scenarioType); });
 
   const assignments = [];
   blocks.forEach((block, blockIndex) => {
@@ -930,7 +943,6 @@ async function startFreshExam() {
         ts,
         blockIndex,
         scenarioType: block.scenarioType,
-        scenario: null, // filled by the scenario pass below
         difficulty: difficulties[i],
         register: registers[i],
       });
@@ -947,7 +959,6 @@ async function startFreshExam() {
     cancelled: false,
     summariesByTs: {},
     examStarted: false,
-    scenariosReady: false,
   };
   app.freshPrep = prep;
   el("setup-choice").hidden = true;
@@ -955,48 +966,7 @@ async function startFreshExam() {
   el("btn-exam-begin").disabled = true;
   updatePrepProgress(prep);
 
-  // Scenarios first: four cheap calls, and a failure here costs nothing
-  // compared with discovering it after 15 question calls have been spent.
-  const ok = await prepareBlockScenarios(prep);
-  if (!ok || prep.cancelled) return;
-  prep.scenariosReady = true;
   for (let w = 0; w < EXAM_GEN_WORKERS; w++) prepWorker(prep);
-}
-
-// Generate one scenario per block and stamp it onto that block's 15 slots.
-// Returns false when the generator cannot produce them at all.
-async function prepareBlockScenarios(prep) {
-  for (let b = 0; b < prep.blocks.length; b++) {
-    if (prep.cancelled) return false;
-    const block = prep.blocks[b];
-    let scenario = null;
-    for (let attempt = 0; attempt < 2 && !scenario; attempt++) {
-      try {
-        const res = await app.bridge.generateScenario(block.scenarioType);
-        if (res.error) throw new Error(res.detail || res.error);
-        scenario = res.scenario;
-      } catch {
-        /* one retry, then fall through to the abort below */
-      }
-    }
-    if (!scenario) {
-      prep.cancelled = true;
-      app.freshPrep = null;
-      el("setup-card").hidden = true;
-      el("question-card").hidden = false;
-      alert(
-        "Could not generate the exam's scenarios — Claude Code may be " +
-        "unavailable. Try the bank exam instead."
-      );
-      return false;
-    }
-    block.scenario = scenario;
-    for (const a of prep.assignments) {
-      if (a.blockIndex === b) a.scenario = scenario;
-    }
-    updatePrepProgress(prep);
-  }
-  return true;
 }
 
 // ── Prepared forms ────────────────────────────────────────────────────────
@@ -1039,7 +1009,6 @@ async function prepareForm() {
       assignments.push({
         ts, blockIndex,
         scenarioType: block.scenarioType,
-        scenario: null,
         difficulty: difficulties[i],
         register: registers[i],
       });
@@ -1051,7 +1020,10 @@ async function prepareForm() {
     satAt: null,
     total: assignments.length,
     complete: false,
-    blocks: blocks.map((b) => ({ scenarioType: b.scenarioType, scenario: null })),
+    blocks: blocks.map((b) => ({
+      scenarioType: b.scenarioType,
+      scenario: examScenario(b.scenarioType),
+    })),
     assignments,
     questions: new Array(assignments.length).fill(null),
   };
@@ -1081,15 +1053,8 @@ async function runFormJob(form) {
   renderPrepareProgress();
 
   try {
-    for (let b = 0; b < form.blocks.length && !job.cancelled; b++) {
-      if (form.blocks[b].scenario) continue; // already written
-      const res = await app.bridge.generateScenario(form.blocks[b].scenarioType);
-      if (res.error) throw new Error(res.detail || res.error);
-      form.blocks[b].scenario = res.scenario;
-      for (const a of form.assignments) if (a.blockIndex === b) a.scenario = res.scenario;
-      await app.bridge.save_form(form);
-      renderPrepareProgress();
-    }
+    // No scenario pass: the exam's six scenarios are fixed, stamped on the
+    // form at creation. Only the questions have to be generated.
     for (let i = 0; i < form.assignments.length && !job.cancelled; i++) {
       if (form.questions[i]) continue; // resume fills only the gaps
       form.questions[i] = await generateFormQuestion(form, i);
@@ -1132,7 +1097,7 @@ async function generateFormQuestion(form, slot, idSuffix) {
     .filter((q) => q && q.taskStatement === a.ts)
     .map(summarizeForAvoid);
   const res = await app.bridge.generate(
-    a.ts, avoid, a.scenarioType, a.difficulty, a.register, a.scenario
+    a.ts, avoid, a.scenarioType, a.difficulty, a.register
   );
   if (res.error) {
     if (String(res.error).includes("RateLimited")) throw new Error(res.error);
@@ -1154,13 +1119,10 @@ function renderPrepareProgress() {
   el("prepare-bar").hidden = !job;
   if (!job) return;
   const form = job.form;
-  const scenarios = form.blocks.filter((b) => b.scenario).length;
   const ready = form.questions.filter(Boolean).length;
-  const pct = Math.round((100 * (scenarios + ready)) / (form.blocks.length + form.total));
-  el("prepare-fill").style.width = `${pct}%`;
-  el("prepare-status").textContent = scenarios < form.blocks.length
-    ? `Writing scenarios… ${scenarios} of ${form.blocks.length}.`
-    : `Generating questions… ${ready} of ${form.total}. You can keep drilling meanwhile.`;
+  el("prepare-fill").style.width = `${Math.round((100 * ready) / form.total)}%`;
+  el("prepare-status").textContent =
+    `Generating questions… ${ready} of ${form.total}. You can keep drilling meanwhile.`;
 }
 
 async function refreshPreparedForms() {
@@ -1295,7 +1257,7 @@ async function sitPreparedForm(meta) {
 async function prepWorker(prep) {
   while (!prep.cancelled && prep.nextSlot < prep.assignments.length) {
     const slot = prep.nextSlot++;
-    const { ts, scenarioType, difficulty, register, scenario } = prep.assignments[slot];
+    const { ts, scenarioType, difficulty, register } = prep.assignments[slot];
     let question = null;
     // Two attempts against the SAME scenario before giving the slot up. A
     // bank substitute carries a different scenario, so every substitution
@@ -1304,7 +1266,7 @@ async function prepWorker(prep) {
       try {
         const extraAvoid = (prep.summariesByTs[ts] || []).slice();
         const res = await app.bridge.generate(
-          ts, extraAvoid, scenarioType, difficulty, register, scenario
+          ts, extraAvoid, scenarioType, difficulty, register
         );
         if (res.error) throw new Error(res.detail || res.error);
         question = res.question;
@@ -1369,16 +1331,6 @@ function onPrepProgress(prep, slot) {
 }
 
 function updatePrepProgress(prep) {
-  // The scenario pass runs before any question call, so report it rather than
-  // showing "0 of 60 ready" for four calls' worth of apparent nothing.
-  if (!prep.scenariosReady) {
-    const written = (prep.blocks || []).filter((b) => b.scenario).length;
-    el("setup-progress-fill").style.width = `${Math.round((100 * written) / A.EXAM_BLOCKS)}%`;
-    el("setup-progress-text").textContent =
-      `Writing the exam's ${A.EXAM_BLOCKS} scenarios… ${written} of ${A.EXAM_BLOCKS} done.`;
-    el("btn-exam-begin").disabled = true;
-    return;
-  }
   const generated = prep.buffer.filter(Boolean).length;
   el("setup-progress-fill").style.width = `${Math.round((100 * prep.done) / prep.assignments.length)}%`;
   const gateResolved = prep.assignments
@@ -1466,7 +1418,7 @@ function substituteFromBank(exam, slot) {
     ...picked,
     substituted: true,
     blockIndex: assignment.blockIndex,
-    offScenario: assignment.scenario != null,
+    offScenario: assignment.blockIndex != null,
   };
 }
 
@@ -1567,8 +1519,14 @@ function renderExamQuestion() {
   // repaints for an off-scenario bank substitute, survives a jump back from
   // the review screen, and needs no special case for the bank exam's 103
   // distinct scenarios.
-  setExamScenario(question.scenario);
-  el("q-stem").textContent = question.question;
+  // Blocked forms show the exam's FIXED scenario as standing context — that is
+  // what the real exam holds on screen — and the question's own `scenario` is
+  // its branch, which belongs with the question rather than in the panel. A
+  // bank substitute is off-scenario, so it falls back to showing its own.
+  const blockScenario = question.offScenario ? null : examScenario(question.scenarioType);
+  setExamScenario(blockScenario || question.scenario);
+  const branch = blockScenario ? question.scenario : "";
+  el("q-stem").textContent = branch ? `${branch}\n\n${question.question}` : question.question;
   el("q-feedback").replaceChildren();
   el("status-note").textContent = "";
 
@@ -2327,6 +2285,7 @@ async function enableBridge(bridge) {
       app.generator = makeClaudeGenerator(bridge);
       app.bridge = bridge; // raw bridge: fresh-exam generation calls it directly
       app.scenarioTypes = health.scenarioTypes || [];
+      app.examScenarios = health.examScenarios || null;
     }
   } catch {
     app.generator = null;

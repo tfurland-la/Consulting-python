@@ -222,6 +222,61 @@ GENERATION_TIMEOUT_SECONDS = 120
 # The exam's six scenario types (exam guide v1.0, "Exam Scenarios"). When
 # generating several questions for one task statement, rotating through these
 # prevents template reskinning.
+# The exam's six scenarios, reproduced verbatim from the Claude Certified
+# Architect – Foundations Exam Guide v1.0, section 5 ("Exam Scenarios"), for
+# personal exam preparation. Anthropic's text, not ours.
+#
+# These are FIXED. The exam draws 4 of the 6 and shows the chosen scenario as
+# standing context while its questions branch from it — so a practice tool that
+# invents its own scenarios is drifting from the exam in the same way the
+# official-terminology over-fit was: plausible, but not what a candidate sees.
+# Do not paraphrase, reword or "improve" them; the fidelity IS the wording.
+EXAM_SCENARIOS = {
+    "Customer Support Resolution Agent": (
+        "You are building a customer support resolution agent using the Claude "
+        "Agent SDK. The agent handles high-ambiguity requests like returns, "
+        "billing disputes, and account issues. It has access to your backend "
+        "systems through custom Model Context Protocol (MCP) tools "
+        "(get_customer, lookup_order, process_refund, escalate_to_human). Your "
+        "target is 80%+ first-contact resolution while knowing when to escalate."
+    ),
+    "Code Generation with Claude Code": (
+        "You are using Claude Code to accelerate software development. Your team "
+        "uses it for code generation, refactoring, debugging, and documentation. "
+        "You need to integrate it into your development workflow with custom "
+        "slash commands, CLAUDE.md configurations, and understand when to use "
+        "plan mode vs direct execution."
+    ),
+    "Multi-Agent Research System": (
+        "You are building a multi-agent research system using the Claude Agent "
+        "SDK. A coordinator agent delegates to specialized subagents: one "
+        "searches the web, one analyzes documents, one synthesizes findings, and "
+        "one generates reports. The system researches topics and produces "
+        "comprehensive, cited reports."
+    ),
+    "Developer Productivity with Claude": (
+        "You are building developer productivity tools using the Claude Agent "
+        "SDK. The agent helps engineers explore unfamiliar codebases, understand "
+        "legacy systems, generate boilerplate code, and automate repetitive "
+        "tasks. It uses the built-in tools (Read, Write, Bash, Grep, Glob) and "
+        "integrates with Model Context Protocol (MCP) servers."
+    ),
+    "Claude Code for Continuous Integration": (
+        "You are integrating Claude Code into your Continuous "
+        "Integration/Continuous Deployment (CI/CD) pipeline. The system runs "
+        "automated code reviews, generates test cases, and provides feedback on "
+        "pull requests. You need to design prompts that provide actionable "
+        "feedback and minimize false positives."
+    ),
+    "Structured Data Extraction": (
+        "You are building a structured data extraction system using Claude. The "
+        "system extracts information from unstructured documents, validates the "
+        "output using JavaScript Object Notation (JSON) schemas, and maintains "
+        "high accuracy. It must handle edge cases gracefully and integrate with "
+        "downstream systems."
+    ),
+}
+
 SCENARIO_TYPES = (
     "Customer Support Resolution Agent",
     "Code Generation with Claude Code",
@@ -260,66 +315,6 @@ QUESTION_JSON_SCHEMA = {
     ],
     "additionalProperties": False,
 }
-
-
-# A block's scenario is generated on its own, once, then handed to each of the
-# block's 15 question calls as a fixed input. Its own tiny output shape.
-SCENARIO_JSON_SCHEMA = {
-    "type": "object",
-    "properties": {"scenario": {"type": "string"}},
-    "required": ["scenario"],
-    "additionalProperties": False,
-}
-
-SCENARIO_PROMPT = (
-    "You are writing ONE production scenario for the Claude Certified Architect "
-    "– Foundations (CCAR-F) practice exam. Fifteen separate multiple-choice "
-    "questions will be written against this single scenario, so it must be rich "
-    "enough to branch from — several distinct things can plausibly go wrong or "
-    "need deciding — without itself asking or answering any question.\n\n"
-    "Scenario type: {scenario_type}\n\n"
-    "Write 1-2 short paragraphs describing a realistic production situation: the "
-    "system, what it does, who runs it, and the observable problem or decision "
-    "point. Vary the surface details — industry, scale, team, failure mode — "
-    "rather than reaching for the canonical framing of this scenario type.\n\n"
-    "Do not invent specific technical facts about Claude, Claude Code, or the "
-    "Agent SDK — no flag names, environment variables, or configuration "
-    "behaviours. Describe the situation, not the fix. Do not include a question, "
-    "options, or any recommendation.\n\n"
-    "Respond with STRICT JSON only, no preamble and no markdown fences:\n"
-    '{{"scenario": "..."}}'
-)
-
-# A scenario is one short paragraph, not a full question with four options and
-# four explanations, so it does not need the question timeout.
-SCENARIO_TIMEOUT_SECONDS = 60
-
-
-def generate_scenario(scenario_type, run=None):
-    """One shared scenario for a block of questions.
-
-    Generated separately rather than taken from the first question so that all
-    15 questions in the block are peers of one text, none of them privileged,
-    and so a failure here fails the block before 15 calls have been spent.
-
-    `run` defaults to run_claude, resolved at call time — this lives above
-    run_claude in the file, and a def-time default would not exist yet.
-    """
-    if scenario_type not in SCENARIO_TYPES:
-        raise ValueError(f"unknown scenario type: {scenario_type!r}")
-    run = run or run_claude
-    envelope = run(
-        SCENARIO_PROMPT.format(scenario_type=scenario_type),
-        schema=SCENARIO_JSON_SCHEMA,
-        timeout=SCENARIO_TIMEOUT_SECONDS,
-    )
-    structured = envelope.get("structured_output")
-    scenario = (structured or {}).get("scenario") if isinstance(structured, dict) else None
-    if scenario is None:
-        scenario = json.loads(strip_fences(envelope.get("result", "{}"))).get("scenario")
-    if not isinstance(scenario, str) or not scenario.strip():
-        raise GenerationError("scenario generation returned no scenario text")
-    return scenario.strip()
 
 
 def attach_provenance(candidate, source, model=None, generated_at=None):
@@ -433,24 +428,47 @@ def _few_shot_block(bank):
     return "\n\n".join(examples)
 
 
-def longest_option_is_correct(question):
-    """True when the correct option is strictly the longest of the four.
+# How much longer than its longest rival the correct option may be.
+#
+# Calibrated against the exam guide's own 12 sample questions, not invented:
+# the correct answer there is the longest in 7 of 12, but only ever by a hair —
+# ratios of 1.01, 1.01, 1.02, 1.02, 1.06, 1.06, 1.18, and a mean across all 12
+# of 0.96. So the real exam has a mild length tell, and a bank with none is as
+# unrepresentative as a bank with a strong one: it would teach a candidate that
+# the longest option is never right, which is false where it counts.
+#
+# The threshold is the guide's own worst case. Our committed bank sits at 85%
+# longest-is-correct with much larger margins — that is the defect. Rejecting
+# only the outsized cases removes the exploit without flattening the
+# distribution the exam actually has.
+LENGTH_TELL_MAX_RATIO = 1.20
 
-    The exploitable form of the length tell. Note it is about ORDERING, not
-    margin: the prompt's "no option more than 1.3x the others" rule is fully
-    satisfied by a correct answer that is longest by one character, and a
-    candidate who reads nothing and picks the longest still scores. Measured on
-    the committed bank, that strategy scores 85%.
 
-    A tie is not a tell — "pick the longest" has no answer at a tie.
-    """
+def length_tell_ratio(question):
+    """The correct option's length over its longest rival's. >1 means longest."""
     options = question.get("options") or {}
     correct = question.get("correct")
     if correct not in options:
-        return False
+        return 0.0
     lengths = {key: len(value) for key, value in options.items()}
     others = [n for key, n in lengths.items() if key != correct]
-    return bool(others) and lengths[correct] > max(others)
+    if not others or max(others) == 0:
+        return 0.0
+    return lengths[correct] / max(others)
+
+
+def longest_option_is_correct(question):
+    """True when the correct option is strictly the longest of the four.
+
+    Reported, not enforced — see LENGTH_TELL_MAX_RATIO for what is rejected.
+    A tie is not a tell: "pick the longest" has no answer at a tie.
+    """
+    return length_tell_ratio(question) > 1.0
+
+
+def has_exploitable_length_tell(question):
+    """True when the correct option is longer than the exam ever makes it."""
+    return length_tell_ratio(question) > LENGTH_TELL_MAX_RATIO
 
 
 def summarize_for_avoid(question):
@@ -547,8 +565,7 @@ def register_plan(count, fraction=None, rng=None):
 
 
 def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
-                 scenario_type=None, difficulty="standard", register="named",
-                 scenario=None):
+                 scenario_type=None, difficulty="standard", register="named"):
     if task_statement not in TASK_STATEMENTS:
         raise ValueError(f"unknown task statement: {task_statement!r}")
     if scenario_type is not None and scenario_type not in SCENARIO_TYPES:
@@ -568,24 +585,30 @@ def build_prompt(task_statement, retry_feedback=None, bank=None, avoid=None,
             "Produce corrected strict JSON that fixes exactly this problem.\n\n"
         )
     scenario_block = ""
-    if scenario:
-        # A block supplies its scenario. The standing brief above tells the
-        # model to WRITE one, so that has to be countermanded explicitly or it
-        # writes a second scenario and the block loses its shared text.
+    if scenario_type:
+        # The exam's scenarios are FIXED text, shown as standing context while
+        # each question branches from them. So the model is given the real
+        # scenario and asked for a BRANCH — the specific situation inside it —
+        # not for a scenario of its own. `scenario` in the output is that
+        # branch. The standing brief above tells it to write a scenario, so
+        # that has to be countermanded explicitly.
         scenario_block = (
-            "- Use this EXACT scenario, reproduced verbatim in the `scenario` "
-            "field. Do not write a new scenario, and do not reword, shorten, or "
-            "extend this one — fifteen questions share it:\n\n"
-            f"{scenario}\n\n"
-            "  Write a question that branches from this situation: pick one "
-            "decision or failure within it that this task statement covers. "
-            "Other questions branch from the same scenario at other points, so "
-            "do not try to address all of it.\n"
-        )
-    elif scenario_type:
-        scenario_block = (
-            f"- Set your scenario within this exam scenario type: "
-            f"{scenario_type}. Do not use a different scenario type.\n"
+            "- IGNORE the instruction above to write your own scenario. This "
+            "question belongs to a fixed exam scenario, reproduced here, which "
+            "the candidate already has in front of them as standing context:\n\n"
+            f"    {EXAM_SCENARIOS[scenario_type]}\n\n"
+            "  Write a BRANCH of it instead: one or two sentences of specific "
+            "situation inside that scenario — a symptom, a measurement, a "
+            "decision point — that this task statement covers. Put ONLY the "
+            "branch in the `scenario` field.\n"
+            "  Do not restate or summarise the fixed scenario; the candidate is "
+            "reading it already, and repeating it wastes their time. Do not "
+            "invent a different system, company or product — the branch happens "
+            "inside the scenario above. Fifteen questions branch from this same "
+            "scenario at different points, so cover one point, not all of it.\n"
+            "  Example of the shape: \"Production data shows that in 12% of "
+            "cases, your agent skips get_customer entirely and calls "
+            "lookup_order using only the customer's stated name.\"\n"
         )
     avoid_block = ""
     if avoid:
@@ -700,7 +723,7 @@ def run_claude(prompt, schema=None, timeout=None):
 
 
 def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=None,
-                      difficulty="standard", register="named", scenario=None):
+                      difficulty="standard", register="named"):
     """Generate and validate one question; retry once with error feedback.
 
     The retry-with-error-feedback loop is the exam's own D4.4 pattern applied
@@ -734,7 +757,6 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
             scenario_type=scenario_type,
             difficulty=difficulty,
             register=register,
-            scenario=scenario,
         )
         try:
             candidate = extract_candidate(run(prompt))
@@ -750,24 +772,21 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
             # margin but not the ordering. Raising feeds the existing
             # retry-with-error-feedback loop, so the model gets one concrete
             # correction rather than a rule it has already read once.
-            if longest_option_is_correct(candidate):
+            if has_exploitable_length_tell(candidate):
                 lengths = {k: len(v) for k, v in candidate["options"].items()}
                 raise ValueError(
-                    f"option {candidate['correct']} is the correct answer AND the "
-                    f"longest ({lengths}), so a candidate can score by picking the "
-                    "longest option without reading anything. Rewrite so the "
-                    "correct answer is NOT the longest — add matching "
-                    "specificity and hedging to a distractor rather than "
-                    "trimming the correct answer."
+                    f"option {candidate['correct']} is the correct answer and is "
+                    f"{length_tell_ratio(candidate):.2f}x the longest distractor "
+                    f"({lengths}), so a candidate can score by picking the longest "
+                    f"option without reading anything. The real exam keeps this "
+                    f"under {LENGTH_TELL_MAX_RATIO}x. Add matching specificity and hedging "
+                    "to a distractor rather than trimming the correct answer — "
+                    "being marginally longest is fine, being conspicuously "
+                    "longest is not."
                 )
             candidate["register"] = register
             if scenario_type is not None:
                 candidate["scenarioType"] = scenario_type
-            if scenario is not None:
-                # Byte-identical, not merely equivalent: the exam panel decides
-                # whether to repaint by comparing scenario text, so a model that
-                # tightened a clause would make the panel flicker mid-block.
-                candidate["scenario"] = scenario
             return candidate
         except (GenerationError, ValueError, KeyError, TypeError) as err:
             error = str(err)

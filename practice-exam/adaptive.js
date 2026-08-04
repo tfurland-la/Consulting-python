@@ -513,6 +513,29 @@ function pickPerBucket(positions, count, rng) {
   return chosen;
 }
 
+// The exam's six scenarios, reproduced verbatim from the Claude Certified
+// Architect – Foundations Exam Guide v1.0, section 5 ("Exam Scenarios"), for
+// personal exam preparation. Anthropic's text, not ours.
+//
+// Mirrors EXAM_SCENARIOS in exam_lib.py — duplicated because the bank exam
+// runs with no bridge and still has to show the scenario. A test asserts the
+// two stay byte-identical. Do not paraphrase or reword: the fidelity IS the
+// wording, which is the whole reason these are stored rather than generated.
+const EXAM_SCENARIOS = {
+  "Customer Support Resolution Agent":
+    "You are building a customer support resolution agent using the Claude Agent SDK. The agent handles high-ambiguity requests like returns, billing disputes, and account issues. It has access to your backend systems through custom Model Context Protocol (MCP) tools (get_customer, lookup_order, process_refund, escalate_to_human). Your target is 80%+ first-contact resolution while knowing when to escalate.",
+  "Code Generation with Claude Code":
+    "You are using Claude Code to accelerate software development. Your team uses it for code generation, refactoring, debugging, and documentation. You need to integrate it into your development workflow with custom slash commands, CLAUDE.md configurations, and understand when to use plan mode vs direct execution.",
+  "Multi-Agent Research System":
+    "You are building a multi-agent research system using the Claude Agent SDK. A coordinator agent delegates to specialized subagents: one searches the web, one analyzes documents, one synthesizes findings, and one generates reports. The system researches topics and produces comprehensive, cited reports.",
+  "Developer Productivity with Claude":
+    "You are building developer productivity tools using the Claude Agent SDK. The agent helps engineers explore unfamiliar codebases, understand legacy systems, generate boilerplate code, and automate repetitive tasks. It uses the built-in tools (Read, Write, Bash, Grep, Glob) and integrates with Model Context Protocol (MCP) servers.",
+  "Claude Code for Continuous Integration":
+    "You are integrating Claude Code into your Continuous Integration/Continuous Deployment (CI/CD) pipeline. The system runs automated code reviews, generates test cases, and provides feedback on pull requests. You need to design prompts that provide actionable feedback and minimize false positives.",
+  "Structured Data Extraction":
+    "You are building a structured data extraction system using Claude. The system extracts information from unstructured documents, validates the output using JavaScript Object Notation (JSON) schemas, and maintains high accuracy. It must handle edge cases gracefully and integrate with downstream systems.",
+};
+
 // The exam's six scenario types. Mirrors SCENARIO_TYPES in exam_lib.py — the
 // bridge also reports them via health(), but block assembly has to work offline
 // (the bank exam has no bridge), so they are duplicated here and a test asserts
@@ -1024,6 +1047,7 @@ const CCARF_ADAPTIVE = {
   drawExamStatements,
   drawExamBlocks,
   SCENARIO_TYPES,
+  EXAM_SCENARIOS,
   SCENARIO_PRIMARY_DOMAINS,
   EXAM_BLOCKS,
   EXAM_BLOCK_SIZE,

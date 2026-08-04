@@ -66,10 +66,15 @@ def test_scenario_types_match_the_exam_guide():
 
 
 def test_build_prompt_pins_scenario_type_only_when_given():
+    """With a scenario type, the prompt carries that scenario's fixed text and
+    asks for a branch of it; without one (drill mode) it asks for a scenario."""
     pinned = exam_lib.build_prompt("D1.4", scenario_type="Structured Data Extraction")
     clean = exam_lib.build_prompt("D1.4")
-    assert "Set your scenario within this exam scenario type: Structured Data Extraction" in pinned
-    assert "Set your scenario within this exam scenario type" not in clean
+    assert exam_lib.EXAM_SCENARIOS["Structured Data Extraction"] in pinned
+    assert "Write a BRANCH of it instead" in pinned
+    assert "Write a BRANCH of it instead" not in clean
+    for text in exam_lib.EXAM_SCENARIOS.values():
+        assert text not in clean
 
 
 def test_build_prompt_rejects_unknown_scenario_type():
@@ -931,58 +936,10 @@ def test_run_claude_timeout_message_reports_the_timeout_actually_used(monkeypatc
 # in as a fixed input to the ordinary per-question calls.
 
 
-def test_scenario_schema_asks_only_for_a_scenario():
-    schema = exam_lib.SCENARIO_JSON_SCHEMA
-    assert schema["required"] == ["scenario"]
-    assert schema["additionalProperties"] is False
 
 
-def test_generate_scenario_returns_the_text():
-    def fake_run(prompt, schema=None, timeout=None):
-        assert schema is exam_lib.SCENARIO_JSON_SCHEMA
-        return {"structured_output": {"scenario": "A CI pipeline fails on flaky tests."}}
-
-    got = exam_lib.generate_scenario(
-        "Claude Code for Continuous Integration", run=fake_run
-    )
-    assert got == "A CI pipeline fails on flaky tests."
 
 
-def test_generate_scenario_rejects_an_unknown_scenario_type():
-    with pytest.raises(ValueError):
-        exam_lib.generate_scenario("Underwater Basket Weaving", run=lambda *a, **k: {})
-
-
-def test_generate_scenario_rejects_an_empty_scenario():
-    def fake_run(prompt, schema=None, timeout=None):
-        return {"structured_output": {"scenario": "   "}}
-
-    with pytest.raises(exam_lib.GenerationError):
-        exam_lib.generate_scenario("Multi-Agent Research System", run=fake_run)
-
-
-def test_build_prompt_supplies_a_fixed_scenario_instead_of_asking_for_one():
-    fixed = "A nightly ETL job silently drops malformed rows."
-    prompt = exam_lib.build_prompt("D1.4", scenario=fixed)
-    assert fixed in prompt
-    # The standing brief tells it to WRITE a scenario; with one supplied that
-    # instruction has to be overridden or the model invents a second one.
-    assert "Do not write a new scenario" in prompt
-
-
-def test_generate_question_forces_the_supplied_scenario_verbatim():
-    """Block-mates must share BYTE-IDENTICAL scenario text: the panel decides
-    when to repaint by comparing the text, and a model that paraphrases its
-    input would make the panel flicker mid-block."""
-    fixed = "A nightly ETL job silently drops malformed rows."
-
-    def fake_run(prompt):
-        candidate = make_candidate("D1.4")
-        candidate["scenario"] = "A nightly ETL job drops bad rows."  # paraphrased
-        return {"structured_output": candidate}
-
-    got = exam_lib.generate_question("D1.4", run=fake_run, scenario=fixed)
-    assert got["scenario"] == fixed
 
 
 # ── Fresh-exam blocks (exam.html DOM/wiring contract) ──────────────────────
@@ -995,21 +952,6 @@ def test_fresh_exam_draws_blocks_rather_than_a_flat_form():
     assert "blockIndex" in body
 
 
-def test_fresh_exam_generates_one_scenario_per_block_before_questions():
-    """Four cheap calls first: discovering a scenario failure after 15 question
-    calls have been spent against it wastes the whole block."""
-    body = EXAM_HTML.split("async function prepareBlockScenarios(prep)")[1].split("\nfunction ")[0]
-    assert "bridge.generateScenario(" in body
-    start = EXAM_HTML.split("async function startFreshExam()")[1].split("\n// Generate one")[0]
-    assert "await prepareBlockScenarios(prep)" in start
-
-
-def test_prep_worker_retries_against_the_same_scenario_before_giving_up():
-    """A bank substitute carries a different scenario and punches a hole in the
-    block, so one retry is worth spending to avoid it."""
-    body = EXAM_HTML.split("async function prepWorker(prep)")[1].split("\nfunction ")[0]
-    assert "attempt < 2" in body
-    assert "scenario" in body.split("bridge.generate(")[1].split(")")[0]
 
 
 def test_bank_substitutes_inside_a_block_are_marked_off_scenario():
@@ -1026,22 +968,6 @@ def test_avoid_summary_carries_the_question_stem():
     assert "question.question" in body
 
 
-def test_generate_scenario_bridge_wraps_errors(exam_app, monkeypatch):
-    def boom(scenario_type):
-        raise RuntimeError("no CLI")
-
-    monkeypatch.setattr(exam_app.exam_lib, "generate_scenario", boom)
-    result = exam_app.ExamApi().generate_scenario("Multi-Agent Research System")
-    assert result["error"] == "RuntimeError"
-
-
-def test_generate_scenario_bridge_wraps_success(exam_app, monkeypatch):
-    monkeypatch.setattr(
-        exam_app.exam_lib, "generate_scenario", lambda st: "A shared scenario."
-    )
-    assert exam_app.ExamApi().generate_scenario("Structured Data Extraction") == {
-        "scenario": "A shared scenario."
-    }
 
 
 # ── Scenario panel + mark-through (exam.html contract) ─────────────────────
@@ -1368,6 +1294,24 @@ def test_longest_option_is_correct_detects_the_tell():
     )
 
 
+def test_only_a_conspicuous_tell_is_rejected():
+    """Calibrated to the exam guide's own 12 samples: the correct answer is
+    longest in 7 of them, but never by more than 1.18x. A bank with NO tell is
+    as unrepresentative as one with a strong tell — it would teach that the
+    longest option is never right, which is false where it counts."""
+    marginal = _with_option_lengths({"A": 100, "B": 110, "C": 90, "D": 80})  # 1.10x
+    conspicuous = _with_option_lengths({"A": 100, "B": 160, "C": 90, "D": 80})  # 1.60x
+    assert exam_lib.longest_option_is_correct(marginal)
+    assert not exam_lib.has_exploitable_length_tell(marginal)
+    assert exam_lib.has_exploitable_length_tell(conspicuous)
+
+
+def test_the_threshold_admits_every_sample_question_in_the_guide():
+    """1.18x is the guide's own worst case; the threshold must not reject the
+    exam's own questions."""
+    assert exam_lib.LENGTH_TELL_MAX_RATIO > 1.18
+
+
 def test_a_tie_for_longest_is_not_a_tell():
     """Picking 'the longest' is ambiguous at a tie, so it carries no signal."""
     assert not exam_lib.longest_option_is_correct(
@@ -1375,7 +1319,7 @@ def test_a_tie_for_longest_is_not_a_tell():
     )
 
 
-def test_generation_retries_when_the_correct_option_is_longest():
+def test_generation_retries_when_the_correct_option_is_conspicuously_longest():
     """Routed through the existing retry-with-error-feedback loop — the exam's
     own D4.4 pattern applied to this tool."""
     prompts = []
@@ -1384,7 +1328,7 @@ def test_generation_retries_when_the_correct_option_is_longest():
         prompts.append(prompt)
         if len(prompts) == 1:
             return {"structured_output": _with_option_lengths(
-                {"A": 50, "B": 90, "C": 40, "D": 60})}
+                {"A": 50, "B": 150, "C": 40, "D": 60})}  # 2.5x — well over
         return {"structured_output": _with_option_lengths(
             {"A": 90, "B": 60, "C": 40, "D": 50})}
 
@@ -1399,7 +1343,7 @@ def test_generation_retries_when_the_correct_option_is_longest():
 def test_a_question_that_keeps_the_tell_twice_is_not_banked():
     def fake_run(prompt):
         return {"structured_output": _with_option_lengths(
-            {"A": 50, "B": 90, "C": 40, "D": 60})}
+            {"A": 50, "B": 150, "C": 40, "D": 60})}
 
     with pytest.raises(exam_lib.GenerationError):
         exam_lib.generate_question("D1.4", run=fake_run)
@@ -1415,3 +1359,69 @@ def test_a_clean_question_still_costs_only_one_call():
 
     exam_lib.generate_question("D1.4", run=fake_run)
     assert len(calls) == 1
+
+
+# ── The exam's scenarios are fixed, not generated ──────────────────────────
+# Exam guide v1.0 section 5: the exam draws 4 of 6 scenarios and shows the
+# drawn one as standing context while its questions branch from it. Generating
+# a scenario per block was the same class of drift as the terminology over-fit:
+# plausible text that is not what a candidate actually sees.
+
+
+def test_there_are_exactly_six_fixed_scenarios():
+    assert set(exam_lib.EXAM_SCENARIOS) == set(exam_lib.SCENARIO_TYPES)
+    assert len(exam_lib.EXAM_SCENARIOS) == 6
+    for text in exam_lib.EXAM_SCENARIOS.values():
+        assert text.strip() and not text.startswith(" ")
+
+
+def test_scenario_generation_is_gone():
+    """It existed to invent what the guide supplies. Keeping a second source of
+    scenario text is how the two drift apart again."""
+    assert not hasattr(exam_lib, "generate_scenario")
+    assert not hasattr(exam_lib, "SCENARIO_PROMPT")
+    assert "generateScenario" not in EXAM_HTML
+
+
+def test_build_prompt_embeds_the_fixed_scenario_verbatim():
+    for scenario_type, text in exam_lib.EXAM_SCENARIOS.items():
+        prompt = exam_lib.build_prompt("D1.4", scenario_type=scenario_type)
+        assert text in prompt, f"{scenario_type} not reproduced exactly"
+
+
+def test_build_prompt_asks_for_a_branch_not_a_scenario():
+    prompt = exam_lib.build_prompt(
+        "D1.4", scenario_type="Customer Support Resolution Agent"
+    )
+    assert "Write a BRANCH of it instead" in prompt
+    # The standing brief tells it to write a scenario; that must be countermanded.
+    assert "IGNORE the instruction above to write your own scenario" in prompt
+    assert "Do not restate or summarise the fixed scenario" in prompt
+
+
+def test_build_prompt_without_a_scenario_type_still_asks_for_a_scenario():
+    """Drill mode has no scenario type and no standing context to branch from."""
+    prompt = exam_lib.build_prompt("D1.4")
+    assert "Write a BRANCH of it instead" not in prompt
+    assert "Write a realistic production scenario" in prompt
+
+
+def test_fresh_exam_looks_the_scenario_up_rather_than_generating_it():
+    body = EXAM_HTML.split("async function startFreshExam()")[1].split("\nasync function ")[0]
+    assert "examScenario(b.scenarioType)" in body
+    assert "bridge.generateScenario" not in body
+
+
+def test_the_panel_shows_the_fixed_scenario_and_the_branch_goes_with_the_stem():
+    """The real exam holds the scenario on screen and puts the branch with the
+    question. A bank substitute has no fixed scenario, so it falls back."""
+    body = EXAM_HTML.split("function renderExamQuestion()")[1].split("\n// Progress over")[0]
+    assert "question.offScenario ? null : examScenario(question.scenarioType)" in body
+    assert "blockScenario || question.scenario" in body
+
+
+def test_examScenario_falls_back_to_the_bundled_mirror():
+    """The bank exam runs with no bridge, so health()'s copy is unavailable."""
+    body = EXAM_HTML.split("function examScenario(scenarioType)")[1].split("\n}")[0]
+    assert "app.examScenarios" in body
+    assert "A.EXAM_SCENARIOS" in body

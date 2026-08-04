@@ -2781,5 +2781,173 @@ window.CCARF_BANK = [
     },
     "id": "D5.1-d17564bc",
     "scenarioType": "Customer Support Resolution Agent"
+  },
+  {
+    "taskStatement": "D3.3",
+    "domain": "D3",
+    "scenario": "Rule files under .claude/rules/ already scope Python, SQL, and Terraform conventions by glob pattern. A developer adds a new rule file with frontmatter matching **/*.py, intending it to apply only within the payments service subdirectory, but it silently applies its conventions to Python files across every service in the monorepo.",
+    "question": "What is the most effective fix so this rule applies only within the payments service?",
+    "options": {
+      "A": "Narrow the glob pattern to a path-anchored form such as services/payments/**/*.py so the match is scoped by directory as well as file extension.",
+      "B": "Move the rule's content into the payments service's own CLAUDE.md file, since directory-level CLAUDE.md files are the mechanism for scoping conventions to a single subdirectory.",
+      "C": "Keep the **/*.py pattern but add a second glob excluding the other service directories by name, since path-specific rules require an explicit exclusion list to avoid matching unrelated directories.",
+      "D": "Convert the rule into a skill under .claude/skills/, since skills load conditionally based on directory context in a way that rule files do not."
+    },
+    "correct": "A",
+    "explanations": {
+      "A": "Correct. The glob pattern is the entire targeting mechanism for a rule file; **/*.py matches every Python file regardless of directory, so anchoring the pattern to the payments path is what restricts the match to that subdirectory.",
+      "B": "Directory-level CLAUDE.md files apply broadly to everything under that directory rather than being filtered by file type, and this abandons the glob-based rule mechanism the team already relies on for the other conventions instead of simply fixing the pattern.",
+      "C": "Misdiagnoses the mechanism: glob matching does not require a separate exclusion list to stay scoped, since a correctly anchored include pattern already excludes everything outside it.",
+      "D": "Skills are loaded by invocation, not automatically matched against the file paths being edited, so converting the rule to a skill would lose the deterministic, path-based application the team needs."
+    },
+    "register": "named",
+    "scenarioType": "Developer Productivity with Claude",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.3-b85fb5b7"
+  },
+  {
+    "taskStatement": "D3.2",
+    "domain": "D3",
+    "scenario": "One engineer has built a personal shortcut that runs a specific grep-and-read sequence to trace dependency chains through the legacy billing module — a workflow the rest of the team doesn't use and that shouldn't appear in their command list when they pull the repo.",
+    "question": "Where should this developer store the command file so it stays available only in their own environment and never reaches teammates through version control?",
+    "options": {
+      "A": "In .claude/commands/ inside the project repository, so version control keeps it available to everyone who clones or pulls.",
+      "B": "In the project's CLAUDE.md file, documented under a workflow heading so Claude recognizes it as a callable command.",
+      "C": "In ~/.claude/commands/ within the developer's own home directory, so the command is scoped to that individual and never checked into the repo.",
+      "D": "In .claude/skills/ inside the project repository, so Claude can discover and invoke the workflow automatically without a slash command."
+    },
+    "correct": "C",
+    "explanations": {
+      "A": "This is the project-scoped location: anything placed here is version-controlled and distributed to every developer who clones or pulls the repo, which is the opposite of what's wanted.",
+      "B": "CLAUDE.md carries project instructions and context for Claude to read, not a mechanism for defining an invocable slash command, and it would still live in the shared repo.",
+      "C": "Correct. Commands placed in the user's home directory are personal-scoped: they're available across that individual's projects but are not part of the repository, so they never propagate to teammates via version control.",
+      "D": "Skills in .claude/skills/ within the repo are both project-shared (committed and visible to the whole team) and model-invoked by description match rather than an explicit personal command — it solves neither the scoping nor the invocation requirement here."
+    },
+    "register": "named",
+    "scenarioType": "Developer Productivity with Claude",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.2-1c351b7e"
+  },
+  {
+    "taskStatement": "D3.5",
+    "domain": "D3",
+    "scenario": "While generating integration tests for a legacy billing API, a developer asks across six consecutive turns for the output to be \"improved,\" each time bundling several requests together (error handling, mock setup, assertion coverage, naming). By turn six, error handling that was fixed in turn two has silently broken again, and the developer can't tell which turn reintroduced it.",
+    "question": "Which approach to structuring these follow-up turns would have prevented the regression from going unnoticed?",
+    "options": {
+      "A": "Bundle all four requested improvements into a single detailed follow-up turn so the agent has the complete target state up front and needs only one revision pass.",
+      "B": "Each turn, target one specific aspect of the output, and before moving to the next aspect, check that the change made in the prior turn is still intact.",
+      "C": "When quality seems to be slipping, discard the current output and regenerate from the original turn-one prompt with all desired improvements listed at once.",
+      "D": "Ask the agent to rate its own output's quality after each turn on a numeric scale, and keep iterating until it reports a high score."
+    },
+    "correct": "B",
+    "explanations": {
+      "A": "Bundling multiple changes into one turn is what caused the problem: with several aspects moving at once, there is no checkpoint where a regression in an already-fixed aspect gets caught before further changes bury it.",
+      "B": "Correct. Isolating one change per round and confirming the prior fix still holds before adding the next gives each turn a clear, checkable outcome - a regression surfaces immediately, at the turn that caused it, rather than being discovered three turns later with no way to tell which change broke it.",
+      "C": "Restarting from the original prompt with everything requested at once reproduces the same bundling problem in one larger step and discards the progress already validated in earlier turns.",
+      "D": "Self-reported quality scores are not grounded in actual verification of the prior fix, so the agent can report a high score even while a previously fixed issue has silently regressed."
+    },
+    "register": "functional",
+    "scenarioType": "Developer Productivity with Claude",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.5-aed43477"
+  },
+  {
+    "taskStatement": "D3.4",
+    "domain": "D3",
+    "scenario": "A developer asks the agent to \"reduce database load on the legacy billing service\" without specifying a mechanism. The service has no existing caching layer, several subsystems read overlapping data through different query paths, and at least three caching strategies (in-memory, a shared cache tier, query-level result caching) would each touch different files with different tradeoffs.",
+    "question": "Given that the request names a goal but not a mechanism, and multiple viable implementations exist with different tradeoffs across the service's query paths, which approach should the developer take?",
+    "options": {
+      "A": "Use direct execution, having the agent implement an in-memory caching layer immediately, since caching is a common pattern the model already understands well and can apply without further design.",
+      "B": "Use direct execution, having the agent begin implementing broadly, but instruct it to stop and ask for guidance only if it discovers the service's architecture differs from what was assumed.",
+      "C": "Have the agent implement all three caching approaches as parallel branches, then benchmark each against production-like load before deciding which implementation to keep in the final codebase.",
+      "D": "Have the agent first explore the query paths and existing architecture, propose a caching strategy with its tradeoffs, and require explicit approval of that plan before any file is modified."
+    },
+    "correct": "D",
+    "explanations": {
+      "A": "Treats the request as if the mechanism were already decided, when the real decision point is which of several viable caching strategies fits this service's query paths - skipping that choice risks building the wrong one across many files.",
+      "B": "Defers the multiple-valid-approaches decision until the agent hits a surprise mid-implementation, rather than surfacing and resolving it before any file is touched, which is exactly what an exploration-and-approval step exists to do.",
+      "C": "Wastes effort building three full implementations when the ambiguity is a design decision, not an empirical question best resolved by shipping all options and measuring after the fact.",
+      "D": "Correct. The situation has multiple valid approaches and unclear existing architecture, which is precisely when exploring first and getting approval on a proposed approach before any changes are made prevents costly rework."
+    },
+    "register": "functional",
+    "scenarioType": "Developer Productivity with Claude",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.4-a985ec02"
+  },
+  {
+    "taskStatement": "D3.6",
+    "domain": "D3",
+    "scenario": "Your CI pipeline runs a headless Claude Code review job for every open pull request. When five PRs are open at once, the runner launches five concurrent jobs against the same repository checkout, and reviewers start seeing feedback that references code changes from a different PR than the one actually under review.",
+    "question": "What change would most directly fix this cross-PR contamination?",
+    "options": {
+      "A": "Before each headless invocation, check out an isolated working-tree copy of the repository for that run, so concurrent jobs never share the same files on disk.",
+      "B": "Reduce the CI runner's job concurrency limit to two, assuming a smaller number of simultaneous jobs will make file collisions rare enough to ignore in practice.",
+      "C": "Queue every pull request review job so only one headless invocation runs against the shared repository checkout at any given time, trading parallelism for consistency.",
+      "D": "Add the non-interactive flag to each invocation, since headless mode is documented as keeping concurrent runs isolated from each other's file state automatically."
+    },
+    "correct": "A",
+    "explanations": {
+      "A": "Correct. Concurrent CI jobs sharing one checkout can read partially-written files or overwrite each other's edits mid-run; giving each run its own isolated copy of the working tree removes the shared mutable state that caused the cross-PR contamination.",
+      "B": "Lowering concurrency shrinks the odds of collision without eliminating it, and it sacrifices throughput to work around a race condition instead of removing the shared state that causes it.",
+      "C": "Serializing all jobs would stop the contamination, but it forces every PR to wait behind the others and discards the concurrency the pipeline was built for, when isolating each run's files preserves both correctness and parallelism.",
+      "D": "The non-interactive flag controls whether Claude Code prompts for input rather than waiting on a terminal; it says nothing about file isolation between concurrent processes, so it doesn't address jobs sharing a checkout."
+    },
+    "register": "functional",
+    "scenarioType": "Developer Productivity with Claude",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.6-0f3e52aa"
+  },
+  {
+    "taskStatement": "D3.1",
+    "domain": "D3",
+    "scenario": "One engineer on the team wants Claude Code to always append extra verbose debug logging instructions when they personally use it to explore the legacy codebase, but the rest of the team does not want those instructions applied when they load the same repository.",
+    "question": "What is the current best-practice way to apply this one developer's personal instructions without changing the shared, version-controlled CLAUDE.md that every teammate loads?",
+    "options": {
+      "A": "Add an @import line to the shared project CLAUDE.md that points to a path inside the developer's home directory, so the personal file loads for everyone who has that path present.",
+      "B": "Create a CLAUDE.local.md file in the project root to hold the developer's personal instructions, keeping the main CLAUDE.md file focused on shared team conventions.",
+      "C": "Place the personal instructions in the developer's own ~/.claude/CLAUDE.md file, which Claude Code loads automatically for that user without touching the shared, version-controlled project file.",
+      "D": "Add the personal instructions directly into the shared project CLAUDE.md, marked with a comment noting they are optional for other developers."
+    },
+    "correct": "C",
+    "explanations": {
+      "A": "Unnecessary and still edits the file every teammate loads - it also requires each developer's machine to have a matching path, when the home-directory CLAUDE.md is already loaded automatically with no import needed.",
+      "B": "CLAUDE.local.md was an older pattern for machine- or user-specific overrides that has been superseded by user-level home-directory configuration, and it still sits inside the project tree rather than being cleanly separated from it.",
+      "C": "Correct. The home-directory CLAUDE.md is a separate level of the memory hierarchy, loaded automatically for that user across projects, so personal instructions apply only to them and the shared repository file stays untouched.",
+      "D": "Puts machine-specific content into the one file every teammate loads and relies on each developer noticing and manually ignoring a comment, which is a probabilistic fix for what should be scoped by the hierarchy itself."
+    },
+    "register": "named",
+    "scenarioType": "Developer Productivity with Claude",
+    "provenance": {
+      "source": "seed-generated",
+      "model": "claude-sonnet-5",
+      "generatedAt": "2026-08-03",
+      "reviewed": true
+    },
+    "id": "D3.1-388dae07"
   }
 ];

@@ -68,14 +68,30 @@ Difficulty is raised through abstraction and near-miss distractors only — neve
 through ambiguity, obscurity, or invented specifics. The real exam was harder
 because principles were described indirectly, not because questions were tricky.
 
-**2. The exam presents scenarios in blocks, not interleaved.** It draws 4 of 6
-scenarios and asks 15 consecutive questions against **one** scenario each, with
-the scenario held on the left and the branching question on the right. The tool
-had the 4-of-6 draw but interleaved the scenarios across the 60. Fixing it
-needed a content change, not just a presentation one: a "scenario type" here is
-a *genre*, and every question used to invent its own scenario text — 103 banked
-questions, 103 distinct scenarios — so grouping by type alone would have left a
-"persistent" panel showing the wrong text.
+**2. The exam presents six FIXED scenarios in blocks, not interleaved.** Exam
+guide v1.0 section 5: it draws 4 of 6 and asks 15 consecutive questions against
+**one** scenario each, with the scenario held on the left and the branching
+question on the right. The tool had the 4-of-6 draw but interleaved them across
+the 60.
+
+Fixing it took two passes, and the first was wrong in an instructive way. The
+first attempt generated a shared scenario per block — which does give 15
+questions one scenario, but an *invented* one. That is the same class of drift
+as the terminology over-fit: plausible text that is not what a candidate sees.
+The guide supplies the six verbatim, so `EXAM_SCENARIOS` now holds them and
+generation is asked for a **branch** instead — the specific situation inside
+the fixed scenario, which is what the exam's own sample questions are ("Production
+data shows that in 12% of cases, your agent skips get_customer entirely…"
+sitting under a fixed *Customer Support Resolution Agent* heading).
+
+The distinction that made this confusing: a "scenario type" is a *genre*, and
+every banked question invents its own scenario text — 103 questions, 103
+distinct scenarios. Grouping by genre alone would leave a "persistent" panel
+showing the wrong text. Grouping by a fixed scenario does not.
+
+The **primary domains** per scenario come from the guide's own "Primary
+domains:" lines. A version authored by reading the scenario prose instead had
+four of the six wrong — the guide states them, so read them.
 
 The same sitting is why the simulator has **mark-through** (strike out options
 you have eliminated, without committing an answer). Note that the exam's
@@ -219,10 +235,19 @@ pending + this run, so a batch resumed after failures repays what the failed
 one left owed, and `--merge` reports the **realized** mix, not the assigned one
 — generation failures, dedup discards and review deletions all move it.
 
-**The length tell is rejected, not requested.** If the correct option is
-strictly the longest of the four, `generate_question` raises and the candidate
-goes back through the retry-with-error-feedback loop with the measured lengths
-and a concrete instruction. This is enforced in code because asking failed
+**The length tell is bounded, not banned.** If the correct option is more than
+`LENGTH_TELL_MAX_RATIO` (1.20x) the length of its longest rival,
+`generate_question` raises and the candidate goes back through the
+retry-with-error-feedback loop with the measured lengths.
+
+The threshold is calibrated against the exam guide's own 12 sample questions,
+not invented. There, the correct answer is the longest in **7 of 12** — but
+only ever by a hair (1.01, 1.01, 1.02, 1.02, 1.06, 1.06, 1.18), with a mean
+ratio across all 12 of 0.96. So the real exam has a mild length tell, and a
+bank with *none* is as unrepresentative as one with a strong tell: it would
+teach a candidate that the longest option is never right, which is false where
+it counts. An earlier version rejected the tell outright and drove the rate to
+0/6 — over-corrected in the opposite direction. This is enforced in code because asking failed
 twice: the prompt has carried an option-length rule since the bank was seeded
 and the bank is **85% longest-is-correct** (a candidate who reads nothing and
 picks the longest scores 85%), and restating the rule immediately beside the
@@ -231,11 +256,15 @@ task moved the *margin* (mean ratio 1.24 → 1.08) but not the *ordering* (still
 others" is fully satisfied by a correct answer that is longest by one
 character. Ordering is what the exploit needs, so ordering is what is checked.
 
-Measured on a 6-question batch: 0/6 longest-is-correct, correct answers landing
-at rank 2–4 of 4, at a cost of ~1.5 calls per question (half the batch needs
-the retry, and a question that keeps the tell twice is recorded as a failure
-and re-run rather than banked). A tie is not treated as a tell — "pick the
-longest" has no answer at a tie.
+What is rejected is the conspicuous case: the committed bank sits at 85%
+longest-is-correct with much larger margins, and that is the defect. A tie is
+not a tell — "pick the longest" has no answer at a tie.
+
+**Residual, not yet solved:** the threshold bounds the *margin* per question,
+not the *rate* across a batch. Generation tends to land just under the limit,
+so the rate can stay high even when every individual margin is exam-like.
+`screen_mechanical.py` reports the rate; closing the gap to the exam's ~58%
+would need an aggregate control, which does not exist yet.
 
 **`scenarioType` backfill.** `classify_scenarios.py --classify` proposes a
 scenario genre for every unlabelled banked question into a gitignored file for
@@ -300,9 +329,23 @@ sources, chosen at start:
   ephemeral: no ids in `seen`, nothing persisted beyond the attempt record. A
   fresh exam makes ~64 Claude Code calls.
 
+  A block's scenario is **not generated**. The exam has six fixed scenarios
+  (exam guide v1.0 section 5) and shows the drawn one as standing context while
+  its questions branch from it, so `EXAM_SCENARIOS` holds them verbatim and a
+  block simply looks its own up. Generation is asked for a **branch** — one or
+  two sentences of specific situation inside that scenario, which lands in the
+  question's `scenario` field and is rendered with the stem, not in the panel.
+  This removed four generation calls per form, but the reason for it is
+  fidelity: inventing a scenario the exam never uses is the same class of drift
+  as the official-terminology over-fit.
+
   Blocks satisfy the global domain quotas exactly, and each block's 15 are
   **weighted** toward its scenario's primary domains (`SCENARIO_PRIMARY_DOMAINS`,
-  target ≥8 of 15) rather than restricted to them — D1 alone needs 16 of 60,
+  target ≥8 of 15) rather than restricted to them. The primary-domain map is
+  **transcribed from the guide's own "Primary domains:" lines**, not inferred —
+  an earlier version authored from the scenario prose had four of the six
+  wrong. Note three scenarios name three domains and three name only two; that
+  asymmetry is the guide's — D1 alone needs 16 of 60,
   more than one block holds, so a domain-pure block is impossible. Some 4-of-6
   draws leave a domain primary in no drawn block at all (D4 is primary for only
   two scenarios); the assembler reports the shortfall rather than hiding it.
