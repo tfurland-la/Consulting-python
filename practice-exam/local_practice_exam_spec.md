@@ -380,12 +380,19 @@ that would reinstate a shortcut scoring 58% without reading, which is the defect
 the repair removed. Deliberately *above* 0, because a bank with no tell teaches
 that the longest option is never right, which the real exam refutes.
 
-**Still open:** the plan aims at the batch, not at the bank's history. A batch
-held on target converges the bank on it, but a bank already off-target is not
-actively corrected — that was a deliberate choice, since correcting history from
-one batch would swing a small batch to all-one-posture. If the bank drifts
-(screening deletions correlating with posture would do it), the merge report
-surfaces it and a repair pass, not the plan, is the remedy.
+**Maintained, not corrected.** The rate holds without further intervention: every
+batch lands on the target, so the bank stays where it is instead of climbing.
+Simulated over eight refills of 20 against the committed bank, it moves 34.2% →
+34.7%. The original failure — generation settling just under the margin cap so
+the rate rose with each refill — does not recur.
+
+What the plan does *not* do is pull an already-off-target bank back. It aims at
+the batch plus what is pending, not at the bank's history, so an existing skew is
+diluted by on-target batches rather than corrected. That is deliberate: aiming a
+single batch at the bank's history would swing a small batch to all-one-posture.
+If the bank does drift — screening deletions correlating with posture would do it
+— the merge report surfaces it, and a repair pass rather than the plan is the
+remedy.
 
 **`scenarioType` backfill.** `classify_scenarios.py --classify` proposes a
 scenario genre for every unlabelled banked question into a gitignored file for
