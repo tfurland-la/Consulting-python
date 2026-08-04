@@ -1302,6 +1302,13 @@ async function prepWorker(prep) {
       question.difficulty = difficulty; // stamp the intended tier for review/verification
       question.register = register; // ditto the register, for the mix report
       question.blockIndex = prep.assignments[slot].blockIndex;
+      // Stamped from the assignment, not taken on trust from the bridge. The
+      // generator does stamp it, but the panel's whole job is to hold still
+      // for a block, and a question that arrives without it silently falls
+      // back to showing its own branch — which flips the panel 9-13 times per
+      // block. Every other assigned field is stamped here; this one was the
+      // only cross-language dependency, and it had no reason to be.
+      question.scenarioType = prep.assignments[slot].scenarioType;
       prep.buffer[slot] = question;
       (prep.summariesByTs[ts] = prep.summariesByTs[ts] || []).push(
         summarizeForAvoid(question)

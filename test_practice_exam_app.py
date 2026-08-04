@@ -737,6 +737,16 @@ def test_fresh_exam_assigns_a_length_posture_to_every_slot():
     assert "lengthPosture:" in body
 
 
+def test_prep_worker_stamps_the_block_scenario_type_from_the_assignment():
+    """The panel resolves the fixed scenario from question.scenarioType. The
+    generator stamps it too, but relying on that made the panel's persistence a
+    cross-language dependency: a question arriving without it falls back to its
+    own branch, measured at 9-13 panel flips per block. Stamped locally beside
+    blockIndex, like every other assigned field."""
+    body = EXAM_HTML.split("async function prepWorker(prep)")[1].split("\nfunction ")[0]
+    assert "question.scenarioType = prep.assignments[slot].scenarioType" in body
+
+
 def test_prep_worker_forwards_the_assigned_length_posture():
     body = EXAM_HTML.split("async function prepWorker(prep)")[1].split("\nfunction ")[0]
     assert "Posture" in body.split("bridge.generate(")[1].split(")")[0]
