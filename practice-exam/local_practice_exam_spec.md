@@ -38,6 +38,53 @@ out of scope (firm policy prohibits them).
 
 ---
 
+## Changes driven by a real sitting
+
+Two of this variant's behaviours exist because someone sat the real CCAR-F and
+came back with observations the tool did not match. Both are worth keeping in
+mind before "simplifying" them away.
+
+**1. The bank was too easy, and the cause was language, not principles.** The
+generation prompt used to end with *"Match their tone"* over the 13 official
+samples. That, plus the samples themselves, pinned the generator to the exam
+guide's **official terminology** — so drilling trained recognition of *named*
+mechanisms. The real exam frequently describes the same mechanism
+**functionally and unnamed**: "an automatic step that runs after each file edit
+and enforces a constraint regardless of what the model decides" rather than "a
+PostToolUse hook". Mapping an abstracted description back to a mechanism is the
+difficulty delta.
+
+The samples stayed — they do real work on form and rigour, and dropping them
+would have regressed quality to fix diversity. What changed is what they are
+*for*: exemplars of structure and difficulty, with their phrasing named
+explicitly as a floor to move away from. The register mix (above) is the
+mechanism. The hard constraint is that this varies how a **real** mechanism is
+described, never **which** mechanisms are real — a functional-sounding invented
+mechanism is the fabrication failure mode the guardrails already forbid, which
+is why `screen_semantic.py` must resolve every functional question to a
+specific real mechanism or flag it.
+
+Difficulty is raised through abstraction and near-miss distractors only — never
+through ambiguity, obscurity, or invented specifics. The real exam was harder
+because principles were described indirectly, not because questions were tricky.
+
+**2. The exam presents scenarios in blocks, not interleaved.** It draws 4 of 6
+scenarios and asks 15 consecutive questions against **one** scenario each, with
+the scenario held on the left and the branching question on the right. The tool
+had the 4-of-6 draw but interleaved the scenarios across the 60. Fixing it
+needed a content change, not just a presentation one: a "scenario type" here is
+a *genre*, and every question used to invent its own scenario text — 103 banked
+questions, 103 distinct scenarios — so grouping by type alone would have left a
+"persistent" panel showing the wrong text.
+
+The same sitting is why the simulator has **mark-through** (strike out options
+you have eliminated, without committing an answer). Note that the exam's
+mark-for-review flag and the drill's *"Flag — don't count this question"*
+control are different mechanisms and must stay that way: one marks a question
+to return to, the other permanently discards a flawed bank question.
+
+---
+
 ## Two ways to run
 
 **Desktop app (dynamic — the primary mode).** Requires Python, `pip install
@@ -142,10 +189,63 @@ Growing the bank:
 
 ```
 python3 practice-exam/generate_bank.py --per-task 4        # resumable; gitignored pending file
-# … screening pass (agents, using screening_prompt.md) …
+python3 practice-exam/screen_mechanical.py                 # deterministic: shape, tells, dupes, mix
+python3 practice-exam/screen_semantic.py                   # judgment: one reviewer per candidate
 # … human review pass over questions_pending.json …
 python3 practice-exam/generate_bank.py --merge             # flips reviewed, dedupes, rewrites bank
 ```
+
+Concurrency is sharded by task statement: a whole statement goes to one worker
+which walks its questions in order, so each generation still sees summaries of
+all its predecessors for that statement, while different statements run in
+parallel. Concurrency *within* a statement is what produced near-duplicate
+pairs and previously forced `--workers 1`.
+
+`screen_semantic.py` applies `screening_prompt.md` with one reviewer per
+candidate and writes gitignored `questions_verdicts.json`. Fan-out is safe
+there and unsafe in generation for the same reason: reviewers are independent
+readers sharing no diversity state. Its most important output is the
+**UNRESOLVED** list — functionally-phrased questions whose description no
+reviewer could tie to a real mechanism, which is the
+abstraction-became-fabrication failure mode. Verdicts annotate only; nothing
+is deleted or merged automatically.
+
+**Question register.** Each generated question is written in a `named` or
+`functional` register, assigned as a generation input (never self-reported) and
+stamped in `generate_question` — the only seam the bank refill, the fresh timed
+exam, and the practice drill all share. `FUNCTIONAL_FRACTION` (0.45) sets the
+share; `--functional-fraction` overrides it. Assignment aims the fraction at
+pending + this run, so a batch resumed after failures repays what the failed
+one left owed, and `--merge` reports the **realized** mix, not the assigned one
+— generation failures, dedup discards and review deletions all move it.
+
+**The length tell is rejected, not requested.** If the correct option is
+strictly the longest of the four, `generate_question` raises and the candidate
+goes back through the retry-with-error-feedback loop with the measured lengths
+and a concrete instruction. This is enforced in code because asking failed
+twice: the prompt has carried an option-length rule since the bank was seeded
+and the bank is **85% longest-is-correct** (a candidate who reads nothing and
+picks the longest scores 85%), and restating the rule immediately beside the
+task moved the *margin* (mean ratio 1.24 → 1.08) but not the *ordering* (still
+6/6). The prompt rule was also mis-specified: "no option more than 1.3× the
+others" is fully satisfied by a correct answer that is longest by one
+character. Ordering is what the exploit needs, so ordering is what is checked.
+
+Measured on a 6-question batch: 0/6 longest-is-correct, correct answers landing
+at rank 2–4 of 4, at a cost of ~1.5 calls per question (half the batch needs
+the retry, and a question that keeps the tell twice is recorded as a failure
+and re-run rather than banked). A tie is not treated as a tell — "pick the
+longest" has no answer at a tie.
+
+**`scenarioType` backfill.** `classify_scenarios.py --classify` proposes a
+scenario genre for every unlabelled banked question into a gitignored file for
+review; `generate_bank.py --merge-classifications` applies them. Labelling
+cannot change an id (`canonical_content` hashes only scenario/question/options),
+which is what makes backfilling 103 committed questions safe. Run
+`classify_scenarios.py` with no arguments for the **scenario × domain matrix** —
+that, not a per-scenario histogram, is what decides whether a grouped bank form
+can be drawn, since a draw must find each domain's full quota inside its four
+scenarios.
 
 When a batch generates several questions for one task statement, each is
 pinned to a different exam scenario type and the prompt carries summaries of
@@ -179,24 +279,63 @@ sources, chosen at start:
   Within each domain the draw round-robins across task statements, takes
   unseen questions before repeats, and excludes flagged ids. pytest guards
   that the bank can always fill a form.
-- **Fresh questions** (desktop app with Claude Code only): the same
-  quota-matched statement plan (`drawExamStatements`) is filled by live
-  generation instead — never the same exam twice, and the faithful readiness
-  gate (the bank exam is a standard-difficulty approximation, since the bank is
-  single-tier). Two concurrent workers generate through the bridge. Each test
-  draws a random **4 of the 6 exam scenario types** (`sampleN`) and assigns
-  questions only from those four, mirroring the real 4-of-6 structure; each
-  occurrence of a statement carries summaries of its within-form siblings so a
-  statement's 2-3 questions diversify. The exam begins once
+- **Fresh questions** (desktop app with Claude Code only): live generation
+  instead — never the same exam twice, and the faithful readiness gate (the
+  bank exam is a standard-difficulty approximation, since the bank is
+  single-tier). Presented as **4 blocks of 15 consecutive questions, each block
+  sharing ONE scenario** (`drawExamBlocks`), mirroring the real exam. The
+  block's scenario is generated once up front (`generate_scenario`, 4 calls)
+  and then handed to each of its 15 question calls as a fixed input;
+  `generate_question` overwrites the returned scenario with the supplied text,
+  so block-mates are byte-identical rather than merely similar. Two concurrent
+  workers generate through the bridge; each question carries summaries of its
+  within-block siblings (including the question stem, since the shared scenario
+  carries no signal within a block) so the 15 diversify. The exam begins once
   the first 10 questions are ready (a progress gate; the 120-minute clock
-  starts at Begin, not during preparation) and the rest keep generating in
-  the background — at ~2 min/question consumption vs ~20 s/question
-  generation, the buffer stays ahead. If the user ever reaches an unready
-  slot, the clock freezes until it arrives; a slot whose generation fails
-  twice falls back to a bank question for the same statement (marked "bank
-  substitute" in the review). Generated questions are ephemeral: no ids in
-  `seen`, nothing persisted beyond the attempt record. A fresh exam makes
-  ~60 Claude Code calls.
+  starts at Begin, not during preparation) and the rest keep generating in the
+  background. If the user ever reaches an unready slot, the clock freezes until
+  it arrives; a slot whose generation fails twice falls back to a bank question
+  for the same statement, stamped `offScenario` because it brings its own
+  scenario and so breaks the block's shared text. Generated questions are
+  ephemeral: no ids in `seen`, nothing persisted beyond the attempt record. A
+  fresh exam makes ~64 Claude Code calls.
+
+  Blocks satisfy the global domain quotas exactly, and each block's 15 are
+  **weighted** toward its scenario's primary domains (`SCENARIO_PRIMARY_DOMAINS`,
+  target ≥8 of 15) rather than restricted to them — D1 alone needs 16 of 60,
+  more than one block holds, so a domain-pure block is impossible. Some 4-of-6
+  draws leave a domain primary in no drawn block at all (D4 is primary for only
+  two scenarios); the assembler reports the shortfall rather than hiding it.
+  Difficulty tiers stay spread across all 60 (1–3 hard per block), not
+  clustered.
+
+  The bank exam gets a **grouped** approximation of the same shape
+  (`drawExamBlockedForm`): 4 runs of 15 sharing a scenario *type*. Banked
+  questions each carry their own scenario, so a run shares a genre, not a
+  scenario — the UI says so. It needs a scenario-labelled bank
+  (`classify_scenarios.py`) and falls back to the interleaved draw otherwise.
+
+- **Prepared forms** (desktop app): build a whole form in the background from
+  the setup card, sit it later with no wait and no mid-exam pause. Persisted
+  after every question (`exam_forms.json`, gitignored) so a 15–30 minute run
+  survives a crash or a usage cap; question ids are form-scoped
+  (`form-<id>-slot<N>`) because `gen-<slot>` would collide across stored forms.
+
+  A form that stopped part-way is **resumable** — `runFormJob` is shared by
+  prepare and resume and skips slots that already hold a question, so it fills
+  only the gaps. This matters more than it looks: a usage cap aborts the run and
+  an ordinary content failure leaves that one slot null, and since a form must
+  be complete to sit, without resume the persisted work would be stranded
+  rather than saved. **Review** opens the form block by block — scenario plus
+  each question's statement, tier and register — and any question can be
+  regenerated in place. Regeneration mints a new slot id rather than reusing the
+  old one, so the same id never comes to mean different content.
+  The job holder is `app.formJob`, deliberately separate from `app.freshPrep`
+  — leaving the setup card cancels a fresh-exam prep, and a background job
+  reachable by that path could not survive the user navigating away. Sitting a
+  form stamps `satAt`; re-sitting warns, because prepared-form questions are
+  ephemeral and leave no `seen` marks, so a second sitting scores recall rather
+  than readiness. Prepared forms never flow into `questions.js`.
 
 **Difficulty spread (fresh exam).** `examDifficultyPlan` assigns each of the 60
 slots a tier — **36 standard / 15 harder / 9 hard-tail** (60/25/15) — with the

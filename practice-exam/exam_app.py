@@ -48,6 +48,10 @@ def _resolve_progress_path():
 
 
 PROGRESS_PATH = _resolve_progress_path()
+# Prepared forms: whole 60-question exams generated ahead of time so a sitting
+# never waits on the generator. User data, like progress — never bundled, and
+# never a route into questions.js (generate_bank.py --merge stays the only one).
+FORMS_PATH = PROGRESS_PATH.with_name("exam_forms.json")
 
 
 class ExamApi:
@@ -66,14 +70,31 @@ class ExamApi:
             "progressPath": str(PROGRESS_PATH),
         }
 
+    def generate_scenario(self, scenario_type):
+        """One shared scenario for a block of 15 questions.
+
+        Separate from generate() because it is one cheap call per block rather
+        than one per question, and because a failure here should abort the form
+        before 15 question calls have been spent against a scenario that does
+        not exist."""
+        try:
+            return {"scenario": exam_lib.generate_scenario(scenario_type)}
+        except Exception as err:  # surfaced to the page as a friendly error
+            return {"error": type(err).__name__, "detail": str(err)}
+
     def generate(self, task_statement, extra_avoid=None, scenario_type=None,
-                 difficulty="standard"):
+                 difficulty="standard", register="named", scenario=None):
         """extra_avoid: summaries of questions generated earlier in the same
         exam form for this statement, so streamed form generation doesn't
         produce within-form near-duplicates. scenario_type pins one of
         exam_lib.SCENARIO_TYPES for variety; difficulty selects the standard or
         hard tier (the page decides it from adaptive state). Drill mode omits
-        scenario_type and passes the tier."""
+        scenario_type and passes the tier.
+
+        register selects named or functional phrasing. The page decides it for
+        both the timed exam and the drill: a bank generated only in official
+        terminology trains name-recognition rather than mechanism-recognition,
+        which is the gap a real sitting exposed."""
         try:
             bank = exam_lib.load_bank()
             avoid = [
@@ -91,6 +112,8 @@ class ExamApi:
                     avoid=avoid,
                     scenario_type=scenario_type,
                     difficulty=difficulty or "standard",
+                    register=register or "named",
+                    scenario=scenario,
                 )
             }
         except Exception as err:  # surfaced to the page as a friendly error
@@ -105,6 +128,66 @@ class ExamApi:
         tmp = PROGRESS_PATH.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(state, indent=2), encoding="utf-8")
         tmp.replace(PROGRESS_PATH)
+        return True
+
+    # ── Prepared forms ────────────────────────────────────────────────────
+    # Written after every question rather than at the end: preparing a form is
+    # ~64 generation calls over 15-30 minutes, and losing all of it to a
+    # crash or a usage cap would make the feature not worth using. Same
+    # resumability generate_bank.py gets from its pending file.
+
+    def _read_forms(self):
+        if FORMS_PATH.exists():
+            return json.loads(FORMS_PATH.read_text(encoding="utf-8"))
+        return {}
+
+    def _write_forms(self, forms):
+        tmp = FORMS_PATH.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(forms, indent=2), encoding="utf-8")
+        tmp.replace(FORMS_PATH)
+
+    def list_forms(self):
+        """Metadata only — the page renders a picker, not 60 questions."""
+        forms = self._read_forms()
+        return [
+            {
+                "id": fid,
+                "createdAt": f.get("createdAt"),
+                "satAt": f.get("satAt"),
+                "ready": sum(1 for q in f.get("questions", []) if q),
+                "total": f.get("total", 0),
+                "complete": f.get("complete", False),
+                "scenarioTypes": [b.get("scenarioType") for b in f.get("blocks", [])],
+            }
+            for fid, f in sorted(forms.items())
+        ]
+
+    def save_form(self, form):
+        forms = self._read_forms()
+        forms[form["id"]] = form
+        self._write_forms(forms)
+        return True
+
+    def load_form(self, form_id):
+        return self._read_forms().get(form_id)
+
+    def delete_form(self, form_id):
+        forms = self._read_forms()
+        forms.pop(form_id, None)
+        self._write_forms(forms)
+        return True
+
+    def mark_form_sat(self, form_id, sat_at):
+        """Stamp a form as used.
+
+        Prepared-form questions are ephemeral: sitting one leaves no seen-marks,
+        so nothing would otherwise stop a candidate re-sitting the same 60
+        memorised questions and reading the inflated score as readiness.
+        """
+        forms = self._read_forms()
+        if form_id in forms:
+            forms[form_id]["satAt"] = sat_at
+            self._write_forms(forms)
         return True
 
 

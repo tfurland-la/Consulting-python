@@ -156,6 +156,13 @@ def screen(items, bank, source):
     #    identical lesson with the same distractor skeleton. So "none" here means
     #    only "no copied wording". Lesson-level convergence needs the judgment
     #    screen; do not read a clean run as diversity.
+    #
+    #    Not a concern for shared-scenario exam blocks, where 15 questions
+    #    deliberately share one scenario at similarity 1.0: that content is
+    #    ephemeral (generated per form, ids `gen-*`/`form-*`) and never enters
+    #    questions_pending.json, so it never reaches this screen. If block
+    #    content is ever routed into the pending file, exempt same-block pairs
+    #    here first or every block will flag itself 105 times over.
     for i, q in enumerate(items):
         for j in range(i + 1, len(items)):
             r = items[j]
@@ -226,6 +233,25 @@ def screen(items, bank, source):
         if never:
             print(f"  ^ NEVER CORRECT: {', '.join(never)} — that position is a free "
                   f"elimination for anyone who notices.")
+
+    # Register mix. Reported, not enforced: the target is a generation input,
+    # and what lands here is what survived generation failures, dedup and human
+    # review. A drift toward `named` means the bank is drifting back toward the
+    # official-terminology over-fit a real sitting exposed.
+    registers = Counter(q.get("register", "unlabelled") for q in items)
+    labelled = registers["named"] + registers["functional"]
+    spread = "  ".join(
+        f"{name}={registers.get(name, 0)}" for name in ("functional", "named", "unlabelled")
+    )
+    print(f"register mix       : {spread}")
+    if labelled:
+        share = registers["functional"] / labelled
+        print(f"  functional share : {share:.0%} of labelled "
+              f"(target {exam_lib.FUNCTIONAL_FRACTION:.0%})")
+        if abs(share - exam_lib.FUNCTIONAL_FRACTION) > 0.15:
+            print("  ^ OFF TARGET: the realized mix has drifted from the assigned "
+                  "one. Deletions during review correlate with register — "
+                  "functional questions carry the most fabrication risk.")
     print()
 
     if not findings:

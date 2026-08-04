@@ -5,6 +5,7 @@ end-to-end path is exercised manually via `python3 practice-exam/exam_app.py`.
 """
 
 import json
+import random
 import re
 
 import pytest
@@ -103,6 +104,186 @@ def test_build_prompt_harder_tier_is_a_milder_block_than_hard():
 def test_build_prompt_rejects_unknown_difficulty():
     with pytest.raises(ValueError):
         exam_lib.build_prompt("D1.4", difficulty="brutal")
+
+
+def _seeded_rng(seed=20260803):
+    """A deterministic rng callable, so spread assertions can't flake."""
+    return random.Random(seed).random
+
+
+# ── Register: named vs functional phrasing ─────────────────────────────────
+# The register is ASSIGNED as a generation input, never self-reported, so the
+# mix is a fact about what we asked for rather than a claim the model makes
+# about itself. It is stamped in generate_question because that is the only
+# seam all three call paths share (bank refill, fresh timed exam, drill).
+
+
+def test_build_prompt_adds_functional_block_only_for_the_functional_register():
+    functional = exam_lib.build_prompt("D1.4", register="functional")
+    named = exam_lib.build_prompt("D1.4", register="named")
+    default = exam_lib.build_prompt("D1.4")
+    # Discriminate on the instruction block, not on the functional EXEMPLARS,
+    # which are static prompt text present under both registers.
+    assert "in the FUNCTIONAL register" in functional
+    assert "in the FUNCTIONAL register" not in named
+    assert named == default  # named is the unmarked default
+
+
+def test_build_prompt_rejects_unknown_register():
+    with pytest.raises(ValueError):
+        exam_lib.build_prompt("D1.4", register="haiku")
+
+
+def test_fabrication_guardrail_binds_under_both_registers():
+    """Abstraction must not become fabrication: varying how a mechanism is
+    DESCRIBED must never vary WHICH mechanisms are real."""
+    for register in exam_lib.REGISTERS:
+        prompt = exam_lib.build_prompt("D1.4", register=register)
+        assert "NOT to invent specific technical facts" in prompt
+        assert "deprecated or superseded patterns" in prompt
+
+
+def test_generate_question_passes_register_to_the_prompt():
+    seen = {}
+
+    def fake_run(prompt):
+        seen["prompt"] = prompt
+        return {"structured_output": make_candidate("D1.4")}
+
+    exam_lib.generate_question("D1.4", run=fake_run, register="functional")
+    assert "in the FUNCTIONAL register" in seen["prompt"]
+
+
+def test_generate_question_stamps_the_assigned_register():
+    def fake_run(prompt):
+        return {"structured_output": make_candidate("D1.4")}
+
+    got = exam_lib.generate_question("D1.4", run=fake_run, register="functional")
+    assert got["register"] == "functional"
+
+
+def test_generate_question_overwrites_a_self_reported_register():
+    """A1 widened validation for both modes, so a register arriving via the
+    result-text fallback would otherwise validate cleanly and silently revert
+    'assigned, not self-reported'."""
+
+    def fake_run(prompt):
+        candidate = make_candidate("D1.4")
+        candidate["register"] = "named"  # model claims otherwise
+        return {"structured_output": candidate}
+
+    got = exam_lib.generate_question("D1.4", run=fake_run, register="functional")
+    assert got["register"] == "functional"
+
+
+def test_generate_question_stamps_the_pinned_scenario_type():
+    def fake_run(prompt):
+        return {"structured_output": make_candidate("D1.4")}
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, scenario_type="Structured Data Extraction"
+    )
+    assert got["scenarioType"] == "Structured Data Extraction"
+
+
+def test_register_plan_hits_the_target_fraction():
+    plan = exam_lib.register_plan(20, fraction=0.45, rng=_seeded_rng())
+    assert len(plan) == 20
+    assert plan.count("functional") == 9  # round(20 * 0.45)
+    assert set(plan) <= set(exam_lib.REGISTERS)
+
+
+def test_register_plan_spreads_rather_than_clustering():
+    """A guessable register defeats the point — a candidate who can predict
+    which questions are abstracted is back to pattern-matching."""
+    plan = exam_lib.register_plan(20, fraction=0.5, rng=_seeded_rng())
+    first_half = plan[:10].count("functional")
+    assert 3 <= first_half <= 7, f"clustered: {plan}"
+
+
+def test_register_plan_handles_the_degenerate_fractions():
+    assert exam_lib.register_plan(10, fraction=0.0) == ["named"] * 10
+    assert exam_lib.register_plan(10, fraction=1.0) == ["functional"] * 10
+
+
+# ── What the few-shot examples are FOR ─────────────────────────────────────
+# A real sitting showed the bank was too easy, and the cause was language, not
+# principles: "Match their tone" pinned the generator to the exam guide's
+# official terminology, so drilling trained recognition of named mechanisms.
+# The samples still do real work on form and rigour — they stay, but as
+# exemplars of structure and difficulty, with their phrasing named as a floor
+# to move away from rather than a template to match.
+
+
+def test_few_shot_examples_are_not_framed_as_a_tone_to_match():
+    prompt = exam_lib.build_prompt("D1.4")
+    assert "Match their tone" not in prompt
+
+
+def test_few_shot_examples_are_framed_as_structure_and_difficulty():
+    prompt = exam_lib.build_prompt("D1.4")
+    assert "structure and difficulty" in prompt
+
+
+def test_prompt_names_official_terminology_as_a_floor_to_move_away_from():
+    prompt = exam_lib.build_prompt("D1.4")
+    assert "floor to move away from" in prompt
+
+
+def test_prompt_carries_functional_register_exemplars():
+    """Thirteen named-register samples with only prose arguing against them
+    leaves the functional register unmodelled. Show it, don't just describe it."""
+    prompt = exam_lib.build_prompt("D1.4")
+    assert "FUNCTIONAL-REGISTER EXAMPLES" in prompt
+
+
+def test_prompt_prefix_is_identical_across_task_statements():
+    """Prompt caching is a prefix match: the first byte that differs ends the
+    reusable span. The few-shot block is 81% of the prompt and identical on
+    every call, so it has to sit BEFORE anything per-question or it is re-sent
+    in full every time."""
+    import os.path
+
+    a = exam_lib.build_prompt("D1.4")
+    b = exam_lib.build_prompt("D2.3")
+    shared = os.path.commonprefix([a, b])
+    assert exam_lib._few_shot_block(exam_lib.load_bank()) in shared
+    assert len(shared) / len(a) > 0.8, (
+        f"only {len(shared) / len(a):.0%} of the prompt is a shared prefix"
+    )
+
+
+def test_prompt_prefix_survives_the_per_question_parameters():
+    """Difficulty, register, scenario type and the avoid-list all vary per
+    call; every one of them must land after the static block."""
+    base = exam_lib.build_prompt("D1.4")
+    variants = [
+        exam_lib.build_prompt("D1.4", difficulty="hard"),
+        exam_lib.build_prompt("D1.4", register="functional"),
+        exam_lib.build_prompt("D1.4", scenario_type="Multi-Agent Research System"),
+        exam_lib.build_prompt("D1.4", avoid=["correct=A | scenario: something"]),
+        exam_lib.build_prompt("D1.4", retry_feedback="correct must be one of ..."),
+    ]
+    few_shot = exam_lib._few_shot_block(exam_lib.load_bank())
+    for variant in variants:
+        import os.path
+
+        shared = os.path.commonprefix([base, variant])
+        assert few_shot in shared
+
+
+def test_functional_exemplars_are_not_drawn_from_the_bank():
+    """They are literal prompt text. Routing them through _few_shot_block would
+    mean tagging hand-written examples `official-sample`, which is a provenance
+    lie the bank's own validation could not catch."""
+    bank = exam_lib.load_bank()
+    few_shot = exam_lib._few_shot_block(bank)
+    assert "FUNCTIONAL-REGISTER EXAMPLES" not in few_shot
+    assert all(
+        entry.get("provenance", {}).get("source") == "official-sample"
+        for entry in bank
+        if entry["scenario"] in few_shot
+    )
 
 
 def test_generate_question_passes_difficulty_to_prompt(monkeypatch):
@@ -377,7 +558,10 @@ def test_health_reports_claude_availability_and_scenario_types(exam_app, monkeyp
 def test_generate_passes_scenario_type_through(exam_app, monkeypatch):
     calls = {}
 
-    def fake_generate(ts, avoid=None, scenario_type=None, difficulty="standard"):
+    def fake_generate(
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        scenario=None,
+    ):
         calls["ts"] = ts
         calls["scenario_type"] = scenario_type
         calls["difficulty"] = difficulty
@@ -396,7 +580,10 @@ def test_generate_passes_scenario_type_through(exam_app, monkeypatch):
 def test_generate_passes_difficulty_through(exam_app, monkeypatch):
     calls = {}
 
-    def fake_generate(ts, avoid=None, scenario_type=None, difficulty="standard"):
+    def fake_generate(
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        scenario=None,
+    ):
         calls["difficulty"] = difficulty
         return make_candidate(ts)
 
@@ -407,12 +594,38 @@ def test_generate_passes_difficulty_through(exam_app, monkeypatch):
     assert calls["difficulty"] == "standard"
 
 
+def test_generate_passes_register_through(exam_app, monkeypatch):
+    """Without this the fresh timed exam and the drill — the two paths a
+    candidate actually practises on — would generate 100% named-register
+    questions forever, which is the over-fitting this change exists to fix."""
+    calls = {}
+
+    def fake_generate(
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        scenario=None,
+    ):
+        calls["register"] = register
+        return make_candidate(ts)
+
+    monkeypatch.setattr(exam_app.exam_lib, "generate_question", fake_generate)
+    exam_app.ExamApi().generate("D1.1", [], None, "standard", "functional")
+    assert calls["register"] == "functional"
+    exam_app.ExamApi().generate("D1.1")  # defaults to named
+    assert calls["register"] == "named"
+
+
+def test_generate_rejects_unknown_register(exam_app, monkeypatch):
+    result = exam_app.ExamApi().generate("D1.1", [], None, "standard", "haiku")
+    assert "error" in result
+
+
 def test_generate_wraps_success(exam_app, monkeypatch):
     candidate = make_candidate("D5.1")
     monkeypatch.setattr(
         exam_app.exam_lib,
         "generate_question",
-        lambda ts, avoid=None, scenario_type=None, difficulty="standard": candidate,
+        lambda ts, avoid=None, scenario_type=None, difficulty="standard",
+        register="named", scenario=None: candidate,
     )
     assert exam_app.ExamApi().generate("D5.1") == {"question": candidate}
 
@@ -420,7 +633,10 @@ def test_generate_wraps_success(exam_app, monkeypatch):
 def test_generate_appends_extra_avoid_to_bank_summaries(exam_app, monkeypatch):
     captured = {}
 
-    def fake_generate(ts, avoid=None, scenario_type=None, difficulty="standard"):
+    def fake_generate(
+        ts, avoid=None, scenario_type=None, difficulty="standard", register="named",
+        scenario=None,
+    ):
         captured["avoid"] = avoid
         return make_candidate(ts)
 
@@ -435,14 +651,15 @@ def test_generate_rejects_non_string_extra_avoid(exam_app, monkeypatch):
     monkeypatch.setattr(
         exam_app.exam_lib,
         "generate_question",
-        lambda ts, avoid=None, scenario_type=None, difficulty="standard": make_candidate(ts),
+        lambda ts, avoid=None, scenario_type=None, difficulty="standard",
+        register="named", scenario=None: make_candidate(ts),
     )
     result = exam_app.ExamApi().generate("D1.2", [{"not": "a string"}])
     assert "error" in result
 
 
 def test_generate_wraps_errors_instead_of_raising(exam_app, monkeypatch):
-    def boom(ts, avoid=None, scenario_type=None, difficulty="standard"):
+    def boom(ts, avoid=None, scenario_type=None, difficulty="standard", register="named", scenario=None):
         raise exam_lib.GenerationError("still not valid JSON")
 
     monkeypatch.setattr(exam_app.exam_lib, "generate_question", boom)
@@ -468,6 +685,26 @@ def test_state_round_trips_through_progress_file(exam_app, monkeypatch, tmp_path
 
 EXAM_HTML = (PRACTICE_EXAM_DIR / "exam.html").read_text(encoding="utf-8")
 EXAM_SPEC = (PRACTICE_EXAM_DIR / "exam_app.spec").read_text(encoding="utf-8")
+
+
+def test_drill_generation_draws_a_register():
+    """The drill is the highest-volume practice path — every question after the
+    first is generated. Leaving it register-less would keep daily practice 100%
+    named-register, which is exactly the over-fitting being fixed."""
+    body = EXAM_HTML.split("async function generateFor(")[1].split("\n  async function ")[0]
+    assert "A.drawRegister(" in body
+    assert "register" in body.split("bridge.generate(")[1].split(")")[0]
+
+
+def test_fresh_exam_assigns_a_register_to_every_slot():
+    body = EXAM_HTML.split("function startFreshExam()")[1].split("\nasync function ")[0]
+    assert "A.examRegisterPlan(" in body
+    assert "register:" in body
+
+
+def test_prep_worker_forwards_the_assigned_register():
+    body = EXAM_HTML.split("async function prepWorker(prep)")[1].split("\nfunction ")[0]
+    assert "register" in body.split("bridge.generate(")[1].split(")")[0]
 
 
 def test_exam_offers_skip_and_mark_controls():
@@ -614,3 +851,567 @@ def test_rate_limited_error_is_not_a_generation_error():
     """If it ever subclassed GenerationError it would be swallowed by the retry
     tuple in generate_question and this whole separation would silently revert."""
     assert not issubclass(exam_lib.RateLimitedError, exam_lib.GenerationError)
+
+
+# ── run_claude is the shared CLI transport ─────────────────────────────────
+# It used to hardwire the question schema and the question-sized timeout, which
+# made it unusable for anything but generating one question: classifying a
+# banked question, writing a block scenario, and screening a candidate each
+# return a different shape, and a scenario call has its own latency profile.
+
+
+def _capture_run_claude_call(monkeypatch):
+    """Run run_claude against a stubbed subprocess; return the recorded call."""
+    seen = {}
+
+    class FakeCompleted:
+        returncode = 0
+        stdout = '{"structured_output": {}}'
+        stderr = ""
+
+    def fake_subprocess_run(argv, **kwargs):
+        seen["argv"] = argv
+        seen["kwargs"] = kwargs
+        return FakeCompleted()
+
+    monkeypatch.setattr(exam_lib.subprocess, "run", fake_subprocess_run)
+    monkeypatch.setattr(exam_lib, "find_claude", lambda: "/usr/bin/claude")
+    return seen
+
+
+def _schema_arg(argv):
+    return json.loads(argv[argv.index("--json-schema") + 1])
+
+
+def test_run_claude_defaults_to_the_question_schema_and_timeout(monkeypatch):
+    seen = _capture_run_claude_call(monkeypatch)
+    exam_lib.run_claude("a prompt")
+    assert _schema_arg(seen["argv"]) == exam_lib.QUESTION_JSON_SCHEMA
+    assert seen["kwargs"]["timeout"] == exam_lib.GENERATION_TIMEOUT_SECONDS
+
+
+def test_run_claude_accepts_an_alternate_schema(monkeypatch):
+    """B1 classification and C3 screening return {id, ...}, not a question."""
+    seen = _capture_run_claude_call(monkeypatch)
+    other = {
+        "type": "object",
+        "properties": {"id": {"type": "string"}, "verdict": {"type": "string"}},
+        "required": ["id", "verdict"],
+        "additionalProperties": False,
+    }
+    exam_lib.run_claude("a prompt", schema=other)
+    assert _schema_arg(seen["argv"]) == other
+
+
+def test_run_claude_accepts_an_alternate_timeout(monkeypatch):
+    seen = _capture_run_claude_call(monkeypatch)
+    exam_lib.run_claude("a prompt", timeout=45)
+    assert seen["kwargs"]["timeout"] == 45
+
+
+def test_run_claude_timeout_message_reports_the_timeout_actually_used(monkeypatch):
+    """A hardcoded '120s' in the error would misreport every non-default call."""
+
+    def fake_subprocess_run(argv, **kwargs):
+        raise exam_lib.subprocess.TimeoutExpired(cmd=argv, timeout=kwargs["timeout"])
+
+    monkeypatch.setattr(exam_lib.subprocess, "run", fake_subprocess_run)
+    monkeypatch.setattr(exam_lib, "find_claude", lambda: "/usr/bin/claude")
+    with pytest.raises(exam_lib.GenerationError) as err:
+        exam_lib.run_claude("a prompt", timeout=7)
+    assert "7s" in str(err.value)
+
+
+# ── Shared-scenario blocks ─────────────────────────────────────────────────
+# The real exam draws 4 of 6 scenarios and asks 15 consecutive questions
+# against ONE scenario each. Our questions each invented their own scenario —
+# 103 questions, 103 distinct scenarios — so "grouping by scenario type" would
+# group by GENRE, not by content, and a persistent scenario panel would show
+# the wrong text. A block therefore generates its scenario once and passes it
+# in as a fixed input to the ordinary per-question calls.
+
+
+def test_scenario_schema_asks_only_for_a_scenario():
+    schema = exam_lib.SCENARIO_JSON_SCHEMA
+    assert schema["required"] == ["scenario"]
+    assert schema["additionalProperties"] is False
+
+
+def test_generate_scenario_returns_the_text():
+    def fake_run(prompt, schema=None, timeout=None):
+        assert schema is exam_lib.SCENARIO_JSON_SCHEMA
+        return {"structured_output": {"scenario": "A CI pipeline fails on flaky tests."}}
+
+    got = exam_lib.generate_scenario(
+        "Claude Code for Continuous Integration", run=fake_run
+    )
+    assert got == "A CI pipeline fails on flaky tests."
+
+
+def test_generate_scenario_rejects_an_unknown_scenario_type():
+    with pytest.raises(ValueError):
+        exam_lib.generate_scenario("Underwater Basket Weaving", run=lambda *a, **k: {})
+
+
+def test_generate_scenario_rejects_an_empty_scenario():
+    def fake_run(prompt, schema=None, timeout=None):
+        return {"structured_output": {"scenario": "   "}}
+
+    with pytest.raises(exam_lib.GenerationError):
+        exam_lib.generate_scenario("Multi-Agent Research System", run=fake_run)
+
+
+def test_build_prompt_supplies_a_fixed_scenario_instead_of_asking_for_one():
+    fixed = "A nightly ETL job silently drops malformed rows."
+    prompt = exam_lib.build_prompt("D1.4", scenario=fixed)
+    assert fixed in prompt
+    # The standing brief tells it to WRITE a scenario; with one supplied that
+    # instruction has to be overridden or the model invents a second one.
+    assert "Do not write a new scenario" in prompt
+
+
+def test_generate_question_forces_the_supplied_scenario_verbatim():
+    """Block-mates must share BYTE-IDENTICAL scenario text: the panel decides
+    when to repaint by comparing the text, and a model that paraphrases its
+    input would make the panel flicker mid-block."""
+    fixed = "A nightly ETL job silently drops malformed rows."
+
+    def fake_run(prompt):
+        candidate = make_candidate("D1.4")
+        candidate["scenario"] = "A nightly ETL job drops bad rows."  # paraphrased
+        return {"structured_output": candidate}
+
+    got = exam_lib.generate_question("D1.4", run=fake_run, scenario=fixed)
+    assert got["scenario"] == fixed
+
+
+# ── Fresh-exam blocks (exam.html DOM/wiring contract) ──────────────────────
+
+
+def test_fresh_exam_draws_blocks_rather_than_a_flat_form():
+    body = EXAM_HTML.split("async function startFreshExam()")[1].split("\n// Generate one")[0]
+    assert "A.drawExamBlocks(" in body
+    assert "A.drawExamStatements(" not in body, "the flat 60-draw is the old shape"
+    assert "blockIndex" in body
+
+
+def test_fresh_exam_generates_one_scenario_per_block_before_questions():
+    """Four cheap calls first: discovering a scenario failure after 15 question
+    calls have been spent against it wastes the whole block."""
+    body = EXAM_HTML.split("async function prepareBlockScenarios(prep)")[1].split("\nfunction ")[0]
+    assert "bridge.generateScenario(" in body
+    start = EXAM_HTML.split("async function startFreshExam()")[1].split("\n// Generate one")[0]
+    assert "await prepareBlockScenarios(prep)" in start
+
+
+def test_prep_worker_retries_against_the_same_scenario_before_giving_up():
+    """A bank substitute carries a different scenario and punches a hole in the
+    block, so one retry is worth spending to avoid it."""
+    body = EXAM_HTML.split("async function prepWorker(prep)")[1].split("\nfunction ")[0]
+    assert "attempt < 2" in body
+    assert "scenario" in body.split("bridge.generate(")[1].split(")")[0]
+
+
+def test_bank_substitutes_inside_a_block_are_marked_off_scenario():
+    """Otherwise the form would silently claim 4x15 shared-scenario blocks it
+    no longer has, and the panel would not repaint for the odd one out."""
+    body = EXAM_HTML.split("function substituteFromBank(exam, slot)")[1].split("\nfunction ")[0]
+    assert "offScenario" in body
+
+
+def test_avoid_summary_carries_the_question_stem():
+    """Block-mates share a scenario, so the scenario prefix is identical for
+    all 15 and carries no signal about what has already been asked."""
+    body = EXAM_HTML.split("function summarizeForAvoid(question)")[1].split("\n//")[0]
+    assert "question.question" in body
+
+
+def test_generate_scenario_bridge_wraps_errors(exam_app, monkeypatch):
+    def boom(scenario_type):
+        raise RuntimeError("no CLI")
+
+    monkeypatch.setattr(exam_app.exam_lib, "generate_scenario", boom)
+    result = exam_app.ExamApi().generate_scenario("Multi-Agent Research System")
+    assert result["error"] == "RuntimeError"
+
+
+def test_generate_scenario_bridge_wraps_success(exam_app, monkeypatch):
+    monkeypatch.setattr(
+        exam_app.exam_lib, "generate_scenario", lambda st: "A shared scenario."
+    )
+    assert exam_app.ExamApi().generate_scenario("Structured Data Extraction") == {
+        "scenario": "A shared scenario."
+    }
+
+
+# ── Scenario panel + mark-through (exam.html contract) ─────────────────────
+
+
+def test_scenario_panel_split_is_scoped_to_blocked_forms_only():
+    """The bank exam is also exam-active but its 60 scenarios are all
+    different — splitting there costs stem width to hold text that repaints
+    every question anyway."""
+    assert "body.exam-blocked #question-card" in EXAM_HTML
+    assert "body.exam-active #question-card {" not in EXAM_HTML
+    assert 'classList.toggle("exam-blocked"' in EXAM_HTML
+
+
+def test_blocked_layout_widens_the_exam_column():
+    """body.exam-active caps the column at 780px, which a side-by-side split
+    cannot live inside."""
+    assert "body.exam-blocked .layout { max-width: 1120px; }" in EXAM_HTML
+
+
+def test_scenario_repaints_on_text_change_not_on_block_index():
+    body = EXAM_HTML.split("function setExamScenario(text)")[1].split("\nfunction ")[0]
+    assert "app.displayedScenario === text" in body
+    assert "blockIndex" not in body
+
+
+def test_generation_wait_screen_goes_through_the_scenario_setter():
+    """A direct write would leave the panel believing the wait text is the
+    current scenario, so the real one would never repaint."""
+    assert 'el("q-scenario").textContent =\n        "Generating' not in EXAM_HTML
+    assert 'setExamScenario("Generating this question' in EXAM_HTML
+
+
+def test_exam_state_initialises_a_struck_map():
+    assert "struck: {}," in EXAM_HTML
+
+
+def test_strike_control_is_a_sibling_of_the_option_not_a_child():
+    """A <button> inside a <button> is invalid HTML with unreliable clicks and
+    assistive-tech behaviour."""
+    body = EXAM_HTML.split("function renderExamQuestion()")[1].split("\n// Progress over")[0]
+    assert "option-row" in body
+    assert "row.append(btn, strike)" in body
+
+
+def test_striking_touches_no_answer_or_flag_state():
+    """Crossing an option out is thinking, not deciding: it must not reach
+    answers (commits a choice), marked (revisit later), or state.flagged
+    (permanently discard a question)."""
+    body = EXAM_HTML.split("function renderExamQuestion()")[1].split("\n// Progress over")[0]
+    strike_handler = body.split('strike.addEventListener("click", () => {')[1].split("});")[0]
+    # Assert on code, not on the comment that explains the code.
+    code = "\n".join(
+        line for line in strike_handler.splitlines() if not line.strip().startswith("//")
+    )
+    assert "A.nav.toggleStruck" in code
+    for forbidden in ("answers", "marked", "flagged"):
+        assert forbidden not in code, f"strike handler reaches {forbidden}"
+
+
+def test_struck_options_stay_selectable():
+    """Elimination is an aid, not a commitment — a struck option must still be
+    choosable, so the strike styling may not disable the button."""
+    assert ".option.struck .opt-text { text-decoration: line-through" in EXAM_HTML
+    assert ".option.struck { pointer-events: none" not in EXAM_HTML
+    assert "btn.disabled = true" not in EXAM_HTML.split("function renderExamQuestion()")[1].split(
+        "\n// Progress over"
+    )[0]
+
+
+def test_blocked_class_is_cleared_when_leaving_exam_mode():
+    exit_body = EXAM_HTML.split("function exitExamLayout()")[1].split("\n}")[0]
+    assert 'classList.remove("exam-blocked")' in exit_body
+
+
+# ── Prepared forms (bridge storage) ────────────────────────────────────────
+# A whole 60-question exam generated ahead of time, so a sitting never waits on
+# the generator. Written after every question because preparing one is ~64
+# calls over 15-30 minutes and losing it to a crash would make it not worth
+# using.
+
+
+@pytest.fixture
+def forms_api(exam_app, tmp_path, monkeypatch):
+    monkeypatch.setattr(exam_app, "FORMS_PATH", tmp_path / "exam_forms.json")
+    return exam_app.ExamApi()
+
+
+def _form(fid="form-1", ready=2, total=60, **extra):
+    return dict(
+        {
+            "id": fid,
+            "createdAt": "2026-08-03T10:00:00",
+            "satAt": None,
+            "total": total,
+            "complete": ready == total,
+            "blocks": [{"scenarioType": "Multi-Agent Research System", "scenario": "s"}],
+            "questions": [{"id": f"{fid}-slot{i}"} for i in range(ready)]
+            + [None] * (total - ready),
+        },
+        **extra,
+    )
+
+
+def test_forms_round_trip_through_the_bridge(forms_api):
+    forms_api.save_form(_form())
+    assert forms_api.load_form("form-1")["id"] == "form-1"
+    assert forms_api.load_form("nope") is None
+
+
+def test_list_forms_returns_metadata_not_sixty_questions(forms_api):
+    forms_api.save_form(_form("form-1", ready=60))
+    listed = forms_api.list_forms()
+    assert listed == [
+        {
+            "id": "form-1",
+            "createdAt": "2026-08-03T10:00:00",
+            "satAt": None,
+            "ready": 60,
+            "total": 60,
+            "complete": True,
+            "scenarioTypes": ["Multi-Agent Research System"],
+        }
+    ]
+    assert "questions" not in listed[0]
+
+
+def test_saving_a_form_twice_updates_rather_than_duplicates(forms_api):
+    forms_api.save_form(_form("form-1", ready=2))
+    forms_api.save_form(_form("form-1", ready=17))
+    assert [f["ready"] for f in forms_api.list_forms()] == [17]
+
+
+def test_forms_are_kept_separate_from_each_other(forms_api):
+    forms_api.save_form(_form("form-1"))
+    forms_api.save_form(_form("form-2"))
+    assert sorted(f["id"] for f in forms_api.list_forms()) == ["form-1", "form-2"]
+    forms_api.delete_form("form-1")
+    assert [f["id"] for f in forms_api.list_forms()] == ["form-2"]
+
+
+def test_marking_a_form_sat_is_what_stops_a_rerun_inflating_the_score(forms_api):
+    """Prepared-form questions are ephemeral, so sitting one leaves no
+    seen-marks — nothing else would stop a candidate re-sitting the same 60
+    memorised questions and reading the result as readiness."""
+    forms_api.save_form(_form("form-1", ready=60))
+    assert forms_api.list_forms()[0]["satAt"] is None
+    forms_api.mark_form_sat("form-1", "2026-08-03T12:30:00")
+    assert forms_api.list_forms()[0]["satAt"] == "2026-08-03T12:30:00"
+
+
+def test_marking_an_unknown_form_is_a_no_op(forms_api):
+    assert forms_api.mark_form_sat("ghost", "2026-08-03T12:30:00") is True
+    assert forms_api.list_forms() == []
+
+
+def test_forms_store_is_separate_from_progress(exam_app):
+    """Progress and prepared forms must not share a file — a corrupt or
+    deleted form store must never take adaptive history with it."""
+    assert exam_app.FORMS_PATH != exam_app.PROGRESS_PATH
+    assert exam_app.FORMS_PATH.name == "exam_forms.json"
+
+
+# ── Prepared forms (exam.html contract) ────────────────────────────────────
+
+
+def test_prepared_form_job_has_its_own_holder():
+    """closeExamSetup cancels app.freshPrep, so leaving the setup card is how
+    you cancel a fresh exam. A background job reachable by that path could
+    never survive the user navigating away, which is the whole point."""
+    close_body = EXAM_HTML.split("function closeExamSetup()")[1].split("\n}")[0]
+    # Code only — the comment above it names formJob to explain the omission.
+    code = "\n".join(
+        line for line in close_body.splitlines() if not line.strip().startswith("//")
+    )
+    assert "app.freshPrep" in code
+    assert "app.formJob" not in code, "closeExamSetup must not cancel a form job"
+    assert "app.formJob = job" in EXAM_HTML
+
+
+def test_prepared_form_persists_after_every_question():
+    """~64 calls over 15-30 minutes; losing it to a crash would make the
+    feature not worth using."""
+    body = EXAM_HTML.split("async function prepareForm()")[1].split(
+        "\nasync function generateFormQuestion"
+    )[0]
+    per_question = body.split("for (let i = 0; i < form.assignments.length")[1]
+    assert "save_form(form)" in per_question
+
+
+def test_prepared_form_stops_on_a_usage_cap():
+    """The cap is account-wide — the rest of the form would fail identically."""
+    body = EXAM_HTML.split("async function generateFormQuestion")[1].split("\nfunction ")[0]
+    assert "RateLimited" in body
+    assert "throw new Error" in body
+
+
+def test_prepared_form_ids_are_form_scoped():
+    """gen-<slot> collides across every stored form, so two prepared forms
+    would look like the same 60 questions."""
+    body = EXAM_HTML.split("async function generateFormQuestion")[1].split("\nfunction ")[0]
+    assert "${form.id}-slot${slot}" in body
+    assert "`gen-${slot}`" not in body
+
+
+def test_regenerating_a_question_mints_a_new_id():
+    """Reusing the slot id would give the same id different content, so any
+    review state recorded against it silently goes stale."""
+    body = EXAM_HTML.split("async function regenerateFormQuestion(")[1].split(
+        "\nasync function "
+    )[0]
+    assert "idSuffix" in EXAM_HTML.split("async function generateFormQuestion")[1][:400]
+    assert "-r${Date.now()" in body
+
+
+def test_sitting_a_prepared_form_stamps_it_and_warns_on_a_rerun():
+    body = EXAM_HTML.split("async function sitPreparedForm(meta)")[1].split("\nasync function ")[0]
+    assert "mark_form_sat" in body
+    assert "meta.satAt && !confirm(" in body
+    assert "recall rather than readiness" in body
+
+
+def test_sitting_a_prepared_form_turns_on_the_scenario_panel():
+    body = EXAM_HTML.split("async function sitPreparedForm(meta)")[1].split("\nasync function ")[0]
+    assert "blocks: form.blocks" in body
+
+
+def test_unload_guard_covers_a_prepared_form_job():
+    guard = EXAM_HTML.split('window.addEventListener("beforeunload"')[1].split("});")[0]
+    assert "app.formJob" in guard
+
+
+def test_a_partly_generated_form_can_be_resumed():
+    """An ordinary per-slot failure leaves nulls in the form. Without a resume
+    path that form is permanently unsittable — sitPreparedForm refuses anything
+    incomplete — so the persisted work is stranded rather than saved."""
+    assert "async function resumeForm(" in EXAM_HTML
+    body = EXAM_HTML.split("async function resumeForm(")[1].split("\nasync function ")[0]
+    assert "load_form" in body
+    assert "runFormJob" in body
+
+
+def test_resume_fills_only_the_missing_slots():
+    body = EXAM_HTML.split("async function runFormJob(form)")[1].split("\nasync function ")[0]
+    assert "form.questions[i]" in body
+    assert "continue" in body, "already-generated slots must not be regenerated"
+
+
+def test_any_question_can_be_regenerated_before_sitting():
+    assert "async function regenerateFormQuestion(" in EXAM_HTML
+    body = EXAM_HTML.split("async function regenerateFormQuestion(")[1].split(
+        "\nasync function "
+    )[0]
+    assert "save_form" in body
+
+
+def test_the_form_list_offers_resume_and_review_not_just_sit_and_delete():
+    body = EXAM_HTML.split("async function refreshPreparedForms()")[1].split(
+        "\nasync function "
+    )[0]
+    for label in ("Resume", "Review"):
+        assert label in body, f"the form list offers no {label} control"
+
+
+def test_prepare_and_resume_share_one_generation_loop():
+    """Two copies of a 64-call loop is two places for the persistence and
+    rate-limit handling to drift apart."""
+    prepare = EXAM_HTML.split("async function prepareForm()")[1].split(
+        "\nasync function "
+    )[0]
+    assert "runFormJob(" in prepare
+
+
+def test_highest_risk_rules_are_restated_next_to_the_task():
+    """C4 moved the standing brief 22k chars ahead of the task statement for
+    prompt-cache reuse. That distance plausibly costs instruction adherence —
+    the first real batch came back 6/6 longest-is-correct — so the two rules
+    whose violation is invisible in the finished question are restated in the
+    volatile tail. Costs nothing to cache: everything after the first
+    placeholder is uncached already."""
+    prompt = exam_lib.build_prompt("D1.4")
+    divider = prompt.index("─" * 10)
+    tail = prompt[divider:]
+    assert "OPTION LENGTH" in tail
+    assert "NO INVENTED SPECIFICS" in tail
+    # And the full rules must still be in the cached prefix, not moved.
+    head = prompt[:divider]
+    assert "Keep all four options within roughly the same length" in head
+    assert "NOT to invent specific technical facts" in head
+
+
+def test_restating_the_rules_does_not_break_the_cached_prefix():
+    import os.path
+
+    a = exam_lib.build_prompt("D1.4")
+    b = exam_lib.build_prompt("D2.3", difficulty="hard", register="functional")
+    shared = os.path.commonprefix([a, b])
+    assert exam_lib._few_shot_block(exam_lib.load_bank()) in shared
+    assert len(shared) / len(a) > 0.8
+
+
+# ── Length tell: rejected at generation, not merely discouraged ────────────
+# The prompt has asked for option-length parity since the bank was seeded, and
+# the bank is 85% longest-is-correct; restating the rule next to the task moved
+# the MARGIN (mean ratio 1.24 -> 1.08) but not the ORDERING (still 6/6). The
+# rule was also mis-specified: "no option more than 1.3x the others" is fully
+# satisfied by a correct answer that is longest by one character, which is
+# still 100% exploitable. So it is enforced in code instead.
+
+
+def _with_option_lengths(lengths):
+    candidate = make_candidate("D1.4")
+    candidate["options"] = {k: "x" * n for k, n in lengths.items()}
+    candidate["correct"] = "B"
+    return candidate
+
+
+def test_longest_option_is_correct_detects_the_tell():
+    assert exam_lib.longest_option_is_correct(
+        _with_option_lengths({"A": 50, "B": 90, "C": 40, "D": 60})
+    )
+    assert not exam_lib.longest_option_is_correct(
+        _with_option_lengths({"A": 50, "B": 60, "C": 90, "D": 40})
+    )
+
+
+def test_a_tie_for_longest_is_not_a_tell():
+    """Picking 'the longest' is ambiguous at a tie, so it carries no signal."""
+    assert not exam_lib.longest_option_is_correct(
+        _with_option_lengths({"A": 90, "B": 90, "C": 40, "D": 60})
+    )
+
+
+def test_generation_retries_when_the_correct_option_is_longest():
+    """Routed through the existing retry-with-error-feedback loop — the exam's
+    own D4.4 pattern applied to this tool."""
+    prompts = []
+
+    def fake_run(prompt):
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            return {"structured_output": _with_option_lengths(
+                {"A": 50, "B": 90, "C": 40, "D": 60})}
+        return {"structured_output": _with_option_lengths(
+            {"A": 90, "B": 60, "C": 40, "D": 50})}
+
+    got = exam_lib.generate_question("D1.4", run=fake_run)
+    assert len(prompts) == 2, "the tell must cost a retry, not pass"
+    assert not exam_lib.longest_option_is_correct(got)
+    # The feedback has to say what to fix, or the retry is a coin flip.
+    assert "longest" in prompts[1]
+    assert "distractor" in prompts[1]
+
+
+def test_a_question_that_keeps_the_tell_twice_is_not_banked():
+    def fake_run(prompt):
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 90, "C": 40, "D": 60})}
+
+    with pytest.raises(exam_lib.GenerationError):
+        exam_lib.generate_question("D1.4", run=fake_run)
+
+
+def test_a_clean_question_still_costs_only_one_call():
+    calls = []
+
+    def fake_run(prompt):
+        calls.append(prompt)
+        return {"structured_output": _with_option_lengths(
+            {"A": 90, "B": 60, "C": 40, "D": 50})}
+
+    exam_lib.generate_question("D1.4", run=fake_run)
+    assert len(calls) == 1

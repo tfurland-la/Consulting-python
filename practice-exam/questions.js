@@ -25,7 +25,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D1.4-46421424"
+    "id": "D1.4-46421424",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D2.1",
@@ -51,7 +52,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D2.1-047f8193"
+    "id": "D2.1-047f8193",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D5.2",
@@ -77,7 +79,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D5.2-883dd295"
+    "id": "D5.2-883dd295",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D2.1",
@@ -103,7 +106,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D2.1-8fce064e"
+    "id": "D2.1-8fce064e",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D4.6",
@@ -129,7 +133,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D4.6-e7745a0b"
+    "id": "D4.6-e7745a0b",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.4",
@@ -155,7 +160,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.4-0f908134"
+    "id": "D3.4-0f908134",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.3",
@@ -181,7 +187,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.3-f575e689"
+    "id": "D3.3-f575e689",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.2",
@@ -207,7 +214,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D1.2-5d5ae0ac"
+    "id": "D1.2-5d5ae0ac",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D2.3",
@@ -233,7 +241,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D2.3-f32f295e"
+    "id": "D2.3-f32f295e",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D4.5",
@@ -259,7 +268,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D4.5-b0cdd790"
+    "id": "D4.5-b0cdd790",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.1",
@@ -285,7 +295,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-8ec884be"
+    "id": "D1.1-8ec884be",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.1",
@@ -311,7 +322,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-552d7619"
+    "id": "D1.1-552d7619",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.1",
@@ -337,7 +349,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.1-3e531a08"
+    "id": "D1.1-3e531a08",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.2",
@@ -363,7 +376,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-24a735b8"
+    "id": "D1.2-24a735b8",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.2",
@@ -389,7 +403,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-157d22de"
+    "id": "D1.2-157d22de",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.2",
@@ -415,7 +430,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-fec77eaa"
+    "id": "D1.2-fec77eaa",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D1.2",
@@ -441,7 +457,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.2-8fdb488a"
+    "id": "D1.2-8fdb488a",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.3",
@@ -467,7 +484,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-c857e051"
+    "id": "D1.3-c857e051",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.3",
@@ -493,7 +511,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-5db05ced"
+    "id": "D1.3-5db05ced",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.3",
@@ -519,7 +538,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-1146b75c"
+    "id": "D1.3-1146b75c",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.3",
@@ -545,7 +565,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.3-eb9ae72e"
+    "id": "D1.3-eb9ae72e",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.4",
@@ -571,7 +592,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-d165264d"
+    "id": "D1.4-d165264d",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D1.4",
@@ -597,7 +619,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-5d94d864"
+    "id": "D1.4-5d94d864",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.4",
@@ -623,7 +646,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-efc7cde6"
+    "id": "D1.4-efc7cde6",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.4",
@@ -649,7 +673,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.4-002dc7c8"
+    "id": "D1.4-002dc7c8",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.5",
@@ -675,7 +700,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-d055268d"
+    "id": "D1.5-d055268d",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.5",
@@ -701,7 +727,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-617ed9d4"
+    "id": "D1.5-617ed9d4",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.5",
@@ -727,7 +754,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.5-7aa3e326"
+    "id": "D1.5-7aa3e326",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.6",
@@ -753,7 +781,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-5cdda277"
+    "id": "D1.6-5cdda277",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.6",
@@ -779,7 +808,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-f6a65197"
+    "id": "D1.6-f6a65197",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D1.6",
@@ -805,7 +835,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-fb53c603"
+    "id": "D1.6-fb53c603",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D1.6",
@@ -831,7 +862,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.6-151e5d7f"
+    "id": "D1.6-151e5d7f",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.7",
@@ -857,7 +889,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-ddb5be6f"
+    "id": "D1.7-ddb5be6f",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D1.7",
@@ -883,7 +916,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-090f3fec"
+    "id": "D1.7-090f3fec",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.1",
@@ -909,7 +943,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-bbffcc45"
+    "id": "D2.1-bbffcc45",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.1",
@@ -935,7 +970,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-8ba66414"
+    "id": "D2.1-8ba66414",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.1",
@@ -961,7 +997,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-5a4c4e2d"
+    "id": "D2.1-5a4c4e2d",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.2",
@@ -987,7 +1024,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-d26ba11e"
+    "id": "D2.2-d26ba11e",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.1",
@@ -1013,7 +1051,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.1-50b831cd"
+    "id": "D2.1-50b831cd",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.2",
@@ -1039,7 +1078,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-32f16274"
+    "id": "D2.2-32f16274",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D2.3",
@@ -1065,7 +1105,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.3-a61fb467"
+    "id": "D2.3-a61fb467",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.3",
@@ -1091,7 +1132,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.3-404b6fa5"
+    "id": "D2.3-404b6fa5",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D2.2",
@@ -1117,7 +1159,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.2-ac3d1213"
+    "id": "D2.2-ac3d1213",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.3",
@@ -1143,7 +1186,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.3-584e4210"
+    "id": "D2.3-584e4210",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D2.4",
@@ -1169,7 +1213,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-171acc87"
+    "id": "D2.4-171acc87",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.4",
@@ -1195,7 +1240,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-01228b23"
+    "id": "D2.4-01228b23",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.4",
@@ -1221,7 +1267,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-749acf92"
+    "id": "D2.4-749acf92",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.5",
@@ -1247,7 +1294,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.5-6c566d32"
+    "id": "D2.5-6c566d32",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.4",
@@ -1273,7 +1321,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.4-0be0b411"
+    "id": "D2.4-0be0b411",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.1",
@@ -1299,7 +1348,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-da9ce509"
+    "id": "D3.1-da9ce509",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.2",
@@ -1325,7 +1375,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.2-79f2ed31"
+    "id": "D3.2-79f2ed31",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.3",
@@ -1351,7 +1402,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.3-c6fae4a2"
+    "id": "D3.3-c6fae4a2",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.3",
@@ -1377,7 +1429,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.3-54d2282b"
+    "id": "D3.3-54d2282b",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.4",
@@ -1403,7 +1456,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.4-361573e5"
+    "id": "D3.4-361573e5",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.5",
@@ -1429,7 +1483,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-2a909525"
+    "id": "D3.5-2a909525",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.5",
@@ -1455,7 +1510,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-795099c7"
+    "id": "D3.5-795099c7",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D3.5",
@@ -1481,7 +1537,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.5-2da1e6f1"
+    "id": "D3.5-2da1e6f1",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D3.6",
@@ -1507,7 +1564,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.6-e0c056af"
+    "id": "D3.6-e0c056af",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D3.6",
@@ -1533,7 +1591,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.6-3bba4457"
+    "id": "D3.6-3bba4457",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D4.1",
@@ -1559,7 +1618,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-74c41f8c"
+    "id": "D4.1-74c41f8c",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.1",
@@ -1585,7 +1645,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-07136340"
+    "id": "D4.1-07136340",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.1",
@@ -1611,7 +1672,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.1-4d1646e7"
+    "id": "D4.1-4d1646e7",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D4.2",
@@ -1637,7 +1699,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-80f92d2b"
+    "id": "D4.2-80f92d2b",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.3",
@@ -1663,7 +1726,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-fc440a79"
+    "id": "D4.3-fc440a79",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.4",
@@ -1689,7 +1753,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-8603b3d1"
+    "id": "D4.4-8603b3d1",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.4",
@@ -1715,7 +1780,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-6a71535b"
+    "id": "D4.4-6a71535b",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.5",
@@ -1741,7 +1807,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.5-5117300d"
+    "id": "D4.5-5117300d",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.5",
@@ -1767,7 +1834,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.5-ebe947cf"
+    "id": "D4.5-ebe947cf",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.5",
@@ -1793,7 +1861,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.5-9e5accac"
+    "id": "D4.5-9e5accac",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.6",
@@ -1819,7 +1888,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-d8e0b73a"
+    "id": "D4.6-d8e0b73a",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.6",
@@ -1845,7 +1915,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-76a3326e"
+    "id": "D4.6-76a3326e",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.6",
@@ -1871,7 +1942,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.6-f86ff8f4"
+    "id": "D4.6-f86ff8f4",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D5.1",
@@ -1897,7 +1969,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-f47c5c6b"
+    "id": "D5.1-f47c5c6b",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D5.2",
@@ -1923,7 +1996,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.2-9cdb0bbb"
+    "id": "D5.2-9cdb0bbb",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D5.3",
@@ -1949,7 +2023,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.3-6d3a2e5d"
+    "id": "D5.3-6d3a2e5d",
+    "scenarioType": "Customer Support Resolution Agent"
   },
   {
     "taskStatement": "D5.2",
@@ -1975,7 +2050,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.2-b5ce23d0"
+    "id": "D5.2-b5ce23d0",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D5.3",
@@ -2001,7 +2077,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.3-261c5264"
+    "id": "D5.3-261c5264",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D5.4",
@@ -2027,7 +2104,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-b3973277"
+    "id": "D5.4-b3973277",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D5.5",
@@ -2053,7 +2131,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-1ddc0d81"
+    "id": "D5.5-1ddc0d81",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D5.6",
@@ -2079,7 +2158,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-80ce40fa"
+    "id": "D5.6-80ce40fa",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D1.7",
@@ -2105,7 +2185,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D1.7-08001971"
+    "id": "D1.7-08001971",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D3.2",
@@ -2131,7 +2212,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.2-60253b40"
+    "id": "D3.2-60253b40",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D5.3",
@@ -2157,7 +2239,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D5.3-a9d6b63b"
+    "id": "D5.3-a9d6b63b",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.6",
@@ -2183,7 +2266,8 @@ window.CCARF_BANK = [
       "generatedAt": null,
       "reviewed": true
     },
-    "id": "D3.6-036d66a3"
+    "id": "D3.6-036d66a3",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D2.5",
@@ -2209,7 +2293,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.5-a32abc6a"
+    "id": "D2.5-a32abc6a",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D2.5",
@@ -2235,7 +2320,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D2.5-208e3d79"
+    "id": "D2.5-208e3d79",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.1",
@@ -2261,7 +2347,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-dab64774"
+    "id": "D3.1-dab64774",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D4.2",
@@ -2287,7 +2374,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-2ee86cfd"
+    "id": "D4.2-2ee86cfd",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D4.2",
@@ -2313,7 +2401,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.2-fe2ab52d"
+    "id": "D4.2-fe2ab52d",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.1",
@@ -2339,7 +2428,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-39ac2650"
+    "id": "D5.1-39ac2650",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.4",
@@ -2365,7 +2455,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-53208303"
+    "id": "D5.4-53208303",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D5.4",
@@ -2391,7 +2482,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.4-ac5d4550"
+    "id": "D5.4-ac5d4550",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.5",
@@ -2417,7 +2509,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-d3615a68"
+    "id": "D5.5-d3615a68",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D5.5",
@@ -2443,7 +2536,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.5-c5184f83"
+    "id": "D5.5-c5184f83",
+    "scenarioType": "Claude Code for Continuous Integration"
   },
   {
     "taskStatement": "D5.6",
@@ -2469,7 +2563,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-23d4e156"
+    "id": "D5.6-23d4e156",
+    "scenarioType": "Code Generation with Claude Code"
   },
   {
     "taskStatement": "D5.6",
@@ -2495,7 +2590,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.6-318e36ed"
+    "id": "D5.6-318e36ed",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.4",
@@ -2521,7 +2617,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.4-0c5bf96e"
+    "id": "D3.4-0c5bf96e",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.2",
@@ -2547,7 +2644,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.2-f0551513"
+    "id": "D3.2-f0551513",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D4.4",
@@ -2573,7 +2671,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.4-17ebc512"
+    "id": "D4.4-17ebc512",
+    "scenarioType": "Multi-Agent Research System"
   },
   {
     "taskStatement": "D3.1",
@@ -2599,7 +2698,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D3.1-06c5be45"
+    "id": "D3.1-06c5be45",
+    "scenarioType": "Developer Productivity with Claude"
   },
   {
     "taskStatement": "D4.3",
@@ -2625,7 +2725,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-9f00f65e"
+    "id": "D4.3-9f00f65e",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D4.3",
@@ -2651,7 +2752,8 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D4.3-951c4bbc"
+    "id": "D4.3-951c4bbc",
+    "scenarioType": "Structured Data Extraction"
   },
   {
     "taskStatement": "D5.1",
@@ -2677,6 +2779,7 @@ window.CCARF_BANK = [
       "generatedAt": "2026-07-02",
       "reviewed": true
     },
-    "id": "D5.1-d17564bc"
+    "id": "D5.1-d17564bc",
+    "scenarioType": "Customer Support Resolution Agent"
   }
 ];

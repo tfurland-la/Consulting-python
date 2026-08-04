@@ -16,6 +16,9 @@ pyproject.toml
 practice-exam/exam_progress.json
 practice-exam/questions_pending.json
 practice-exam/questions_failed.json
+practice-exam/questions_verdicts.json
+practice-exam/scenario_labels_pending.json
+practice-exam/exam_forms.json
 practice-exam/questions_pending_review.md
 practice-exam/build/
 practice-exam/dist/

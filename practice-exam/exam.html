@@ -262,6 +262,71 @@ const CCARF_SEED = {
   /* ── Timed exam mode ─────────────────────────────────────── */
   body.exam-active aside { display: none; }
   body.exam-active .layout { max-width: 780px; }
+
+  /* Blocked forms only: scenario held on the left, question on the right, the
+     way the real exam presents a block. Scoped to exam-blocked rather than
+     exam-active because the BANK exam is also exam-active, and its 103
+     scenarios are all different — splitting there would cost 340px of stem
+     width to hold text that repaints every question anyway. */
+  body.exam-blocked .layout { max-width: 1120px; }
+  @media (min-width: 901px) {
+    body.exam-blocked #question-card {
+      display: grid;
+      grid-template-columns: minmax(240px, 33%) 1fr;
+      column-gap: 30px;
+      align-items: start;
+    }
+    body.exam-blocked #q-scenario-heading {
+      grid-column: 1;
+      grid-row: 1;
+      padding-right: 24px;
+    }
+    body.exam-blocked #q-scenario {
+      grid-column: 1;
+      grid-row: 2 / span 7;
+      position: sticky;
+      top: 24px;
+      margin-bottom: 0;
+      padding-right: 24px;
+      border-right: 1px solid var(--paper-warm);
+    }
+    body.exam-blocked #q-task,
+    body.exam-blocked #q-task-label,
+    body.exam-blocked #q-stem,
+    body.exam-blocked #q-options,
+    body.exam-blocked #q-feedback,
+    body.exam-blocked #question-card > .controls { grid-column: 2; }
+  }
+  .scenario-heading {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  body:not(.exam-blocked) .scenario-heading { display: none; }
+
+  /* Mark-through. The toggle is a sibling of the option, never a child: a
+     <button> inside a <button> is invalid HTML and gives unreliable clicks and
+     assistive-tech behaviour. */
+  .option-row { display: flex; align-items: stretch; gap: 8px; }
+  .option-row .option { flex: 1; min-width: 0; }
+  .strike-toggle {
+    flex-shrink: 0;
+    width: 34px;
+    border: 1px solid var(--paper-warm);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .strike-toggle:hover { border-color: var(--coral); color: var(--coral); }
+  .strike-toggle[aria-pressed="true"] { border-color: var(--coral); color: var(--coral); }
+  /* Struck options stay selectable — elimination is an aid, not a commitment. */
+  .option.struck .opt-text { text-decoration: line-through; opacity: 0.5; }
+  .option.struck .key { opacity: 0.5; }
   .exam-timer {
     font-family: 'DM Mono', monospace;
     font-size: 15px;
@@ -351,6 +416,7 @@ const CCARF_SEED = {
       <span class="task-tag" id="q-task"></span>
       <div class="task-label" id="q-task-label"></div>
       <div class="scenario" id="q-scenario"></div>
+      <div class="scenario-heading" id="q-scenario-heading">Scenario</div>
       <div class="stem" id="q-stem"></div>
       <div id="q-options"></div>
       <div id="q-feedback"></div>
@@ -395,6 +461,20 @@ const CCARF_SEED = {
           <button class="primary" id="btn-exam-bank">From the question bank (instant)</button>
           <button class="ghost" id="btn-exam-cancel">Cancel</button>
         </div>
+        <div id="prepared-forms" style="margin-top:18px">
+          <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:15px;margin-bottom:6px">Prepared forms</h3>
+          <p class="note" style="margin-bottom:10px">Build a full form in the background now, sit it
+          later with no wait and no mid-exam pause. You can review it and regenerate any question
+          before sitting. A form is meant for one sitting — re-sitting one you have already taken
+          scores memory, not readiness.</p>
+          <div id="prepared-forms-list"></div>
+          <div class="controls" style="margin-top:10px">
+            <button class="ghost" id="btn-prepare-form">Prepare a form in the background</button>
+          </div>
+          <p class="note" id="prepare-status" style="margin-top:8px"></p>
+          <div class="domain-bar" id="prepare-bar" hidden><div class="track"><div class="fill" id="prepare-fill" style="width:0%"></div></div></div>
+          <div id="form-review" style="margin-top:12px" hidden></div>
+        </div>
         <p class="note" style="margin-top:10px">Fresh questions carry the exam's difficulty spread
         (mostly mid, a quarter harder, a hard tail) — the faithful readiness gate. The bank exam is
         instant but a standard-difficulty approximation (the bank is single-tier), so it runs easier
@@ -408,9 +488,11 @@ const CCARF_SEED = {
           <button class="primary" id="btn-exam-begin" disabled>Begin exam</button>
           <button class="ghost" id="btn-exam-abort">Cancel</button>
         </div>
-        <p class="note" style="margin-top:10px">The exam begins when the first 10 questions are ready;
-        the rest keep generating in the background while you work. If you ever catch up to the
-        generator, the clock pauses until the next question arrives.</p>
+        <p class="note" style="margin-top:10px">Like the real exam, this form is four scenarios of
+        15 consecutive questions each. The four scenarios are written first, then the exam begins
+        when the first 10 questions are ready; the rest keep generating in the background while you
+        work. If you ever catch up to the generator, the clock pauses until the next question
+        arrives.</p>
       </div>
     </div>
 
@@ -559,7 +641,11 @@ function makeClaudeGenerator(bridge) {
   let pending = null;
   async function generateFor(ts, extraAvoid, difficulty) {
     const tier = difficulty === "hard" ? "hard" : "standard";
-    const res = await bridge.generate(ts, extraAvoid || [], null, tier);
+    // Drawn per question rather than planned: the drill generates one at a
+    // time, so there is no sequence to spread across. Drilling is where the
+    // official-terminology over-fit was learned, so it gets the mix too.
+    const register = A.drawRegister();
+    const res = await bridge.generate(ts, extraAvoid || [], null, tier, register);
     if (res.error) throw new Error(res.detail || res.error);
     const question = res.question;
     question.difficulty = tier; // stamp the tier so submitAnswer can log it
@@ -765,11 +851,21 @@ function startExam() {
   el("gen-banner").hidden = true; // drill-only signal; don't let it bleed into exam mode
   el("btn-exam-fresh").disabled = !app.bridge;
   el("setup-fresh-note").textContent = app.bridge
-    ? "Fresh questions make ~60 Claude Code calls; the first ten take a few minutes to prepare."
+    ? "Fresh questions make ~64 Claude Code calls — four scenarios, then 60 questions " +
+      "branching off them. The first ten take a few minutes to prepare."
     : "Fresh questions need the desktop app with the Claude Code CLI. This page can run the bank exam.";
+  // Prepared forms need the bridge to store them; hide the whole section
+  // rather than offer a button that cannot work in the browser-only page.
+  el("prepared-forms").hidden = !app.bridge;
+  el("btn-prepare-form").disabled = !!app.formJob;
+  refreshPreparedForms();
+  renderPrepareProgress();
 }
 
 function closeExamSetup() {
+  // Cancels a FRESH-EXAM prep only. A prepared-form job (app.formJob) is
+  // deliberately untouched: it runs in the background precisely so the user
+  // can leave this card and keep drilling while it finishes.
   if (app.freshPrep) app.freshPrep.cancelled = true;
   app.freshPrep = null;
   el("setup-card").hidden = true;
@@ -777,7 +873,13 @@ function closeExamSetup() {
 }
 
 function startBankExam() {
-  const form = A.drawExamForm(BANK, app.state, {});
+  // Prefer the grouped form: 4 runs of 15 sharing a scenario TYPE, which is as
+  // close to the real exam's shape as banked questions can get — each carries
+  // its own scenario text, so these are grouped by genre, not true blocks.
+  // Needs a labelled bank (classify_scenarios.py); falls back when it can't.
+  let form = A.drawExamBlockedForm(BANK, app.state, {});
+  let grouped = !!form;
+  if (!form) form = A.drawExamForm(BANK, app.state, {});
   if (!form) {
     alert("The question bank cannot fill a full 60-question form right now.");
     closeExamSetup();
@@ -785,30 +887,59 @@ function startBankExam() {
   }
   el("setup-card").hidden = true;
   beginExam(form, null);
+  el("status-note").textContent = grouped
+    ? "Bank exam, grouped into 4 runs of 15 by scenario type. Unlike a fresh " +
+      "exam, the questions in a run do not share one scenario — banked " +
+      "questions each carry their own."
+    : "Bank exam, questions interleaved. Grouping needs a scenario-labelled " +
+      "bank — run classify_scenarios.py to enable it.";
 }
 
 // Mirrors exam_lib.summarize_for_avoid so within-form generations diversify.
+// The question stem is included because block-mates SHARE a scenario: the
+// scenario prefix is identical for all 15 and so carries no signal about what
+// has already been asked. Without the stem, a block's avoid-list is blind.
 function summarizeForAvoid(question) {
   return (
-    `correct=${question.correct} | scenario: ${question.scenario.slice(0, 160)} ` +
+    `correct=${question.correct} | asked: ${question.question.slice(0, 140)} ` +
+    `| scenario: ${question.scenario.slice(0, 80)} ` +
     `| correct because: ${question.explanations[question.correct].slice(0, 120)}`
   );
 }
 
-function startFreshExam() {
-  const plan = A.drawExamStatements({});
+// Draw the form as 4 blocks of 15, each with ONE shared scenario, then flatten
+// to the 60 slots prepWorker already understands. The scenario for a block is
+// generated once up front and handed to all 15 of its questions as a fixed
+// input, which is what makes them a block rather than 15 questions that happen
+// to share a genre.
+async function startFreshExam() {
   const difficulties = A.examDifficultyPlan(); // 36 standard / 15 harder / 9 hard, spread
-  // Mirror the real exam's 4-of-6 structure: draw 4 scenario types for this
-  // test and assign only from those four (round-robin across the 60).
-  const allTypes = app.scenarioTypes || [];
-  const types = allTypes.length > 4 ? A.sampleN(allTypes, 4) : allTypes;
-  const assignments = plan.map((ts, i) => ({
-    ts,
-    scenarioType: types.length ? types[i % types.length] : null,
-    difficulty: difficulties[i],
-  }));
+  const registers = A.examRegisterPlan(); // ~45% functional, spread the same way
+  // health() reports the generator's scenario list; fall back to the local
+  // mirror so a bridge that reports nothing still yields a well-formed draw.
+  const allTypes = (app.scenarioTypes && app.scenarioTypes.length)
+    ? app.scenarioTypes
+    : A.SCENARIO_TYPES;
+  const blocks = A.drawExamBlocks({ scenarioTypes: allTypes.length > 4 ? undefined : allTypes });
+
+  const assignments = [];
+  blocks.forEach((block, blockIndex) => {
+    for (const ts of block.statements) {
+      const i = assignments.length;
+      assignments.push({
+        ts,
+        blockIndex,
+        scenarioType: block.scenarioType,
+        scenario: null, // filled by the scenario pass below
+        difficulty: difficulties[i],
+        register: registers[i],
+      });
+    }
+  });
+
   const prep = {
     assignments,
+    blocks,
     buffer: new Array(assignments.length).fill(null),
     failedSlots: new Set(),
     nextSlot: 0,
@@ -816,28 +947,369 @@ function startFreshExam() {
     cancelled: false,
     summariesByTs: {},
     examStarted: false,
+    scenariosReady: false,
   };
   app.freshPrep = prep;
   el("setup-choice").hidden = true;
   el("setup-progress").hidden = false;
   el("btn-exam-begin").disabled = true;
   updatePrepProgress(prep);
+
+  // Scenarios first: four cheap calls, and a failure here costs nothing
+  // compared with discovering it after 15 question calls have been spent.
+  const ok = await prepareBlockScenarios(prep);
+  if (!ok || prep.cancelled) return;
+  prep.scenariosReady = true;
   for (let w = 0; w < EXAM_GEN_WORKERS; w++) prepWorker(prep);
+}
+
+// Generate one scenario per block and stamp it onto that block's 15 slots.
+// Returns false when the generator cannot produce them at all.
+async function prepareBlockScenarios(prep) {
+  for (let b = 0; b < prep.blocks.length; b++) {
+    if (prep.cancelled) return false;
+    const block = prep.blocks[b];
+    let scenario = null;
+    for (let attempt = 0; attempt < 2 && !scenario; attempt++) {
+      try {
+        const res = await app.bridge.generateScenario(block.scenarioType);
+        if (res.error) throw new Error(res.detail || res.error);
+        scenario = res.scenario;
+      } catch {
+        /* one retry, then fall through to the abort below */
+      }
+    }
+    if (!scenario) {
+      prep.cancelled = true;
+      app.freshPrep = null;
+      el("setup-card").hidden = true;
+      el("question-card").hidden = false;
+      alert(
+        "Could not generate the exam's scenarios — Claude Code may be " +
+        "unavailable. Try the bank exam instead."
+      );
+      return false;
+    }
+    block.scenario = scenario;
+    for (const a of prep.assignments) {
+      if (a.blockIndex === b) a.scenario = scenario;
+    }
+    updatePrepProgress(prep);
+  }
+  return true;
+}
+
+// ── Prepared forms ────────────────────────────────────────────────────────
+// A whole form generated ahead of time. Deliberately NOT app.freshPrep:
+// closeExamSetup cancels that holder, so leaving the setup card is how you
+// cancel a fresh exam — a background job reachable by the same path could
+// never survive the user navigating away, which is the entire point.
+
+function newFormId() {
+  return `form-${Date.now().toString(36)}`;
+}
+
+// Build the same block plan a fresh exam uses, then generate into it,
+// persisting after every question. ~64 calls over 15-30 minutes: losing that
+// to a crash or a usage cap would make the feature not worth using.
+async function prepareForm() {
+  if (!app.bridge) {
+    el("prepare-status").textContent =
+      "Preparing a form needs the desktop app with the Claude Code CLI.";
+    return;
+  }
+  if (app.formJob) {
+    el("prepare-status").textContent = "A form is already being prepared.";
+    return;
+  }
+  const difficulties = A.examDifficultyPlan();
+  const registers = A.examRegisterPlan();
+  const allTypes = (app.scenarioTypes && app.scenarioTypes.length)
+    ? app.scenarioTypes
+    : A.SCENARIO_TYPES;
+  const blocks = A.drawExamBlocks({
+    scenarioTypes: allTypes.length > 4 ? undefined : allTypes,
+  });
+
+  const id = newFormId();
+  const assignments = [];
+  blocks.forEach((block, blockIndex) => {
+    for (const ts of block.statements) {
+      const i = assignments.length;
+      assignments.push({
+        ts, blockIndex,
+        scenarioType: block.scenarioType,
+        scenario: null,
+        difficulty: difficulties[i],
+        register: registers[i],
+      });
+    }
+  });
+  const form = {
+    id,
+    createdAt: new Date().toISOString(),
+    satAt: null,
+    total: assignments.length,
+    complete: false,
+    blocks: blocks.map((b) => ({ scenarioType: b.scenarioType, scenario: null })),
+    assignments,
+    questions: new Array(assignments.length).fill(null),
+  };
+  await runFormJob(form);
+}
+
+// Continue a form that stopped part-way. Any slot can end up null — a usage
+// cap aborts the run, and an ordinary content failure just leaves that one
+// empty — and sitPreparedForm refuses anything incomplete, so without this the
+// persisted work would be stranded rather than saved.
+async function resumeForm(formId) {
+  if (app.formJob) {
+    el("prepare-status").textContent = "A form is already being prepared.";
+    return;
+  }
+  const form = await app.bridge.load_form(formId);
+  if (form) await runFormJob(form);
+}
+
+// The one generation loop, shared by prepare and resume. Two copies of a
+// ~64-call loop is two places for the persistence and rate-limit handling to
+// drift apart.
+async function runFormJob(form) {
+  const job = { form, cancelled: false };
+  app.formJob = job;
+  el("btn-prepare-form").disabled = true;
+  renderPrepareProgress();
+
+  try {
+    for (let b = 0; b < form.blocks.length && !job.cancelled; b++) {
+      if (form.blocks[b].scenario) continue; // already written
+      const res = await app.bridge.generateScenario(form.blocks[b].scenarioType);
+      if (res.error) throw new Error(res.detail || res.error);
+      form.blocks[b].scenario = res.scenario;
+      for (const a of form.assignments) if (a.blockIndex === b) a.scenario = res.scenario;
+      await app.bridge.save_form(form);
+      renderPrepareProgress();
+    }
+    for (let i = 0; i < form.assignments.length && !job.cancelled; i++) {
+      if (form.questions[i]) continue; // resume fills only the gaps
+      form.questions[i] = await generateFormQuestion(form, i);
+      await app.bridge.save_form(form);
+      renderPrepareProgress();
+    }
+  } catch (err) {
+    // A usage cap is account-wide: every remaining call fails identically, so
+    // stop rather than burn the rest of the form into failures.
+    el("prepare-status").textContent = String(err).includes("RateLimited")
+      ? "Stopped at a usage limit. What was generated is saved — Resume once the window resets."
+      : `Stopped: ${err}. What was generated is saved — use Resume to finish it.`;
+  }
+  form.complete = form.questions.every(Boolean);
+  await app.bridge.save_form(form);
+  app.formJob = null;
+  el("btn-prepare-form").disabled = false;
+  await refreshPreparedForms();
+  renderPrepareProgress();
+}
+
+// Replace one question in a prepared form — the review pass's whole point.
+// Mints a fresh slot id rather than reusing the old one, so nothing that
+// referenced the previous question silently now refers to different content.
+async function regenerateFormQuestion(formId, slot) {
+  const form = await app.bridge.load_form(formId);
+  if (!form) return;
+  form.questions[slot] = null;
+  const question = await generateFormQuestion(form, slot, `-r${Date.now().toString(36)}`);
+  form.questions[slot] = question;
+  form.complete = form.questions.every(Boolean);
+  await app.bridge.save_form(form);
+  await refreshPreparedForms();
+  renderFormReview(form);
+}
+
+async function generateFormQuestion(form, slot, idSuffix) {
+  const a = form.assignments[slot];
+  const avoid = form.questions
+    .filter((q) => q && q.taskStatement === a.ts)
+    .map(summarizeForAvoid);
+  const res = await app.bridge.generate(
+    a.ts, avoid, a.scenarioType, a.difficulty, a.register, a.scenario
+  );
+  if (res.error) {
+    if (String(res.error).includes("RateLimited")) throw new Error(res.error);
+    return null;
+  }
+  const question = res.question;
+  // Form-scoped, not `gen-<slot>`: that id collides across every stored form,
+  // so two prepared forms would look like the same 60 questions.
+  question.id = `${form.id}-slot${slot}${idSuffix || ""}`;
+  question.ephemeral = true;
+  question.difficulty = a.difficulty;
+  question.register = a.register;
+  question.blockIndex = a.blockIndex;
+  return question;
+}
+
+function renderPrepareProgress() {
+  const job = app.formJob;
+  el("prepare-bar").hidden = !job;
+  if (!job) return;
+  const form = job.form;
+  const scenarios = form.blocks.filter((b) => b.scenario).length;
+  const ready = form.questions.filter(Boolean).length;
+  const pct = Math.round((100 * (scenarios + ready)) / (form.blocks.length + form.total));
+  el("prepare-fill").style.width = `${pct}%`;
+  el("prepare-status").textContent = scenarios < form.blocks.length
+    ? `Writing scenarios… ${scenarios} of ${form.blocks.length}.`
+    : `Generating questions… ${ready} of ${form.total}. You can keep drilling meanwhile.`;
+}
+
+async function refreshPreparedForms() {
+  if (!app.bridge || !app.bridge.list_forms) return;
+  const forms = await app.bridge.list_forms();
+  const list = el("prepared-forms-list");
+  list.replaceChildren();
+  if (!forms.length) {
+    const note = document.createElement("p");
+    note.className = "note";
+    note.textContent = "None yet.";
+    list.appendChild(note);
+    return;
+  }
+  for (const meta of forms) {
+    const row = document.createElement("div");
+    row.className = "controls";
+    row.style.marginBottom = "6px";
+    const label = document.createElement("span");
+    label.className = "note";
+    label.textContent =
+      `${meta.ready}/${meta.total} ready` +
+      (meta.satAt ? ` · sat ${meta.satAt.slice(0, 10)}` : "") +
+      ` · ${(meta.scenarioTypes || []).filter(Boolean).length} scenarios`;
+    const sit = document.createElement("button");
+    sit.className = meta.complete && !meta.satAt ? "primary" : "ghost";
+    sit.textContent = meta.satAt ? "Sit again (scores memory)" : "Sit this form";
+    sit.disabled = !meta.complete;
+    sit.addEventListener("click", () => sitPreparedForm(meta));
+    const controls = [label, sit];
+    // Only offered when there is something to finish — an incomplete form is
+    // otherwise a dead end, since Sit refuses anything short of the full 60.
+    if (!meta.complete) {
+      const resume = document.createElement("button");
+      resume.className = "primary";
+      resume.textContent = `Resume (${meta.total - meta.ready} left)`;
+      resume.disabled = !!app.formJob;
+      resume.addEventListener("click", () => resumeForm(meta.id));
+      controls.push(resume);
+    }
+    const review = document.createElement("button");
+    review.className = "ghost";
+    review.textContent = "Review";
+    review.addEventListener("click", async () => {
+      const form = await app.bridge.load_form(meta.id);
+      if (form) renderFormReview(form);
+    });
+    const drop = document.createElement("button");
+    drop.className = "ghost";
+    drop.textContent = "Delete";
+    drop.addEventListener("click", async () => {
+      await app.bridge.delete_form(meta.id);
+      el("form-review").hidden = true;
+      await refreshPreparedForms();
+    });
+    controls.push(review, drop);
+    row.append(...controls);
+    list.appendChild(row);
+  }
+}
+
+// Read a prepared form before sitting it, and replace any question that reads
+// badly. This is the whole reason a form is prepared ahead of time rather than
+// generated at the start line — there is finally a moment to look at it.
+function renderFormReview(form) {
+  const panel = el("form-review");
+  panel.hidden = false;
+  panel.replaceChildren();
+  const heading = document.createElement("p");
+  heading.className = "note";
+  heading.textContent =
+    `Form ${form.id} — ${form.questions.filter(Boolean).length} of ${form.total} ready. ` +
+    `Regenerating a question replaces it in place; the rest of the form is untouched.`;
+  panel.appendChild(heading);
+
+  form.blocks.forEach((block, blockIndex) => {
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = `Block ${blockIndex + 1} — ${block.scenarioType}`;
+    details.appendChild(summary);
+    const scenario = document.createElement("div");
+    scenario.className = "scenario";
+    scenario.textContent = block.scenario || "(scenario not written yet)";
+    details.appendChild(scenario);
+
+    form.assignments.forEach((a, slot) => {
+      if (a.blockIndex !== blockIndex) return;
+      const question = form.questions[slot];
+      const row = document.createElement("div");
+      row.className = "controls";
+      row.style.marginBottom = "4px";
+      const text = document.createElement("span");
+      text.className = "note";
+      text.textContent = question
+        ? `${a.ts} · ${a.difficulty} · ${a.register} — ${question.question.slice(0, 90)}…`
+        : `${a.ts} · ${a.difficulty} · ${a.register} — (not generated)`;
+      const again = document.createElement("button");
+      again.className = "ghost";
+      again.textContent = question ? "Regenerate" : "Generate";
+      again.disabled = !!app.formJob || !block.scenario;
+      again.addEventListener("click", async () => {
+        again.disabled = true;
+        again.textContent = "Generating…";
+        await regenerateFormQuestion(form.id, slot);
+      });
+      row.append(text, again);
+      details.appendChild(row);
+    });
+    panel.appendChild(details);
+  });
+}
+
+async function sitPreparedForm(meta) {
+  if (meta.satAt && !confirm(
+    "You have already sat this form. The questions are the same, so the score " +
+    "measures recall rather than readiness. Sit it anyway?"
+  )) return;
+  const form = await app.bridge.load_form(meta.id);
+  if (!form) return;
+  const questions = form.questions.filter(Boolean);
+  if (questions.length !== form.total) {
+    alert("This form is not finished yet.");
+    return;
+  }
+  await app.bridge.mark_form_sat(form.id, new Date().toISOString());
+  el("setup-card").hidden = true;
+  // prep carries the blocks so beginExam turns on the split scenario panel;
+  // no buffer or assignments, because nothing is left to generate.
+  beginExam(questions, { blocks: form.blocks, assignments: form.assignments });
 }
 
 async function prepWorker(prep) {
   while (!prep.cancelled && prep.nextSlot < prep.assignments.length) {
     const slot = prep.nextSlot++;
-    const { ts, scenarioType, difficulty } = prep.assignments[slot];
+    const { ts, scenarioType, difficulty, register, scenario } = prep.assignments[slot];
     let question = null;
-    if (!prep.cancelled) {
+    // Two attempts against the SAME scenario before giving the slot up. A
+    // bank substitute carries a different scenario, so every substitution
+    // punches a hole in the block — worth one retry to avoid.
+    for (let attempt = 0; attempt < 2 && !question && !prep.cancelled; attempt++) {
       try {
         const extraAvoid = (prep.summariesByTs[ts] || []).slice();
-        const res = await app.bridge.generate(ts, extraAvoid, scenarioType, difficulty);
+        const res = await app.bridge.generate(
+          ts, extraAvoid, scenarioType, difficulty, register, scenario
+        );
         if (res.error) throw new Error(res.detail || res.error);
         question = res.question;
       } catch {
-        /* single attempt; failure marks the slot for bank substitution */
+        /* retry once, then mark the slot for bank substitution */
       }
     }
     if (prep.cancelled) return;
@@ -845,6 +1317,8 @@ async function prepWorker(prep) {
       question.id = `gen-${slot}`;
       question.ephemeral = true;
       question.difficulty = difficulty; // stamp the intended tier for review/verification
+      question.register = register; // ditto the register, for the mix report
+      question.blockIndex = prep.assignments[slot].blockIndex;
       prep.buffer[slot] = question;
       (prep.summariesByTs[ts] = prep.summariesByTs[ts] || []).push(
         summarizeForAvoid(question)
@@ -895,6 +1369,16 @@ function onPrepProgress(prep, slot) {
 }
 
 function updatePrepProgress(prep) {
+  // The scenario pass runs before any question call, so report it rather than
+  // showing "0 of 60 ready" for four calls' worth of apparent nothing.
+  if (!prep.scenariosReady) {
+    const written = (prep.blocks || []).filter((b) => b.scenario).length;
+    el("setup-progress-fill").style.width = `${Math.round((100 * written) / A.EXAM_BLOCKS)}%`;
+    el("setup-progress-text").textContent =
+      `Writing the exam's ${A.EXAM_BLOCKS} scenarios… ${written} of ${A.EXAM_BLOCKS} done.`;
+    el("btn-exam-begin").disabled = true;
+    return;
+  }
   const generated = prep.buffer.filter(Boolean).length;
   el("setup-progress-fill").style.width = `${Math.round((100 * prep.done) / prep.assignments.length)}%`;
   const gateResolved = prep.assignments
@@ -926,6 +1410,9 @@ function beginExam(form, prep) {
     // navigation aid, unlike app.state.flagged which permanently discards a
     // flawed bank question.
     marked: {},
+    // Options crossed out as eliminated, by question id then option key.
+    // Session-only, like `marked`: nothing here is scored or persisted.
+    struck: {},
     discounted: [],
     // Timing is a parallel map keyed by question id, deliberately separate from
     // `answers` (a bare letter per id) so the scoring functions that read
@@ -942,6 +1429,12 @@ function beginExam(form, prep) {
     timerId: setInterval(renderExamTimer, 1000),
   };
   document.body.classList.add("exam-active");
+  // The split scenario panel is only right for a form whose questions come in
+  // shared-scenario blocks. A bank form's 60 scenarios are all different, so
+  // the panel would repaint every question and the split would just cost stem
+  // width — it stays single-column there.
+  document.body.classList.toggle("exam-blocked", !!(prep && prep.blocks));
+  app.displayedScenario = null; // force the first paint
   el("exam-timer").hidden = false;
   el("results-card").hidden = true;
   el("exam-review-card").hidden = true;
@@ -954,8 +1447,14 @@ function beginExam(form, prep) {
 // A generated slot that failed falls back to a bank question for the
 // same statement (same domain as last resort), never reusing a question
 // already on this form.
+//
+// A bank question brings its OWN scenario, so a substitute inside a block
+// breaks that block's shared text. It is stamped offScenario so the panel
+// knows to repaint for it and the form can report the degradation honestly
+// rather than quietly claiming 4x15 shared-scenario blocks it no longer has.
 function substituteFromBank(exam, slot) {
-  const ts = exam.prep.assignments[slot].ts;
+  const assignment = exam.prep.assignments[slot];
+  const ts = assignment.ts;
   const used = new Set(exam.form.filter(Boolean).map((q) => q.id));
   const blocked = new Set(app.state.flagged);
   const pool = BANK.filter((q) => !used.has(q.id) && !blocked.has(q.id));
@@ -963,7 +1462,21 @@ function substituteFromBank(exam, slot) {
   const byDomain = pool.filter((q) => q.domain === ts.split(".")[0]);
   const pickFrom = byStatement.length ? byStatement : byDomain.length ? byDomain : pool;
   const picked = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-  return { ...picked, substituted: true };
+  return {
+    ...picked,
+    substituted: true,
+    blockIndex: assignment.blockIndex,
+    offScenario: assignment.scenario != null,
+  };
+}
+
+// Write the scenario panel only when the text actually changes, so it stays
+// visually still across a block instead of repainting identical text 15 times.
+// app.displayedScenario is the single source of truth for what is on screen.
+function setExamScenario(text) {
+  if (app.displayedScenario === text) return;
+  app.displayedScenario = text;
+  el("q-scenario").textContent = text;
 }
 
 function renderExamTimer() {
@@ -1026,8 +1539,10 @@ function renderExamQuestion() {
       exam.waitingSince = Date.now();
       el("q-task").textContent = `Question ${exam.index + 1} of ${exam.form.length}`;
       el("q-task-label").textContent = "";
-      el("q-scenario").textContent =
-        "Generating this question — the clock is paused…";
+      // Through setExamScenario so app.displayedScenario stays truthful — a
+      // direct write here would leave the panel believing the wait text is the
+      // current scenario, and the real one would then never repaint.
+      setExamScenario("Generating this question — the clock is paused…");
       el("q-stem").textContent = "";
       el("q-options").replaceChildren();
       el("btn-submit").hidden = true;
@@ -1046,7 +1561,13 @@ function renderExamQuestion() {
   // No task-statement tag during the exam — the real exam doesn't label questions.
   el("q-task").textContent = `Question ${app.exam.index + 1} of ${app.exam.form.length}`;
   el("q-task-label").textContent = "";
-  el("q-scenario").textContent = question.scenario;
+  // Repaint the scenario only when the TEXT differs from what is on screen.
+  // Keying on the text rather than on a block index is what makes the panel
+  // correct on every path: it holds still through a block's 15 questions,
+  // repaints for an off-scenario bank substitute, survives a jump back from
+  // the review screen, and needs no special case for the bank exam's 103
+  // distinct scenarios.
+  setExamScenario(question.scenario);
   el("q-stem").textContent = question.question;
   el("q-feedback").replaceChildren();
   el("status-note").textContent = "";
@@ -1054,6 +1575,8 @@ function renderExamQuestion() {
   const container = el("q-options");
   container.replaceChildren();
   for (const key of ["A", "B", "C", "D"]) {
+    const row = document.createElement("div");
+    row.className = "option-row";
     const btn = document.createElement("button");
     btn.className = "option";
     btn.dataset.key = key;
@@ -1061,6 +1584,7 @@ function renderExamQuestion() {
     keySpan.className = "key";
     keySpan.textContent = key;
     const textSpan = document.createElement("span");
+    textSpan.className = "opt-text";
     textSpan.textContent = question.options[key];
     btn.append(keySpan, textSpan);
     btn.addEventListener("click", () => {
@@ -1069,7 +1593,29 @@ function renderExamQuestion() {
       btn.classList.add("selected");
       el("btn-submit").disabled = false;
     });
-    container.appendChild(btn);
+    // Sibling, not child: interactive content inside a <button> is invalid.
+    const strike = document.createElement("button");
+    strike.className = "strike-toggle";
+    strike.type = "button";
+    strike.textContent = "✕";
+    const applyStruck = () => {
+      const on = A.nav.isStruck(app.exam.struck, question.id, key);
+      btn.classList.toggle("struck", on);
+      strike.setAttribute("aria-pressed", on ? "true" : "false");
+      strike.setAttribute(
+        "aria-label",
+        `${on ? "Restore" : "Eliminate"} option ${key}`
+      );
+    };
+    strike.addEventListener("click", () => {
+      // Strike state only. It must never touch answers, marked, or
+      // state.flagged — crossing an option out is thinking, not deciding.
+      app.exam.struck = A.nav.toggleStruck(app.exam.struck, question.id, key);
+      applyStruck();
+    });
+    applyStruck();
+    row.append(btn, strike);
+    container.appendChild(row);
   }
   // Pre-select the committed answer when revisiting (backward nav / review jump).
   const committed = app.exam.answers[question.id];
@@ -1305,6 +1851,8 @@ function abandonExam() {
 // Card visibility is the caller's business — results stay up after a finish.
 function exitExamLayout() {
   document.body.classList.remove("exam-active");
+  document.body.classList.remove("exam-blocked");
+  app.displayedScenario = null; // the drill writes #q-scenario directly
   el("exam-timer").hidden = true;
   el("btn-abandon").hidden = true;
   el("btn-exam-prev").hidden = true;
@@ -1867,8 +2415,12 @@ async function init() {
   el("btn-exam-back").addEventListener("click", () => jumpToExamQuestion(app.exam ? app.exam.index : 0));
   el("btn-return").addEventListener("click", returnToPractice);
   window.addEventListener("beforeunload", (event) => {
-    if (app.exam || app.freshPrep) event.preventDefault(); // attempts and prep are in-memory only
+    // An in-flight prepared-form job is persisted after every question, but
+    // quitting still abandons whatever call is in flight and the rest of the
+    // run — worth a prompt, same as an attempt or a fresh-exam prep.
+    if (app.exam || app.freshPrep || app.formJob) event.preventDefault();
   });
+  el("btn-prepare-form").addEventListener("click", prepareForm);
   el("btn-export").addEventListener("click", exportProgress);
   el("btn-import").addEventListener("click", () => el("import-file").click());
   el("import-file").addEventListener("change", (event) => {

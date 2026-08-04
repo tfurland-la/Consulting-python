@@ -17,6 +17,18 @@ function freshState(seed) {
   return A.initialState(seed || {});
 }
 
+// A deterministic PRNG that actually VARIES between calls. rngOf returns a
+// constant, which is fine for bucket-spread (each bucket is indexed
+// independently) but degenerate for a Fisher-Yates shuffle, where a constant
+// draw produces one fixed, non-uniform permutation.
+function seededRng(seed) {
+  let x = seed;
+  return () => {
+    x = (x * 1103515245 + 12345) % 2147483648;
+    return x / 2147483648;
+  };
+}
+
 test("TASK_STATEMENTS covers all 30 statements across 5 domains", () => {
   const ids = Object.keys(A.TASK_STATEMENTS);
   assert.equal(ids.length, 30);
@@ -187,6 +199,38 @@ test("EXAM_FORM_QUOTAS mirror the exam's domain weighting over 60 questions", ()
   assert.equal(total, 60);
 });
 
+// A real sitting showed the bank was too easy because of LANGUAGE, not
+// principles: it described mechanisms in the exam guide's official terminology
+// while the exam describes them functionally and unnamed. The register plan
+// mixes both so a form trains name- and behaviour-recognition alike.
+
+test("examRegisterPlan gives the whole form a register and hits the target share", () => {
+  const plan = A.examRegisterPlan(rngOf(0.5));
+  assert.equal(plan.length, 60);
+  assert.ok(plan.every((r) => r === "named" || r === "functional"));
+  assert.equal(plan.filter((r) => r === "functional").length, Math.round(60 * A.FUNCTIONAL_FRACTION));
+});
+
+test("examRegisterPlan spreads the functional questions instead of clustering", () => {
+  // A candidate who can predict which questions are abstracted is back to
+  // pattern-matching, which is the failure this whole change targets.
+  for (const seed of [1, 7, 42, 20260803]) {
+    const plan = A.examRegisterPlan(seededRng(seed));
+    const thirds = [0, 0, 0];
+    plan.forEach((r, i) => {
+      if (r === "functional") thirds[Math.floor(i / 20)] += 1;
+    });
+    for (const t of thirds) {
+      assert.ok(t >= 4 && t <= 14, `third had ${t} functional (seed ${seed})`);
+    }
+  }
+});
+
+test("drawRegister honours the fraction at its extremes", () => {
+  assert.equal(A.drawRegister(rngOf(0.99), 0), "named");
+  assert.equal(A.drawRegister(rngOf(0.01), 1), "functional");
+});
+
 test("examDifficultyPlan yields the 36/15/9 standard/harder/hard-tail spread", () => {
   const plan = A.examDifficultyPlan(rngOf(0.5));
   assert.equal(plan.length, 60);
@@ -267,6 +311,78 @@ test("drawExamForm excludes flagged questions and prefers unseen", () => {
 test("drawExamForm returns null when the bank cannot fill a quota", () => {
   const tiny = syntheticBank().filter((q) => q.domain !== "D5");
   assert.equal(A.drawExamForm(tiny, freshState(), { rng: rngOf(0.5) }), null);
+});
+
+// The real exam draws 4 of 6 scenarios and asks 15 consecutive questions
+// against each. Blocks therefore have to satisfy the SAME global domain quotas
+// the flat form did, while leaning each block toward the domains its scenario
+// naturally exercises.
+
+test("drawExamBlocks returns 4 blocks of 15 with distinct scenarios", () => {
+  const blocks = A.drawExamBlocks({ rng: rngOf(0.37) });
+  assert.equal(blocks.length, 4);
+  for (const b of blocks) assert.equal(b.statements.length, 15);
+  const types = blocks.map((b) => b.scenarioType);
+  assert.equal(new Set(types).size, 4, "a scenario must not be drawn twice");
+  for (const t of types) assert.ok(A.SCENARIO_TYPES.includes(t), `unknown type ${t}`);
+});
+
+test("drawExamBlocks preserves the exact global domain quotas", () => {
+  for (const seed of [0.1, 0.37, 0.5, 0.83]) {
+    const blocks = A.drawExamBlocks({ rng: rngOf(seed) });
+    const byDomain = {};
+    for (const b of blocks) {
+      for (const ts of b.statements) {
+        const d = ts.split(".")[0];
+        byDomain[d] = (byDomain[d] || 0) + 1;
+      }
+    }
+    assert.deepEqual(byDomain, A.EXAM_FORM_QUOTAS, `seed ${seed}`);
+  }
+});
+
+test("drawExamBlocks weights each block toward its scenario's primary domains", () => {
+  // Weighted, not restricted: D1 alone needs 16 of 60, which exceeds a block,
+  // so no assignment can be domain-pure. >= 8 of 15 is the assertable bar.
+  for (const seed of [0.1, 0.37, 0.5, 0.83]) {
+    const blocks = A.drawExamBlocks({ rng: rngOf(seed) });
+    for (const b of blocks) {
+      const primary = A.SCENARIO_PRIMARY_DOMAINS[b.scenarioType];
+      const hits = b.statements.filter((ts) => primary.includes(ts.split(".")[0])).length;
+      assert.ok(hits >= 8, `${b.scenarioType} got ${hits}/15 primary (seed ${seed})`);
+    }
+  }
+});
+
+test("drawExamBlocks reports a shortfall rather than hiding it", () => {
+  // Some 4-of-6 draws leave a domain primary in NO drawn block, so its
+  // questions are necessarily off-primary. That must be visible, not silent.
+  // Per the exam guide, D4 (Prompt Engineering & Structured Output) is primary
+  // only for Claude Code for CI and Structured Data Extraction — so a draw
+  // excluding both strands all 12 of its questions.
+  const blocks = A.drawExamBlocks({
+    rng: rngOf(0.37),
+    scenarioTypes: [
+      "Customer Support Resolution Agent",
+      "Code Generation with Claude Code",
+      "Multi-Agent Research System",
+      "Developer Productivity with Claude",
+    ],
+  });
+  const offPrimary = blocks.reduce((n, b) => {
+    const primary = A.SCENARIO_PRIMARY_DOMAINS[b.scenarioType];
+    return n + b.statements.filter((ts) => !primary.includes(ts.split(".")[0])).length;
+  }, 0);
+  assert.ok(offPrimary >= 12, "D4's 12 questions cannot be primary in this draw");
+  for (const b of blocks) assert.equal(typeof b.primaryShortfall, "number");
+});
+
+test("SCENARIO_PRIMARY_DOMAINS covers every scenario with real domains", () => {
+  for (const type of A.SCENARIO_TYPES) {
+    const primary = A.SCENARIO_PRIMARY_DOMAINS[type];
+    assert.ok(Array.isArray(primary) && primary.length >= 2, `${type} needs primaries`);
+    for (const d of primary) assert.ok(A.DOMAINS[d], `${type} names unknown domain ${d}`);
+  }
 });
 
 test("drawExamStatements fills domain quotas with statements spread evenly", () => {
@@ -769,4 +885,139 @@ test("nav.nextUnansweredFrom returns the cursor itself when it is the last blank
   // returning null would wrongly report the form complete.
   const answers = { q0: ["A"], q2: ["C"] };
   assert.equal(A.nav.nextUnansweredFrom(1, navForm(3), answers, null), 1);
+});
+
+// Mark-through: strike options you've eliminated without committing an answer.
+// Deliberately separate from `marked` (revisit later) and from state.flagged
+// (permanently discard a flawed bank question) — conflating any two of the
+// three would silently drop questions or answers.
+
+test("nav.toggleStruck strikes and unstrikes one option of one question", () => {
+  let struck = {};
+  struck = A.nav.toggleStruck(struck, "q1", "A");
+  assert.deepEqual(struck, { q1: { A: true } });
+  struck = A.nav.toggleStruck(struck, "q1", "C");
+  assert.deepEqual(struck, { q1: { A: true, C: true } });
+  struck = A.nav.toggleStruck(struck, "q1", "A");
+  assert.deepEqual(struck, { q1: { C: true } });
+});
+
+test("nav.toggleStruck keeps questions independent", () => {
+  let struck = A.nav.toggleStruck({}, "q1", "A");
+  struck = A.nav.toggleStruck(struck, "q2", "B");
+  assert.deepEqual(struck, { q1: { A: true }, q2: { B: true } });
+});
+
+test("nav.toggleStruck returns a new map rather than mutating", () => {
+  const before = { q1: { A: true } };
+  const after = A.nav.toggleStruck(before, "q1", "B");
+  assert.deepEqual(before, { q1: { A: true } }, "the input must not be mutated");
+  assert.notEqual(before, after);
+  assert.notEqual(before.q1, after.q1, "the per-question map must be copied too");
+});
+
+test("nav.isStruck reads back what was struck", () => {
+  const struck = A.nav.toggleStruck({}, "q1", "D");
+  assert.equal(A.nav.isStruck(struck, "q1", "D"), true);
+  assert.equal(A.nav.isStruck(struck, "q1", "A"), false);
+  assert.equal(A.nav.isStruck(struck, "nope", "D"), false);
+  assert.equal(A.nav.isStruck(undefined, "q1", "D"), false);
+});
+
+test("striking an option leaves answers and marks untouched", () => {
+  // Elimination is an aid, not a commitment: a struck option stays selectable
+  // and striking must never look like answering.
+  const answers = { q1: "A" };
+  const marked = { q1: true };
+  const struck = A.nav.toggleStruck({}, "q1", "A");
+  assert.deepEqual(answers, { q1: "A" });
+  assert.deepEqual(marked, { q1: true });
+  assert.equal(A.nav.isStruck(struck, "q1", "A"), true);
+});
+
+// ── Blocked bank form ───────────────────────────────────────────────────
+// The bank path can only GROUP BY GENRE — its questions each carry their own
+// scenario, so a block here shares a scenario TYPE, not scenario text. Worth
+// having anyway: it is the fallback when generation is unavailable.
+
+function labelledBank(perScenarioPerDomain) {
+  // A bank with `perScenarioPerDomain` questions for every (scenario, domain)
+  // pair, spread across that domain's statements.
+  const bank = [];
+  for (const scenarioType of A.SCENARIO_TYPES) {
+    for (const domain of Object.keys(A.EXAM_FORM_QUOTAS)) {
+      const statements = Object.keys(A.TASK_STATEMENTS).filter(
+        (ts) => ts.split(".")[0] === domain
+      );
+      for (let i = 0; i < perScenarioPerDomain; i++) {
+        bank.push({
+          id: `${scenarioType.slice(0, 4)}-${domain}-${i}`,
+          taskStatement: statements[i % statements.length],
+          domain,
+          scenarioType,
+          correct: "B",
+        });
+      }
+    }
+  }
+  return bank;
+}
+
+test("drawExamBlockedForm returns 60 questions in 4 same-scenario runs of 15", () => {
+  const form = A.drawExamBlockedForm(labelledBank(6), freshState(), { rng: rngOf(0.4) });
+  assert.ok(form, "a well-stocked labelled bank must be drawable");
+  assert.equal(form.length, 60);
+  for (let b = 0; b < 4; b++) {
+    const block = form.slice(b * 15, b * 15 + 15);
+    const types = new Set(block.map((q) => q.scenarioType));
+    assert.equal(types.size, 1, `block ${b} mixes scenarios: ${[...types]}`);
+  }
+  const distinct = new Set(form.slice(0, 60).map((q, i) => form[i].scenarioType));
+  assert.equal(distinct.size, 4, "the four blocks must use four different scenarios");
+});
+
+test("drawExamBlockedForm keeps the exact global domain quotas", () => {
+  for (const seed of [0.1, 0.4, 0.77]) {
+    const form = A.drawExamBlockedForm(labelledBank(6), freshState(), { rng: rngOf(seed) });
+    const byDomain = {};
+    for (const q of form) byDomain[q.domain] = (byDomain[q.domain] || 0) + 1;
+    assert.deepEqual(byDomain, A.EXAM_FORM_QUOTAS, `seed ${seed}`);
+  }
+});
+
+test("drawExamBlockedForm never repeats a question", () => {
+  const form = A.drawExamBlockedForm(labelledBank(6), freshState(), { rng: rngOf(0.4) });
+  assert.equal(new Set(form.map((q) => q.id)).size, 60);
+});
+
+test("drawExamBlockedForm returns null rather than a short form", () => {
+  // Two questions per (scenario, domain) cannot cover D1's quota of 16.
+  const form = A.drawExamBlockedForm(labelledBank(2), freshState(), { rng: rngOf(0.4) });
+  assert.equal(form, null);
+});
+
+test("drawExamBlockedForm returns null when the bank is unlabelled", () => {
+  const unlabelled = labelledBank(6).map(({ scenarioType, ...rest }) => rest);
+  assert.equal(A.drawExamBlockedForm(unlabelled, freshState(), { rng: rngOf(0.4) }), null);
+});
+
+test("drawExamBlockedForm skips flagged questions", () => {
+  const bank = labelledBank(6);
+  const state = freshState();
+  state.flagged = bank.slice(0, 40).map((q) => q.id);
+  const form = A.drawExamBlockedForm(bank, state, { rng: rngOf(0.4) });
+  if (form) {
+    for (const q of form) assert.ok(!state.flagged.includes(q.id), "drew a flagged question");
+  }
+});
+
+test("drawExamBlockedForm prefers unseen questions", () => {
+  const bank = labelledBank(6);
+  const state = freshState();
+  // Mark most of the bank seen; the unseen ones should be preferred.
+  bank.slice(30).forEach((q) => { state.seen[q.id] = 1; });
+  const form = A.drawExamBlockedForm(bank, state, { rng: rngOf(0.4) });
+  assert.ok(form);
+  const unseenDrawn = form.filter((q) => state.seen[q.id] === undefined).length;
+  assert.ok(unseenDrawn > 0, "unseen-first must survive the blocked draw");
 });

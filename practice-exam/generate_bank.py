@@ -61,6 +61,42 @@ def remaining_targets(pending, per_task, tasks=None):
     return {ts: per_task - have.get(ts, 0) for ts in targets if per_task > have.get(ts, 0)}
 
 
+def register_mix(entries):
+    """Realized register counts over a set of entries.
+
+    Realized, not assigned: a batch asks for a fraction, but failures, dedup
+    discards and review deletions all move it, and functional questions carry
+    the most fabrication risk so deletions plausibly correlate with register.
+    Reporting the assigned fraction would be reporting an intention.
+    """
+    functional = sum(1 for e in entries if e.get("register") == "functional")
+    named = sum(1 for e in entries if e.get("register") == "named")
+    unlabelled = len(entries) - functional - named
+    return {
+        "functional": functional,
+        "named": named,
+        "unlabelled": unlabelled,
+        "fraction": (functional / len(entries)) if entries else 0.0,
+    }
+
+
+def plan_registers(count, pending, fraction=None):
+    """Registers for `count` new candidates, given what is already pending.
+
+    Planning each run in isolation lets a bank drift lopsided one partial batch
+    at a time: a run that dies after its named questions leaves the functional
+    share owed, and the next run — starting fresh — never repays it. So aim the
+    fraction at the combined total and ask this run for the shortfall.
+    Unlabelled pending entries count as named; they predate the field, and
+    reading absence as functional would invert the shortfall.
+    """
+    share = exam_lib.FUNCTIONAL_FRACTION if fraction is None else fraction
+    have = register_mix(pending)["functional"]
+    wanted = round((len(pending) + count) * share)
+    owed = max(0, min(count, wanted - have))
+    return exam_lib.register_plan(count, fraction=owed / count if count else 0)
+
+
 def merge_pending(bank, pending):
     """Reviewed pending entries -> committed bank entries.
 
@@ -82,7 +118,21 @@ def merge_pending(bank, pending):
     return merged
 
 
-def generate(per_task, tasks, workers):
+def statement_work_queues(work):
+    """Group a flat work list into one ordered queue per task statement.
+
+    The unit of concurrency: a whole statement goes to one worker, which walks
+    its queue in order. Concurrency across statements is free — their
+    avoid-lists never overlap — while concurrency within one is what produced
+    near-duplicate pairs and forced --workers 1.
+    """
+    queues = {}
+    for item in work:
+        queues.setdefault(item[0], []).append(item)
+    return queues
+
+
+def generate(per_task, tasks, workers, functional_fraction=None):
     bank = exam_lib.load_bank()
     bank_ids = {entry["id"] for entry in bank}
     pending = load_pending()
@@ -105,17 +155,25 @@ def generate(per_task, tasks, workers):
     if not work:
         print("Nothing to generate — all targeted task statements are covered.")
         return
+    # Registers are spread across the batch, aimed at the fraction over pending
+    # + this run so a resumed batch repays whatever the failed one left owed.
+    registers = plan_registers(len(work), pending, fraction=functional_fraction)
+    work = [(ts, scenario_type, registers[i])
+            for i, (ts, scenario_type) in enumerate(work)]
     print(f"Generating {len(work)} questions across {len(targets)} task statements "
-          f"({workers} workers, model {model})…")
+          f"({workers} workers, model {model}, "
+          f"{registers.count('functional')} functional / {registers.count('named')} named)…")
 
     def one(item):
-        ts, scenario_type = item
+        ts, scenario_type, register = item
         # Summaries of existing questions steer generation away from reusing
         # a premise, option skeleton, or correct-answer rationale.
         avoid = [exam_lib.summarize_for_avoid(b) for b in bank if b["taskStatement"] == ts]
         with lock:
             avoid += [exam_lib.summarize_for_avoid(p) for p in pending if p["taskStatement"] == ts]
-        candidate = exam_lib.generate_question(ts, avoid=avoid, scenario_type=scenario_type)
+        candidate = exam_lib.generate_question(
+            ts, avoid=avoid, scenario_type=scenario_type, register=register
+        )
         entry = exam_lib.attach_provenance(
             candidate, source="seed-generated", model=model, generated_at=today
         )
@@ -131,42 +189,48 @@ def generate(per_task, tasks, workers):
     # left no record of which ones or why — nothing to resume from, and no way to
     # tell a content failure from an exhausted usage window after the fact.
     failed = []
-    rate_limited = False
-    cancelled = set()
+    # Account-wide cap: once it trips, every remaining call fails identically,
+    # so stop rather than grind through the batch collecting the same error.
+    stop = threading.Event()
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(one, item): item for item in work}
-        for future in as_completed(futures):
-            ts, scenario_type = futures[future]
+    def record(item, reason, error):
+        ts, scenario_type, register = item
+        failed.append({"taskStatement": ts, "scenarioType": scenario_type,
+                       "register": register, "reason": reason, "error": error})
 
-            # as_completed still yields futures we cancelled, and result() on one
-            # raises CancelledError. Record those here, once, with a reason that
-            # says what actually happened — calling result() would log them a
-            # second time under a meaningless "CancelledError".
-            if future in cancelled:
-                failed.append({"taskStatement": ts, "scenarioType": scenario_type,
-                               "reason": "deferred: usage limit",
-                               "error": "not attempted — batch stopped at the cap"})
+    def one_statement(ts, queue):
+        """Walk one statement's queue in order.
+
+        Sequential by construction: each question's avoid-list is rebuilt from
+        `pending`, which the previous one has already been appended to, so the
+        Nth question sees all N-1 of its predecessors plus everything banked.
+        """
+        lines = []
+        for item in queue:
+            if stop.is_set():
+                record(item, "deferred: usage limit",
+                       "not attempted — batch stopped at the cap")
                 continue
-
             try:
-                print(" ", future.result())
+                lines.append(one(item))
             except exam_lib.RateLimitedError as err:
-                # Circuit-breaker: the cap is account-level, so every queued call
-                # will fail the same way. Cancel what has not started rather than
-                # grinding through the rest of the batch to collect identical errors.
-                if not rate_limited:
-                    rate_limited = True
+                if not stop.is_set():
+                    stop.set()
                     print(f"\n  USAGE LIMIT reached — {err}", file=sys.stderr)
-                    print("  Cancelling queued generations; the cap is account-wide, "
+                    print("  Stopping queued generations; the cap is account-wide, "
                           "so retrying now would fail identically.", file=sys.stderr)
-                    cancelled.update(f for f in futures if f.cancel())
-                failed.append({"taskStatement": ts, "scenarioType": scenario_type,
-                               "reason": "rate-limited", "error": str(err)})
+                record(item, "rate-limited", str(err))
             except Exception as err:
-                failed.append({"taskStatement": ts, "scenarioType": scenario_type,
-                               "reason": type(err).__name__, "error": str(err)})
-                print(f"  {ts} ({scenario_type}): FAILED — {err}", file=sys.stderr)
+                record(item, type(err).__name__, str(err))
+                print(f"  {ts} ({item[1]}): FAILED — {err}", file=sys.stderr)
+        return lines
+
+    queues = statement_work_queues(work)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(one_statement, ts, q) for ts, q in queues.items()]
+        for future in as_completed(futures):
+            for line in future.result():
+                print(" ", line)
 
     if failed:
         save_failures(failed)
@@ -175,7 +239,7 @@ def generate(per_task, tasks, workers):
     if failed:
         print(f"  Unproduced items recorded in {FAILURES_PATH.name} — "
               f"re-run to attempt them again.")
-    if rate_limited:
+    if stop.is_set():
         print("  Some were deferred by a usage limit, not by a content problem. "
               "Re-run once the window resets.")
     print(f"Review {PENDING_PATH.name}, then run: generate_bank.py --merge")
@@ -192,6 +256,66 @@ def merge():
     PENDING_PATH.unlink()
     print(f"Merged {len(pending)} questions; bank now has {len(merged)}. "
           "Pending file removed. Run pytest before committing.")
+    # What was actually banked, not what the batch asked for. Review deletions
+    # land here and nowhere else, so this is the only honest read on the mix.
+    batch = register_mix(pending)
+    whole = register_mix(merged)
+    print(f"  Register mix, this batch: {batch['functional']} functional / "
+          f"{batch['named']} named ({batch['fraction']:.0%} functional)")
+    print(f"  Register mix, whole bank: {whole['functional']} functional / "
+          f"{whole['named']} named, {whole['unlabelled']} unlabelled "
+          f"(target {exam_lib.FUNCTIONAL_FRACTION:.0%} of labelled)")
+
+
+def merge_classifications(bank, labels):
+    """Apply reviewed scenarioType labels to bank entries.
+
+    Ids are NOT recomputed and must not change: canonical_content hashes only
+    scenario/question/options, so labelling is invisible to identity. A changed
+    id here would mean the label edited the question, which it must never do.
+    """
+    merged = []
+    applied = 0
+    for entry in bank:
+        label = labels.get(entry["id"])
+        if label is None:
+            merged.append(entry)
+            continue
+        if label not in exam_lib.SCENARIO_TYPES:
+            raise ValueError(f"{entry['id']}: unknown scenario type {label!r}")
+        before = entry["id"]
+        entry = dict(entry, scenarioType=label)
+        if exam_lib.question_id(entry) != before:
+            raise ValueError(f"{before}: labelling changed the content hash")
+        exam_lib.validate_question(entry)
+        merged.append(entry)
+        applied += 1
+    return merged, applied
+
+
+def merge_classification_labels():
+    """Merge classify_scenarios.py's reviewed labels into the bank.
+
+    Lives here rather than in classify_scenarios.py so this file stays the only
+    writer of question content — an invariant the refill workflow depends on.
+    """
+    labels_path = exam_lib.PRACTICE_EXAM_DIR / "scenario_labels_pending.json"
+    if not labels_path.exists():
+        print(f"{labels_path.name} not found — run classify_scenarios.py --classify first.")
+        return
+    labels = json.loads(labels_path.read_text(encoding="utf-8"))
+    if not labels:
+        print(f"{labels_path.name} is empty — nothing to merge.")
+        return
+    bank = exam_lib.load_bank()
+    merged, applied = merge_classifications(bank, labels)
+    exam_lib.render_bank(merged, exam_lib.BANK_PATH)
+    labels_path.unlink()
+    labelled = sum(1 for q in merged if q.get("scenarioType"))
+    print(f"Applied {applied} labels; {labelled} of {len(merged)} questions now "
+          f"carry a scenarioType. Labels file removed.")
+    print("Run classify_scenarios.py (no arguments) for the scenario x domain "
+          "matrix, and pytest before committing.")
 
 
 def status():
@@ -214,13 +338,29 @@ def main():
     parser.add_argument("--tasks", help="comma-separated task statements (default: all 30)")
     parser.add_argument("--workers", type=int, default=4, help="concurrent claude -p calls (default 4)")
     parser.add_argument("--merge", action="store_true", help="merge reviewed pending questions into the bank")
+    parser.add_argument(
+        "--merge-classifications",
+        action="store_true",
+        help="merge reviewed scenarioType labels from classify_scenarios.py",
+    )
+    parser.add_argument(
+        "--functional-fraction",
+        type=float,
+        default=None,
+        help=(
+            "share of candidates phrased functionally rather than by naming the "
+            f"mechanism (default {exam_lib.FUNCTIONAL_FRACTION})"
+        ),
+    )
     args = parser.parse_args()
 
     if args.merge:
         merge()
+    elif args.merge_classifications:
+        merge_classification_labels()
     elif args.per_task:
         tasks = args.tasks.split(",") if args.tasks else None
-        generate(args.per_task, tasks, args.workers)
+        generate(args.per_task, tasks, args.workers, args.functional_fraction)
     else:
         status()
 

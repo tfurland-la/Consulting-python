@@ -547,3 +547,63 @@ tell me how to test the Copy-to-clipboard flow.
 - If you want a timed, full-length 60-question simulation later, that is a clean
   follow-on: add a mode that draws 60 questions matching the exam's domain
   distribution, hides explanations until the end, and runs a 120-minute timer.
+
+---
+
+## Two corrections from a real sitting (apply these if you fork this build)
+
+Someone sat the real CCAR-F and came back with two things this build gets
+wrong. Both are cheap to get right up front and awkward to retrofit.
+
+**1. Do not tell the generator to match the samples' tone.** The instruction
+above to include the sample questions as few-shot is right; framing them as a
+tone to match is not. It pins generation to the exam guide's **official
+terminology**, so drilling trains recognition of *named* mechanisms — and the
+real exam frequently describes the same mechanism **functionally and unnamed**
+("an automatic step that runs after each file edit and enforces a constraint
+regardless of what the model decides", not "a PostToolUse hook"). Mapping an
+abstracted description back to a mechanism is the actual difficulty.
+
+Keep the samples — they carry real load on stem quality, four plausible
+options, one-correct-per-principle, and near-miss distractors. Change what they
+are *for*: models of **structure and difficulty**, with their phrasing named
+explicitly as a floor to move away from. Then assign each question a register —
+roughly 45% written functionally, the rest naming the mechanism — as a
+generation **input**, so the mix is a fact rather than something the model
+reports about itself. Assign it randomly per question, not on a repeating
+pattern: a candidate who can predict which questions are abstracted is back to
+pattern-matching.
+
+The hard constraint: this varies how a **real** mechanism is described, never
+**which** mechanisms are real. A functional-sounding invented mechanism is the
+same fabrication failure the guardrail above already forbids, and it is easier
+to hide inside a functional description — so any screening step must be able to
+name the specific real mechanism a functional question resolves to, and flag it
+when it cannot.
+
+Raise difficulty through abstraction and near-miss distractors only — never
+through ambiguity, obscurity, or invented specifics.
+
+**2. The exam presents scenarios in blocks.** It draws 4 of 6 scenarios and
+asks **15 consecutive questions against one scenario**, with the scenario held
+persistently on the left and the branching question on the right — not
+interleaved, and not re-read every question.
+
+The trap: a "scenario type" is a *genre*, not shared content. If each question
+invents its own scenario text, grouping by type gives you 15 questions that
+merely feel related, and a "persistent" panel shows the wrong text for 14 of
+them. Generate the block's scenario **once**, then pass it into each of that
+block's 15 question calls as a fixed input, and overwrite whatever the model
+returns with the supplied text so the 15 are byte-identical. Repaint the panel
+when the scenario text differs from what is displayed — not on a block index,
+which breaks the moment a question is substituted or the candidate jumps back
+from a review screen.
+
+Keep the global domain quotas exact and **weight** each block toward its
+scenario's domains rather than restricting it: D1 alone needs 16 of 60, more
+than one block holds, so a domain-pure block is impossible.
+
+The same sitting is why the simulator gained **mark-through** — striking out
+options you have eliminated, without committing an answer. Keep it distinct
+from both the mark-for-review flag and any flag-as-flawed control; they are
+three different things and conflating any two loses answers or questions.

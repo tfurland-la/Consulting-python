@@ -369,6 +369,130 @@ function drawExamForm(bank, state, opts) {
   return shuffled(form, rng);
 }
 
+// Draw a 60-question form from the BANK as 4 runs of 15, one scenario each.
+//
+// Grouped by genre, not a true block: a banked question carries its own
+// scenario text, so 15 questions sharing a scenarioType do not share a
+// scenario. The fresh-generation path produces real shared-scenario blocks;
+// this is the fallback when generation is unavailable, and the UI says so.
+//
+// Returns null when the labelled bank cannot support it — a short or
+// quota-violating form would be worse than falling back to drawExamForm.
+function drawExamBlockedForm(bank, state, opts) {
+  const options = opts || {};
+  const rng = options.rng || Math.random;
+  const blocked = new Set(state.flagged);
+
+  // Index the labelled, unflagged bank by scenario then domain.
+  const byScenario = {};
+  for (const question of bank) {
+    const type = question.scenarioType;
+    if (!type || blocked.has(question.id)) continue;
+    const domains = (byScenario[type] = byScenario[type] || {});
+    (domains[question.domain] = domains[question.domain] || []).push(question);
+  }
+
+  // Only scenarios that could fill a whole block are worth drawing.
+  const eligible = Object.keys(byScenario).filter((type) => {
+    const total = Object.values(byScenario[type]).reduce((s, qs) => s + qs.length, 0);
+    return total >= EXAM_BLOCK_SIZE;
+  });
+  if (eligible.length < EXAM_BLOCKS) return null;
+
+  // Try several 4-subsets before giving up: whether a draw can be filled
+  // depends on the domains inside the chosen scenarios, not just their totals,
+  // so one unlucky subset says nothing about the next.
+  for (let attempt = 0; attempt < BLOCKED_FORM_ATTEMPTS; attempt++) {
+    const types = sampleN(eligible, EXAM_BLOCKS, rng);
+    const plan = planBlockedDomains(types, byScenario);
+    if (!plan) continue;
+
+    const used = new Set();
+    const form = [];
+    let ok = true;
+    for (let b = 0; b < types.length && ok; b++) {
+      const picks = [];
+      for (const [domain, n] of Object.entries(plan[b])) {
+        const pool = (byScenario[types[b]][domain] || []).filter((q) => !used.has(q.id));
+        // Unseen first, exactly as the flat draw does, then least-recently-seen.
+        const unseen = shuffled(pool.filter((q) => state.seen[q.id] === undefined), rng);
+        const seen = pool
+          .filter((q) => state.seen[q.id] !== undefined)
+          .sort((x, y) => state.seen[x.id] - state.seen[y.id]);
+        const ordered = unseen.concat(seen);
+        if (ordered.length < n) { ok = false; break; }
+        for (let i = 0; i < n; i++) {
+          used.add(ordered[i].id);
+          picks.push(ordered[i]);
+        }
+      }
+      if (ok) form.push(...shuffled(picks, rng)); // shuffle WITHIN the block only
+    }
+    if (ok && form.length === EXAM_BLOCKS * EXAM_BLOCK_SIZE) return form;
+  }
+  return null;
+}
+
+const BLOCKED_FORM_ATTEMPTS = 24;
+
+// How many questions of each domain each block should contribute, so that the
+// blocks total exactly EXAM_FORM_QUOTAS. Same round-robin dealing as
+// drawExamBlocks, but additionally capped by what the bank actually holds for
+// that scenario. Returns null when the chosen scenarios cannot cover the quotas.
+function planBlockedDomains(types, byScenario) {
+  const stock = { ...EXAM_FORM_QUOTAS };
+  const plan = types.map(() => ({}));
+  const taken = types.map(() => 0);
+  const capacity = (b, domain) =>
+    (byScenario[types[b]][domain] || []).length - (plan[b][domain] || 0);
+
+  const claim = (b, domain) => {
+    stock[domain] -= 1;
+    plan[b][domain] = (plan[b][domain] || 0) + 1;
+    taken[b] += 1;
+  };
+
+  // Pass 1: primary domains, round-robin so no block starves another, and
+  // capped at the primary TARGET rather than run to 15. Filling a block
+  // entirely from its primaries strands whatever domain is primary nowhere in
+  // this draw — D4 is primary for only two of the six scenarios — leaving a
+  // later block owed slots it has no stock for, and the whole draw fails.
+  // Stopping at the target keeps 7 slots per block free to absorb them.
+  let dealt = true;
+  while (dealt) {
+    dealt = false;
+    for (let b = 0; b < types.length; b++) {
+      if (taken[b] >= EXAM_BLOCK_PRIMARY_TARGET) continue;
+      const primary = (SCENARIO_PRIMARY_DOMAINS[types[b]] || [])
+        .filter((d) => stock[d] > 0 && capacity(b, d) > 0)
+        .sort((x, y) => stock[y] - stock[x]);
+      if (!primary.length) continue;
+      claim(b, primary[0]);
+      dealt = true;
+    }
+  }
+
+  // Pass 2: anything still owed, also round-robin. Filling blocks one at a
+  // time instead lets an earlier block take the last of a domain that a later
+  // block is the only one still able to absorb — the later block then ends a
+  // slot short with stock left on the table, and the whole draw fails.
+  let filling = true;
+  while (filling) {
+    filling = false;
+    for (let b = 0; b < types.length; b++) {
+      if (taken[b] >= EXAM_BLOCK_SIZE) continue;
+      const domain = Object.keys(stock)
+        .filter((d) => stock[d] > 0 && capacity(b, d) > 0)
+        .sort((x, y) => stock[y] - stock[x])[0];
+      if (!domain) continue;
+      claim(b, domain);
+      filling = true;
+    }
+  }
+  const filled = taken.every((n) => n === EXAM_BLOCK_SIZE);
+  return filled && Object.values(stock).every((n) => n === 0) ? plan : null;
+}
+
 // Choose n distinct items from a list, spread-free random. Returns all items
 // (shuffled) when n >= length. Used to draw 4 of the 6 exam scenario types.
 function sampleN(items, n, rng) {
@@ -389,6 +513,82 @@ function pickPerBucket(positions, count, rng) {
   return chosen;
 }
 
+// The exam's six scenario types. Mirrors SCENARIO_TYPES in exam_lib.py — the
+// bridge also reports them via health(), but block assembly has to work offline
+// (the bank exam has no bridge), so they are duplicated here and a test asserts
+// the two lists stay identical.
+const SCENARIO_TYPES = [
+  "Customer Support Resolution Agent",
+  "Code Generation with Claude Code",
+  "Multi-Agent Research System",
+  "Developer Productivity with Claude",
+  "Claude Code for Continuous Integration",
+  "Structured Data Extraction",
+];
+
+// Which domains each scenario exercises. TRANSCRIBED from the CCAR-F exam
+// guide v1.0 section 5, which states "Primary domains:" under each scenario —
+// not inferred. An earlier version of this table was authored from the
+// scenario prose and had 4 of the 6 wrong; do not re-derive it by reading the
+// descriptions, read the guide's own line.
+//
+// Note the counts differ: three scenarios name three domains, three name only
+// two. That asymmetry is the guide's, not an omission here.
+//
+// Used to WEIGHT a block, never to restrict it: D1 alone needs 16 of 60, more
+// than one block holds, so no assignment can be domain-pure. Some 4-of-6 draws
+// also leave a domain primary in no drawn block at all — which drawExamBlocks
+// reports rather than hides.
+const SCENARIO_PRIMARY_DOMAINS = {
+  // Agentic Architecture & Orchestration, Tool Design & MCP, Context Mgmt
+  "Customer Support Resolution Agent": ["D1", "D2", "D5"],
+  // Claude Code Configuration & Workflows, Context Management & Reliability
+  "Code Generation with Claude Code": ["D3", "D5"],
+  // Agentic Architecture & Orchestration, Tool Design & MCP, Context Mgmt
+  "Multi-Agent Research System": ["D1", "D2", "D5"],
+  // Tool Design & MCP, Claude Code Config & Workflows, Agentic Architecture
+  "Developer Productivity with Claude": ["D2", "D3", "D1"],
+  // Claude Code Configuration & Workflows, Prompt Engineering & Structured Output
+  "Claude Code for Continuous Integration": ["D3", "D4"],
+  // Prompt Engineering & Structured Output, Context Management & Reliability
+  "Structured Data Extraction": ["D4", "D5"],
+};
+
+const EXAM_BLOCKS = 4;
+const EXAM_BLOCK_SIZE = 15;
+
+// Share of generated questions phrased FUNCTIONALLY — the mechanism described
+// by what it does rather than named. Mirrors FUNCTIONAL_FRACTION in exam_lib.py;
+// the two must agree or a form and a bank refill train different things.
+const FUNCTIONAL_FRACTION = 0.45;
+
+// One register for one question. Used by the practice drill, which generates a
+// question at a time and so has no plan to index into.
+function drawRegister(rng, fraction) {
+  const draw = rng || Math.random;
+  const share = fraction === undefined ? FUNCTIONAL_FRACTION : fraction;
+  return draw() < share ? "functional" : "named";
+}
+
+// A per-question register plan for the timed form: exactly the target share,
+// SHUFFLED rather than bucket-spread.
+//
+// Bucket-spreading is right for the difficulty tiers — 9 hard over 60 gives
+// ~7-wide buckets and a guaranteed spread. At a 45% share the buckets are
+// barely 2 wide, so one functional per bucket lands a functional question
+// every 2-3 positions: a runs test on that version scored z=6.4, far more
+// regular than chance. A candidate who spots the rhythm can predict the
+// register, which is the pattern-matching this change exists to defeat.
+function examRegisterPlan(rng) {
+  const draw = rng || Math.random;
+  const total = Object.values(EXAM_FORM_QUOTAS).reduce((s, n) => s + n, 0);
+  const wanted = Math.round(total * FUNCTIONAL_FRACTION);
+  const labels = new Array(total)
+    .fill("named")
+    .fill("functional", 0, wanted);
+  return shuffled(labels, draw);
+}
+
 // A per-question difficulty plan for the 60-question timed form: EXAM_HARD_TAIL
 // hard-tail and EXAM_HARDER harder questions, each bucket-spread across the
 // sequence (so the hard tail is distributed, never clustered), the rest
@@ -406,6 +606,85 @@ function examDifficultyPlan(rng) {
   for (const i of harder) labels[i] = "harder";
   return labels;
 }
+
+// Draw the timed form as 4 blocks of 15, one scenario each.
+//
+// The hard part is that two constraints pull against each other: the global
+// domain quotas are exact (16/11/12/12/9), while each block wants to lean on
+// its own scenario's domains. Domains are therefore dealt to blocks
+// round-robin — every block takes one primary-domain slot at a time before any
+// block takes a second — so no block is starved by an earlier one exhausting a
+// shared domain. Whatever the primary pass cannot place is filled from what
+// remains, which is what keeps the global quotas exact.
+function drawExamBlocks(opts) {
+  const options = opts || {};
+  const rng = options.rng || Math.random;
+  const types = options.scenarioTypes || sampleN(SCENARIO_TYPES, EXAM_BLOCKS, rng);
+
+  // Remaining slots per domain, straight from the quotas.
+  const stock = { ...EXAM_FORM_QUOTAS };
+  const blockDomains = types.map(() => []);
+
+  // Pass 1: deal primary-domain slots round-robin across blocks.
+  let dealt = true;
+  while (dealt) {
+    dealt = false;
+    for (let b = 0; b < types.length; b++) {
+      if (blockDomains[b].length >= EXAM_BLOCK_SIZE) continue;
+      const primary = SCENARIO_PRIMARY_DOMAINS[types[b]] || [];
+      // Take from whichever primary domain has the most left, so a block does
+      // not drain a scarce domain another block also needs.
+      const pick = primary
+        .filter((d) => stock[d] > 0)
+        .sort((x, y) => stock[y] - stock[x])[0];
+      if (!pick) continue;
+      stock[pick] -= 1;
+      blockDomains[b].push(pick);
+      dealt = true;
+    }
+  }
+
+  // Pass 2: fill the rest from what is left, so global quotas stay exact.
+  const leftovers = [];
+  for (const [domain, n] of Object.entries(stock)) {
+    for (let i = 0; i < n; i++) leftovers.push(domain);
+  }
+  const spare = shuffled(leftovers, rng);
+  for (let b = 0; b < types.length; b++) {
+    while (blockDomains[b].length < EXAM_BLOCK_SIZE) blockDomains[b].push(spare.pop());
+  }
+
+  // Turn domain slots into concrete task statements, round-robin within each
+  // domain so one statement cannot dominate a block.
+  const cursors = {};
+  const byDomain = {};
+  for (const domain of Object.keys(EXAM_FORM_QUOTAS)) {
+    byDomain[domain] = shuffled(
+      Object.keys(TASK_STATEMENTS).filter((ts) => ts.split(".")[0] === domain),
+      rng
+    );
+    cursors[domain] = 0;
+  }
+  return types.map((scenarioType, b) => {
+    const primary = SCENARIO_PRIMARY_DOMAINS[scenarioType] || [];
+    const statements = shuffled(blockDomains[b], rng).map((domain) => {
+      const pool = byDomain[domain];
+      return pool[cursors[domain]++ % pool.length];
+    });
+    const hits = statements.filter((ts) => primary.includes(ts.split(".")[0])).length;
+    return {
+      scenarioType,
+      statements,
+      // Surfaced, not swallowed: a draw where a domain is primary nowhere
+      // forces off-primary questions, and the caller should be able to say so.
+      primaryShortfall: Math.max(0, EXAM_BLOCK_PRIMARY_TARGET - hits),
+    };
+  });
+}
+
+// The assertable bar for "weighted toward primary domains". Not 15: the exact
+// global quotas make a domain-pure block impossible.
+const EXAM_BLOCK_PRIMARY_TARGET = 8;
 
 // Draw 60 task statements matching the exam-form quotas — the target list
 // for a freshly GENERATED exam form (no bank questions involved). Round-robin
@@ -630,6 +909,25 @@ function toggleMarked(marked, id) {
   return next;
 }
 
+// Mark-through: options the candidate has eliminated. A third, independent
+// kind of per-question state — `answers` commits a choice, `marked` says come
+// back to this, and this one only crosses options out. Nested by question id
+// then option key. Returns a new map, and copies the inner map too, so an exam
+// in progress can never share strike state with a restored one.
+function toggleStruck(struck, id, key) {
+  const next = Object.assign({}, struck);
+  const forQuestion = Object.assign({}, next[id]);
+  if (forQuestion[key]) delete forQuestion[key];
+  else forQuestion[key] = true;
+  if (Object.keys(forQuestion).length) next[id] = forQuestion;
+  else delete next[id];
+  return next;
+}
+
+function isStruck(struck, id, key) {
+  return !!(struck && struck[id] && struck[id][key]);
+}
+
 function examProgress(form, answers, marked, prep) {
   const ids = resolveFormIds(form, prep);
   const unanswered = unansweredIndices(form, answers, prep);
@@ -679,6 +977,8 @@ const NAV = {
   unansweredIndices,
   markedIndices,
   toggleMarked,
+  toggleStruck,
+  isStruck,
   examProgress,
   needsSubmitConfirmation,
   nextUnansweredFrom,
@@ -719,8 +1019,19 @@ const CCARF_ADAPTIVE = {
   applyAnswer,
   applyFlag,
   drawExamForm,
+  drawExamBlockedForm,
+  planBlockedDomains,
   drawExamStatements,
+  drawExamBlocks,
+  SCENARIO_TYPES,
+  SCENARIO_PRIMARY_DOMAINS,
+  EXAM_BLOCKS,
+  EXAM_BLOCK_SIZE,
+  EXAM_BLOCK_PRIMARY_TARGET,
   examDifficultyPlan,
+  examRegisterPlan,
+  drawRegister,
+  FUNCTIONAL_FRACTION,
   sampleN,
   scoreExam,
   discountedScore,
