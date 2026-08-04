@@ -87,7 +87,15 @@ Requirements:
   edit it to their own weak areas without touching the rest of the code.
 - Embed these official sample questions as the Phase 1 static set (also reused
   as few-shot examples in Phase 3). Render them through the same UI the
-  generated questions will use, so the data shape is settled now:
+  generated questions will use, so the data shape is settled now.
+
+  Their option text is quoted verbatim from the exam guide and must stay that
+  way. An earlier revision of this document carried them compressed — unevenly,
+  distractors cut harder than correct answers — which measured 80%
+  longest-is-correct against the guide's own 58%. Because these same questions
+  are the Phase 3 few-shot set, a build made from the compressed version did not
+  merely display that tell, it learned to generate it. Do not paraphrase or
+  shorten them:
 
   Question 1 (D1.4): Scenario — A customer support agent built on the Claude
   Agent SDK has MCP tools get_customer, lookup_order, process_refund,
@@ -96,12 +104,13 @@ Requirements:
   sometimes causing misidentified accounts and incorrect refunds.
   Question — What change would most effectively address this reliability issue?
   A) Add a programmatic prerequisite that blocks lookup_order and process_refund
-  until get_customer has returned a verified customer ID.
+  calls until get_customer has returned a verified customer ID.
   B) Enhance the system prompt to state that customer verification via
   get_customer is mandatory before any order operations.
-  C) Add few-shot examples showing the agent always calling get_customer first.
-  D) Implement a routing classifier that enables only the subset of tools
-  appropriate for each request type.
+  C) Add few-shot examples showing the agent always calling get_customer first,
+  even when customers volunteer order details.
+  D) Implement a routing classifier that analyzes each request and enables only
+  the subset of tools appropriate for that request type.
   Correct: A.
   Explanations — A: when a specific tool sequence is required for critical
   business logic, programmatic enforcement gives deterministic guarantees that
@@ -116,12 +125,17 @@ Requirements:
   identifier formats.
   Question — What is the most effective first step to improve tool selection
   reliability?
-  A) Add 5-8 few-shot examples to the system prompt showing order queries
+  A) Add few-shot examples to the system prompt demonstrating correct tool
+  selection patterns, with 5-8 examples showing order-related queries
   routing to lookup_order.
-  B) Expand each tool's description to include input formats, example queries,
-  edge cases, and boundaries explaining when to use it versus similar tools.
-  C) Implement a routing layer that parses input and pre-selects the tool.
-  D) Consolidate both tools into a single lookup_entity tool.
+  B) Expand each tool's description to include input formats it handles, example
+  queries, edge cases, and boundaries explaining when to use it versus
+  similar tools.
+  C) Implement a routing layer that parses user input before each turn and
+  pre-selects the appropriate tool based on detected keywords and identifier
+  patterns.
+  D) Consolidate both tools into a single lookup_entity tool that accepts any
+  identifier and internally determines which backend to query.
   Correct: B.
   Explanations — B: tool descriptions are the primary mechanism for tool
   selection; minimal descriptions are the root cause, and this is the
@@ -134,12 +148,15 @@ Requirements:
   damage replacements with photo evidence) while attempting to autonomously
   handle complex situations requiring policy exceptions.
   Question — What is the most effective way to improve escalation calibration?
-  A) Add explicit escalation criteria to the system prompt with few-shot
-  examples demonstrating when to escalate versus resolve.
-  B) Have the agent self-report a 1-10 confidence score and route to humans
-  below a threshold.
-  C) Deploy a separate classifier trained on historical tickets.
-  D) Add sentiment analysis and escalate on negative sentiment.
+  A) Add explicit escalation criteria to your system prompt with few-shot
+  examples demonstrating when to escalate versus resolve autonomously.
+  B) Have the agent self-report a confidence score (1-10) before each response
+  and automatically route requests to humans when confidence falls below a
+  threshold.
+  C) Deploy a separate classifier model trained on historical tickets to predict
+  which requests need escalation before the main agent begins processing.
+  D) Implement sentiment analysis to detect customer frustration levels and
+  automatically escalate when negative sentiment exceeds a threshold.
   Correct: A.
   Explanations — A: addresses the root cause, unclear decision boundaries, and
   is the proportionate first step. B fails because LLM self-reported confidence
@@ -152,12 +169,14 @@ Requirements:
   analysis agent's analyze_document tool. Both tools have nearly identical
   descriptions.
   Question — What is the most effective fix?
-  A) Add a pre-routing classifier before the coordinator decides on delegation.
+  A) Insert a pre-routing classifier that reads the incoming request text and
+  predicts the correct agent before the coordinator evaluates tool descriptions.
   B) Rename the web-search tool to extract_web_results and update its description
   to reference web search and URLs specifically.
-  C) Add few-shot examples to the coordinator prompt showing correct routing.
-  D) Expand the document analysis tool description while leaving the web-search
-  tool unchanged.
+  C) Add several few-shot examples to the coordinator's system prompt, pairing
+  sample requests with the correct agent so it can pattern-match new requests.
+  D) Expand the analyze_document tool's description with detail on the document
+  formats, file types, and content it is designed to process.
   Correct: B.
   Explanations — B: renaming removes semantic overlap at the source. A is
   over-engineered for a description problem. C adds overhead without fixing the
@@ -167,12 +186,15 @@ Requirements:
   review produces inconsistent depth, missed bugs, and contradictory feedback on
   identical patterns in different files.
   Question — How should you restructure the review?
-  A) Run three independent full-PR passes and flag issues appearing in at least
-  two runs.
-  B) Split into per-file passes for local issues plus a separate integration pass
-  for cross-file data flows.
-  C) Require developers to split large PRs into smaller submissions.
-  D) Switch to a larger model with a bigger context window.
+  A) Run three independent review passes on the full PR and only flag issues that
+  appear in at least two of the three runs.
+  B) Split into focused passes: analyze each file individually for local issues,
+  then run a separate integration-focused pass examining cross-file data
+  flow.
+  C) Require developers to split large PRs into smaller submissions of 3-4 files
+  before the automated review runs.
+  D) Switch to a higher-tier model with a larger context window to give all 14
+  files adequate attention in one pass.
   Correct: B.
   Explanations — B: per-file passes fix attention dilution; the integration pass
   catches cross-file concerns. A suppresses real bugs by requiring consensus. C
@@ -182,11 +204,14 @@ Requirements:
   into microservices, involving changes across dozens of files and decisions about
   service boundaries and module dependencies.
   Question — Which approach should you take?
-  A) Enter plan mode to explore the codebase and design before making changes.
-  B) Start with direct execution and let implementation reveal service boundaries.
-  C) Use direct execution with upfront instructions detailing each service.
-  D) Begin in direct execution and switch to plan mode only if unexpected
-  complexity emerges.
+  A) Enter plan mode to explore the codebase, understand dependencies, and design
+  an implementation approach before making changes.
+  B) Start with direct execution and make changes incrementally, letting the
+  implementation reveal the natural service boundaries.
+  C) Use direct execution with comprehensive upfront instructions detailing
+  exactly how each service should be structured.
+  D) Begin in direct execution mode and only switch to plan mode if you encounter
+  unexpected complexity during implementation.
   Correct: A.
   Explanations — A: plan mode is designed for architectural decisions, large-scale
   changes, and multiple valid approaches. B risks costly rework. C assumes you
@@ -201,13 +226,13 @@ Requirements:
   Question — What is the most maintainable way to ensure Claude automatically
   applies the correct conventions when generating code?
   A) Create rule files in .claude/rules/ with YAML frontmatter specifying glob
-  patterns to conditionally apply conventions based on file paths.
+  patterns to conditionally apply conventions based on file paths
   B) Consolidate all conventions in the root CLAUDE.md file under headers for
-  each area, relying on Claude to infer which section applies.
+  each area, relying on Claude to infer which section applies
   C) Create skills in .claude/skills/ for each code type that include the
-  relevant conventions in their SKILL.md files.
-  D) Place a separate CLAUDE.md file in each subdirectory containing that
-  area's specific conventions.
+  relevant conventions in their SKILL.md files
+  D) Place a separate CLAUDE.md file in each subdirectory containing that area's
+  specific conventions
   Correct: A.
   Explanations — A: .claude/rules/ with glob patterns (e.g., **/*.test.tsx)
   applies conventions based on file paths regardless of directory location —
@@ -250,17 +275,17 @@ Requirements:
   require deeper investigation.
   Question — What is the most effective approach to reduce overhead while
   maintaining system reliability?
-  A) Give the synthesis agent a scoped verify_fact tool for simple lookups,
-  while complex verifications continue delegating to the web search agent
-  through the coordinator.
+  A) Give the synthesis agent a scoped verify_fact tool for simple lookups, while
+  complex verifications continue delegating to the web search agent through
+  the coordinator.
   B) Have the synthesis agent accumulate all verification needs and return them
-  as a batch to the coordinator at the end of its pass, which then sends them
-  all to the web search agent at once.
-  C) Give the synthesis agent access to all web search tools so it can handle
-  any verification need directly without round-trips through the coordinator.
-  D) Have the web search agent proactively cache extra context around each
-  source during initial research, anticipating what the synthesis agent might
-  need to verify.
+  as a batch to the coordinator at the end of its pass, which then sends
+  them all to the web search agent at once.
+  C) Give the synthesis agent access to all web search tools so it can handle any
+  verification need directly without round-trips through the coordinator.
+  D) Have the web search agent proactively cache extra context around each source
+  during initial research, anticipating what the synthesis agent might need
+  to verify.
   Correct: A.
   Explanations — A: applies the principle of least privilege — the synthesis
   agent gets only what it needs for the 85% common case while preserving the
@@ -383,8 +408,14 @@ Requirements:
     Clauses like "without addressing the root cause" trade a length tell for a
     worse one, because the correct answer becomes the only option not arguing
     against itself. A distractor's wrongness belongs in its explanation.
-  - Include the ten Phase 1 sample questions as few-shot examples of the
-    desired style and difficulty.
+  - Include the ten Phase 1 sample questions as few-shot examples of STRUCTURE
+    AND RIGOUR — a well-formed stem, four plausible options, exactly one correct
+    answer per principle, near-miss distractors. They are NOT the difficulty
+    target: someone who sat the real exam reports they read easy-to-moderate
+    against it, and that they name their tools and techniques outright where the
+    exam more often describes a mechanism by what it does. Tell the model to
+    match their rigour and not their phrasing or their level, or the bank trains
+    recognition of names rather than of mechanisms.
   - Instruct the model NOT to invent specific technical facts — flag names,
     environment variables, configuration behaviors, or claims about how a
     feature depends on configuration or deployment — unless grounded in the
