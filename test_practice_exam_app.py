@@ -1500,9 +1500,12 @@ def test_build_prompt_asks_for_a_shorter_correct_option_under_not_longest():
 def test_build_prompt_permits_a_longest_correct_option_under_longest():
     prompt = " ".join(exam_lib.build_prompt(
         "D1.4", length_posture="longest").split())
-    assert "MUST be the longest" in prompt
-    # The margin cap still binds, or "longest" becomes a licence to run away.
-    assert str(exam_lib.LENGTH_TELL_MAX_RATIO) in prompt
+    assert "may be the longest here, but only barely" in prompt
+    # The margin must be described as a small, concrete gap. Quoting the 1.20x
+    # bound instead read as headroom to fill: two live attempts overshot it at
+    # 1.64x and 1.44x and were discarded.
+    assert "one extra clause" in prompt
+    assert "Never shorten a distractor" in prompt
 
 
 def test_not_longest_posture_rejects_a_longest_correct_option():
@@ -1542,7 +1545,107 @@ def test_longest_posture_accepts_a_longest_correct_option():
     assert exam_lib.longest_option_is_correct(got)
 
 
-def test_longest_posture_rejects_a_not_longest_correct_option():
+def test_longest_posture_does_not_reject_a_not_longest_answer():
+    """Not enforced, deliberately, and this reverses an earlier decision.
+
+    The argument for enforcing it was sound in the abstract: an unenforced
+    permission can only LOSE "longest" slots, never gain them, so the realized
+    rate sits below the plan. Measured against real generation it was wrong on
+    cost. Told to be longest but within 1.20x, the model overshoots — 1.64x and
+    1.44x before the instruction was retuned, then a tight 1.23-1.30 band after,
+    losing 4 of 5 slots either way. Those rejections are correct (1.30x is a
+    real tell) but the price is discarding most of the questions in that third
+    of the plan.
+
+    Unconstrained generation lands longest on its own about 80% of the time —
+    that is what produced the original 81% bank — so the slot mostly does what
+    the plan wanted without being forced. And plan_length_postures measures
+    REALIZED postures, so whatever the shortfall is, the next batch asks for
+    more. The margin cap still binds; it is the only thing that must.
+    """
+    calls = []
+
+    def fake_run(prompt):
+        calls.append(prompt)
+        return {"structured_output": _with_option_lengths(
+            {"A": 90, "B": 60, "C": 40, "D": 50})}  # correct B, not longest
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, length_posture="longest")
+    assert len(calls) == 1, "a longest slot must not spend a retry on posture"
+    assert not exam_lib.longest_option_is_correct(got)
+
+
+def test_longest_posture_still_rejects_an_exploitable_margin():
+    """The cap is the line that must hold, whatever the posture."""
+    def fake_run(prompt):
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 150, "C": 40, "D": 60})}  # 2.5x
+
+    with pytest.raises(exam_lib.GenerationError):
+        exam_lib.generate_question(
+            "D1.4", run=fake_run, length_posture="longest")
+
+
+def test_longest_posture_accepts_a_longest_correct_option():
+    """Not every question may be flattened, or the bank teaches the inverse:
+    that the longest option is never right, which is false on the real exam."""
+    calls = []
+
+    def fake_run(prompt):
+        calls.append(prompt)
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 110, "C": 40, "D": 100})}
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, length_posture="longest")
+    assert len(calls) == 1, "an allowed longest answer must not cost a retry"
+    assert exam_lib.longest_option_is_correct(got)
+
+
+def test_longest_posture_does_not_reject_a_not_longest_answer():
+    """Not enforced, deliberately, and this reverses an earlier decision.
+
+    The argument for enforcing it was sound in the abstract: an unenforced
+    permission can only LOSE "longest" slots, never gain them, so the realized
+    rate sits below the plan. Measured against real generation it was wrong on
+    cost. Told to be longest but within 1.20x, the model overshoots — 1.64x and
+    1.44x before the instruction was retuned, then a tight 1.23-1.30 band after,
+    losing 4 of 5 slots either way. Those rejections are correct (1.30x is a
+    real tell) but the price is discarding most of the questions in that third
+    of the plan.
+
+    Unconstrained generation lands longest on its own about 80% of the time —
+    that is what produced the original 81% bank — so the slot mostly does what
+    the plan wanted without being forced. And plan_length_postures measures
+    REALIZED postures, so whatever the shortfall is, the next batch asks for
+    more. The margin cap still binds; it is the only thing that must.
+    """
+    calls = []
+
+    def fake_run(prompt):
+        calls.append(prompt)
+        return {"structured_output": _with_option_lengths(
+            {"A": 90, "B": 60, "C": 40, "D": 50})}  # correct B, not longest
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, length_posture="longest")
+    assert len(calls) == 1, "a longest slot must not spend a retry on posture"
+    assert not exam_lib.longest_option_is_correct(got)
+
+
+def test_longest_posture_still_rejects_an_exploitable_margin():
+    """The cap is the line that must hold, whatever the posture."""
+    def fake_run(prompt):
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 150, "C": 40, "D": 60})}  # 2.5x
+
+    with pytest.raises(exam_lib.GenerationError):
+        exam_lib.generate_question(
+            "D1.4", run=fake_run, length_posture="longest")
+
+
+def _retired_test_longest_posture_rejects_a_not_longest_correct_option():
     """Enforced in BOTH directions or the control is one-sided. A permission
     the model may decline can only ever lose "longest" slots, never gain them,
     so the realized rate would sit below the plan by however often generation

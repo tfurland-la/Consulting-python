@@ -596,18 +596,18 @@ def posture_problem(question, length_posture):
         return ""
     lengths = {k: len(v) for k, v in (question.get("options") or {}).items()}
     correct = question.get("correct")
-    if length_posture == "longest" and not longest_option_is_correct(question):
-        return (
-            f"option {correct} is the correct answer and is NOT the longest of "
-            f"the four ({lengths}). This question was planned to be one where "
-            "the correct option is longest, so that the bank keeps the mild "
-            "length tell the real exam has rather than teaching that the "
-            "longest option is never right. Extend the correct option past its "
-            f"rivals, by up to {LENGTH_TELL_MAX_RATIO}x the longest of them. Do "
-            "NOT trim or shorten the distractors to achieve it — short flat "
-            "distractors beside a qualified correct answer are the defect this "
-            "bank exists to remove."
-        )
+    # "longest" is planned but NOT enforced, which reverses an earlier decision
+    # in this file. Enforcing it was right in principle — an unenforced
+    # permission can only lose slots, never gain them — and wrong on measured
+    # cost. Told to be longest within the cap, real generation overshoots: 1.64x
+    # and 1.44x before the instruction was retuned, a tight 1.23-1.30 band
+    # after, losing 4 of 5 slots either way. Hitting a narrow character-length
+    # band is not something a model does reliably, and no wording fixed it.
+    #
+    # Unforced, generation lands longest on its own roughly 80% of the time —
+    # that is what produced the original 81% bank — so the slot mostly does what
+    # the plan asked without costing a question. plan_length_postures measures
+    # REALIZED postures, so any shortfall is repaid by the next batch.
     if length_posture == "not-longest" and longest_option_is_correct(question):
         return (
             f"option {correct} is the correct answer and is the longest of the "
@@ -731,14 +731,23 @@ NOT_LONGEST_POSTURE_INSTRUCTIONS = (
     "text.\n"
 )
 
+# Worded to stop the correct option running away. An earlier version said it
+# "MUST be the longest ... by no more than 1.20x" and told the model to get
+# there by extending the correct option: it read the bound as headroom to fill
+# and overshot it, losing both of two live attempts at 1.64x and 1.44x. So the
+# baseline is anchored high first — all four full-length — and the gap is given
+# concretely, as a clause, rather than as a ratio a model cannot compute. The
+# stated tolerance is deliberately tighter than LENGTH_TELL_MAX_RATIO so that
+# an overshoot still lands inside the gate.
 LONGEST_POSTURE_INSTRUCTIONS = (
-    "- OPTION LENGTH FOR THIS QUESTION: the correct option MUST be the longest "
-    "of the four, but by no more than "
-    f"{LENGTH_TELL_MAX_RATIO}x the longest distractor. Count the characters "
-    "before you answer. Achieve it by extending the correct option, NEVER by "
-    "trimming or shortening the distractors — they still need full "
-    "specificity, and a short flat assertion beside a fully-qualified "
-    "correct answer is the defect this bank exists to remove.\n"
+    "- OPTION LENGTH FOR THIS QUESTION: write all four options at full, "
+    "comparable specificity — the same depth of qualification and hedging in "
+    "every one, so no option is a short flat assertion. The correct option may "
+    "be the longest here, but only barely: about one extra clause, roughly ten "
+    "words more than the next-longest. It must not run away from the others — "
+    "a correct answer even a fifth longer than its best rival is rejected as a "
+    "scoring tell, and the question is thrown away. If in doubt, keep them "
+    "level. Never shorten a distractor to open a gap.\n"
 )
 
 # Used when no posture was planned for this call. Callers that plan one get a

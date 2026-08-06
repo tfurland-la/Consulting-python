@@ -338,18 +338,44 @@ rejects a candidate that violates it — feeding the retry loop that already
 exists. The rate is then a property of the plan rather than of whatever
 generation drifts to. `LENGTH_LONGEST_FRACTION` is **0.35**.
 
-**Enforced in both directions, which is not optional.** The first build only
-rejected a `"longest"` result in a `"not-longest"` slot, leaving `"longest"`
-as a permission the model could decline. That is not a rate control: an
-unenforced permission can only ever *lose* longest-is-correct slots, never gain
-them, so the realized rate is bounded above by the plan and sits below it by
-however often generation declines. A live run declined once in two. Both
-directions now raise. The `"longest"` rejection says explicitly not to shorten
-the distractors to comply — the cheap fix would reinstate the short-flat-
-distractor defect the whole exercise removes. Measured on a live run after the
-change, four of four completed generations honoured the posture with distractors
-still full (a `"longest"` question at 370 chars correct against distractors of
-297/319/342).
+**Only `"not-longest"` is enforced. `"longest"` is planned but not required,**
+and this reverses an earlier decision recorded here in the opposite terms.
+
+The argument for enforcing both was that an unenforced permission can only
+*lose* longest-is-correct slots, never gain them, so the realized rate is
+bounded above by the plan. That reasoning is correct and it is not why the
+decision changed. Measuring the cost is:
+
+| `"longest"` slots, live | result |
+|---|---|
+| enforced, first wording | lost 2 of 2 — overshot the cap at 1.64× and 1.44× |
+| enforced, retuned wording | lost 4 of 5 — a tight 1.23–1.30 band, still over |
+| **not enforced** | **lost 0 of 5**, four landed longest anyway at 1.15–1.18 |
+
+Told to be longest *but within the cap*, the model overshoots. Hitting a narrow
+character-length band is not something it does reliably, and retuning the
+wording moved the overshoot without removing it. Those rejections were correct —
+1.30× is a real tell — but the price was discarding most of the questions in a
+third of the plan, which is the same harm as failing a sound question over a
+posture miss.
+
+Unforced, generation lands longest on its own about 80% of the time. That is not
+a hopeful estimate: it is what produced the original 81% bank, and it reproduced
+at 4 of 5 in the run above. So the slot mostly does what the plan asked without
+being made to. Two things absorb the rest:
+
+- `plan_length_postures` measures **realized** postures already pending, so
+  whatever shortfall imperfect compliance leaves, the next batch asks for more.
+  The compensation was already built for partial batches and applies unchanged.
+- The margin cap still binds on every question regardless of posture. It is the
+  only rule that must hold, because it is the only one describing a question a
+  candidate can actually score on.
+
+The instruction for a `"longest"` slot is now guidance rather than a
+requirement, and deliberately understates the allowance — "only barely, about
+one extra clause", with the tolerance quoted tighter than
+`LENGTH_TELL_MAX_RATIO` — because quoting the real bound reads as headroom to
+fill.
 
 Three properties of that shape are load-bearing:
 
