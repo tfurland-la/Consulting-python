@@ -48,22 +48,13 @@ PENDING_PATH = exam_lib.PRACTICE_EXAM_DIR / "questions_pending.json"
 # trap the "option a" comment above describes, and the same rule applies: a term an
 # author would plausibly write in ordinary prose does not belong here, however
 # stub-like it sounds. The unambiguous forms are kept.
-STUB_MARKERS = ["test scenario", "lorem ipsum", "option a", "tbd", "xxx",
-                "example.com", "placeholder text", "[placeholder]",
-                "your text here", "insert scenario"]
+# Defined in exam_lib so live generation screens for the same markers this
+# pipeline does — that split is what let a placeholder question reach a user.
+STUB_MARKERS = exam_lib.STUB_MARKERS
 
 
-def stub_pattern(marker):
-    r"""Word-boundary match, but only where a boundary is meaningful.
-
-    `\b` asserts a word/non-word transition, so `\b\[placeholder\]\b` can only match
-    if a word character sits immediately before the `[` — which is never. Anchor only
-    the ends that actually start or end with a word character.
-    """
-    body = re.escape(marker)
-    left = r"\b" if marker[:1].isalnum() else ""
-    right = r"\b" if marker[-1:].isalnum() else ""
-    return left + body + right
+# stub_pattern lives in exam_lib beside the markers it applies to.
+stub_pattern = exam_lib.stub_pattern
 
 SKEW_LIMIT = 0.40        # one answer position holding more than this is exploitable
 LENGTH_TELL_RATIO = 1.6  # correct option this much longer than the runner-up

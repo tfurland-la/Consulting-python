@@ -380,6 +380,36 @@ that would reinstate a shortcut scoring 58% without reading, which is the defect
 the repair removed. Deliberately *above* 0, because a bank with no tell teaches
 that the longest option is never right, which the real exam refutes.
 
+**A posture miss costs a retry, then is accepted.** Posture and the margin cap
+are different kinds of rule and get different consequences. The cap is a defect
+in *that* question — past it a candidate scores by picking the longest option —
+so it is worth discarding over. The posture is a target across a *batch*, and a
+question that misses it is still sound.
+
+Enforcing the second like the first was a live failure: a question whose correct
+option ran 229 characters against a longest distractor of 209 — ratio 1.10, well
+inside the cap, exploitable by nobody — was discarded after its retry. That cost
+the question, forced a bank substitute, broke that block's shared scenario, and
+downgraded the readiness gate to banked content, all to avoid a fractional move
+in a rate that repays itself: `plan_length_postures` counts **realized** postures
+already pending and asks the next run for the shortfall.
+
+**Live generation screens for placeholder content** (`stub_problem`).
+`--json-schema` constrains the *shape* of a response, never its substance:
+`"test scenario"` is a valid string, so a degenerate reply validated cleanly and
+was served to someone as a real question — scenario `"test scenario"`, options
+`"a"`/`"b"`/`"c"`/`"d"`. `screen_mechanical.py` had carried a stub-marker check
+all along, but only on the bank-refill pipeline; the path the desktop app
+actually serves had no substance check at all. The markers and the floors now
+live in `exam_lib` so both paths screen identically. Floors are calibrated from
+the committed bank (shortest real scenario 144 chars, question 31, option 41,
+explanation 58) and measured at zero false positives across all 124. Unlike a
+posture miss this is fatal after its retry: falling back to a reviewed bank
+question beats presenting someone with "test question".
+
+Markers are matched on **word boundaries**, never as bare substrings — `"xxx"`
+is a marker, and a plain `in` test fires inside any longer run of x's.
+
 **Maintained, not corrected.** The rate holds without further intervention: every
 batch lands on the target, so the bank stays where it is instead of climbing.
 Simulated over eight refills of 20 against the committed bank, it moves 34.2% →

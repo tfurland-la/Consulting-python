@@ -7,6 +7,7 @@ end-to-end path is exercised manually via `python3 practice-exam/exam_app.py`.
 import json
 import random
 import re
+from unittest import mock
 
 import pytest
 
@@ -1565,6 +1566,119 @@ def test_longest_posture_rejects_a_not_longest_correct_option():
     # The feedback must not invite the cheap fix of shortening distractors —
     # that reinstates the short-flat-distractor defect this bank exists to fix.
     assert "trim" in prompts[1] or "shorten" in prompts[1]
+
+
+def test_a_failure_with_an_empty_stderr_still_says_what_went_wrong():
+    """An expired OAuth session prints to stdout and exits 1, so an error built
+    only from stderr reads "claude -p exited 1: " and tells you nothing."""
+    import subprocess
+
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args=args, returncode=1,
+            stdout="Failed to authenticate: OAuth session expired", stderr="")
+
+    with mock.patch.object(exam_lib.subprocess, "run", fake_run), \
+            mock.patch.object(exam_lib, "find_claude", lambda: "/usr/bin/claude"):
+        with pytest.raises(exam_lib.GenerationError) as excinfo:
+            exam_lib.run_claude("prompt")
+    assert "OAuth session expired" in str(excinfo.value)
+
+
+def test_a_placeholder_response_never_reaches_the_candidate():
+    """--json-schema constrains SHAPE, not substance: "test scenario" is a
+    perfectly valid string, so a degenerate response validated cleanly and was
+    shown to a user as a real question — scenario "test scenario", question
+    "test question", options "a"/"b"/"c"/"d".
+
+    screen_mechanical.py has carried a stub-marker check all along, but it only
+    runs on the bank-refill pipeline. Live generation, which is what the desktop
+    app actually serves, had no substance check whatsoever.
+    """
+    stub = make_candidate("D1.4")
+    stub.update(
+        scenario="test scenario", question="test question",
+        options={"A": "a", "B": "b", "C": "c", "D": "d"},
+    )
+    prompts = []
+
+    def fake_run(prompt):
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            return {"structured_output": stub}
+        return {"structured_output": _with_option_lengths(
+            {"A": 90, "B": 60, "C": 40, "D": 50})}
+
+    got = exam_lib.generate_question("D1.4", run=fake_run)
+    assert len(prompts) == 2, "a placeholder must cost a retry"
+    assert got["scenario"] != "test scenario"
+
+
+def test_a_placeholder_that_survives_the_retry_is_not_returned():
+    """Falling back to a reviewed bank question is strictly better than showing
+    someone "test question" and asking them to answer it."""
+    stub = make_candidate("D1.4")
+    stub.update(
+        scenario="test scenario", question="test question",
+        options={"A": "a", "B": "b", "C": "c", "D": "d"},
+    )
+
+    with pytest.raises(exam_lib.GenerationError):
+        exam_lib.generate_question("D1.4", run=lambda p: {"structured_output": stub})
+
+
+def test_the_substance_floors_sit_below_every_real_bank_question():
+    """Calibrated from the committed bank, not invented: its shortest scenario
+    is 144 chars, question 31, option 41, explanation 58. A floor above any of
+    those would reject real content."""
+    bank = exam_lib.load_bank()
+    assert bank, "no bank to calibrate against"
+    for question in bank:
+        assert not exam_lib.stub_problem(question), (
+            f"{question['id']} is real content but reads as a stub: "
+            f"{exam_lib.stub_problem(question)}"
+        )
+
+
+def test_a_missed_posture_is_not_fatal_after_the_retry():
+    """A posture miss costs a retry and is then accepted, because posture is a
+    distribution target and not a defect in the question.
+
+    Discarding costs far more than it saves: a live run lost a question whose
+    correct option was 229 chars against a longest distractor of 209 — a ratio
+    of 1.10, well inside the margin cap and not exploitable by anyone. Failing
+    it dropped the question, substituted from the bank, broke that block's
+    shared scenario, and downgraded the readiness gate to banked content. The
+    overshoot repays itself instead: plan_length_postures counts REALIZED
+    postures in pending and asks the next run for the shortfall.
+    """
+    prompts = []
+
+    def fake_run(prompt):
+        prompts.append(prompt)
+        # Longest by a hair every time — inside the cap, wrong for the slot.
+        return {"structured_output": _with_option_lengths(
+            {"A": 100, "B": 110, "C": 105, "D": 100})}
+
+    got = exam_lib.generate_question(
+        "D1.4", run=fake_run, length_posture="not-longest")
+    assert len(prompts) == 2, "the miss must still cost a retry"
+    assert got is not None, "a question inside the margin cap must not be discarded"
+    assert not exam_lib.has_exploitable_length_tell(got)
+    # The retry must still have said what was wrong, or it is a wasted call.
+    assert "longest" in prompts[1]
+
+
+def test_an_exploitable_margin_stays_fatal_even_when_the_posture_matches():
+    """The cap is the line that is worth losing a question over: past it, the
+    question itself rewards picking the longest option."""
+    def fake_run(prompt):
+        return {"structured_output": _with_option_lengths(
+            {"A": 50, "B": 150, "C": 40, "D": 60})}  # 2.5x
+
+    with pytest.raises(exam_lib.GenerationError):
+        exam_lib.generate_question(
+            "D1.4", run=fake_run, length_posture="longest")
 
 
 def test_longest_posture_still_obeys_the_margin_cap():

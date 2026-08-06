@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -490,6 +491,136 @@ def has_exploitable_length_tell(question):
     return length_tell_ratio(question) > LENGTH_TELL_MAX_RATIO
 
 
+# Markers that only appear in placeholder content. Shared with
+# screen_mechanical.py, which has screened the bank for them all along — the
+# gap was that live generation never ran the same check.
+STUB_MARKERS = ["test scenario", "lorem ipsum", "option a", "tbd", "xxx",
+                "example.com", "placeholder text", "[placeholder]",
+                "your text here", "insert scenario"]
+
+# Floors calibrated from the committed bank, not invented. Its shortest real
+# scenario is 144 characters, question 31, option 41, explanation 58 — so these
+# sit far below anything a genuine question produces and cannot false-positive,
+# while a placeholder ("test scenario", options "a"/"b"/"c"/"d") fails several
+# at once.
+MIN_FIELD_CHARS = {"scenario": 60, "question": 20, "option": 20, "explanation": 25}
+
+
+def stub_pattern(marker):
+    r"""Word-boundary match, but only where a boundary is meaningful.
+
+    `\b` asserts a word/non-word transition, so `\b\[placeholder\]\b` can only
+    match if a word character sits immediately before the `[` — which is never.
+    Anchor only the ends that actually start or end with a word character.
+    """
+    body = re.escape(marker)
+    left = r"\b" if marker[:1].isalnum() else ""
+    right = r"\b" if marker[-1:].isalnum() else ""
+    return left + body + right
+
+
+def stub_problem(question):
+    """Describe why a candidate reads as placeholder content, or "" if it does not.
+
+    `--json-schema` constrains the SHAPE of a response, never its substance:
+    "test scenario" is a valid string, so a degenerate reply validated cleanly
+    and was served to someone as a real question. Shape validation cannot catch
+    this; only a content floor can.
+    """
+    text_fields = {
+        "scenario": question.get("scenario") or "",
+        "question": question.get("question") or "",
+    }
+    for name, value in text_fields.items():
+        if len(value.strip()) < MIN_FIELD_CHARS[name]:
+            return (
+                f"the {name} is only {len(value.strip())} characters "
+                f"({value.strip()[:60]!r}) — far too short to be a real one. "
+                "Write the full question, not a placeholder."
+            )
+    for key, value in (question.get("options") or {}).items():
+        if len(value.strip()) < MIN_FIELD_CHARS["option"]:
+            return (
+                f"option {key} is only {len(value.strip())} characters "
+                f"({value.strip()[:40]!r}). Every option must be a real, "
+                "plausible answer."
+            )
+    for key, value in (question.get("explanations") or {}).items():
+        if len(value.strip()) < MIN_FIELD_CHARS["explanation"]:
+            return (
+                f"the explanation for {key} is only {len(value.strip())} "
+                f"characters ({value.strip()[:40]!r}). Explain why that option "
+                "is right or wrong."
+            )
+    haystack = " ".join(
+        [text_fields["scenario"], text_fields["question"]]
+        + list((question.get("options") or {}).values())
+    ).lower()
+    for marker in STUB_MARKERS:
+        # Word-boundary matched, never a bare substring. "xxx" is a marker, and
+        # a plain `in` test fires on any run of three x's inside a longer word;
+        # screen_mechanical.py learned this already and its stub_pattern is
+        # reused here rather than reimplemented more weakly.
+        if re.search(stub_pattern(marker), haystack):
+            return (
+                f"the text contains {marker!r}, which is placeholder wording. "
+                "Write a real production scenario and real options."
+            )
+    return ""
+
+
+def posture_problem(question, length_posture):
+    """Describe how a candidate misses its planned posture, or "" if it does not.
+
+    Reported rather than raised, because posture and the margin cap are
+    different kinds of rule and deserve different consequences:
+
+    - The margin cap is a defect in THIS question. Past it, a candidate scores
+      by picking the longest option without reading. Worth discarding over.
+    - The posture is a target across a BATCH. A question that misses it is
+      still perfectly sound on its own.
+
+    Treating the second like the first was a real mistake in production: a
+    question whose correct option ran 229 characters against a longest
+    distractor of 209 — a ratio of 1.10, well inside the cap and exploitable by
+    nobody — was discarded after its retry. That cost the question, forced a
+    substitute from the bank, broke that block's shared scenario, and dropped
+    the readiness gate to banked content. All to avoid a fractional move in a
+    rate that repairs itself anyway: plan_length_postures counts REALIZED
+    postures already pending and asks the next run for the shortfall.
+
+    So a miss costs one retry, with the character counts fed back, and is then
+    accepted.
+    """
+    if not length_posture:
+        return ""
+    lengths = {k: len(v) for k, v in (question.get("options") or {}).items()}
+    correct = question.get("correct")
+    if length_posture == "longest" and not longest_option_is_correct(question):
+        return (
+            f"option {correct} is the correct answer and is NOT the longest of "
+            f"the four ({lengths}). This question was planned to be one where "
+            "the correct option is longest, so that the bank keeps the mild "
+            "length tell the real exam has rather than teaching that the "
+            "longest option is never right. Extend the correct option past its "
+            f"rivals, by up to {LENGTH_TELL_MAX_RATIO}x the longest of them. Do "
+            "NOT trim or shorten the distractors to achieve it — short flat "
+            "distractors beside a qualified correct answer are the defect this "
+            "bank exists to remove."
+        )
+    if length_posture == "not-longest" and longest_option_is_correct(question):
+        return (
+            f"option {correct} is the correct answer and is the longest of the "
+            f"four ({lengths}) — this question was planned to have a correct "
+            "option that is NOT the longest, so that the bank as a whole does "
+            "not reward picking the longest option. Lengthen a distractor past "
+            "it by adding matching specificity, rather than trimming the "
+            "correct answer, and do not pad a distractor with the reason it is "
+            "wrong."
+        )
+    return ""
+
+
 def summarize_for_avoid(question):
     """Compact summary of an existing question, for the generation avoid-list."""
     rationale = question["explanations"][question["correct"]]
@@ -826,8 +957,14 @@ def run_claude(prompt, schema=None, timeout=None):
         detail = (completed.stderr.strip() or completed.stdout.strip())[-300:]
         raise RateLimitedError(f"usage window exhausted: {detail}")
     if completed.returncode != 0:
+        # Fall back to stdout when stderr is empty. An expired OAuth session
+        # exits 1 and prints "Failed to authenticate..." on STDOUT, so an error
+        # built from stderr alone reads "claude -p exited 1: " and names nothing
+        # — which is what a user sees at the exact moment they most need to be
+        # told to log in again.
+        detail = (completed.stderr.strip() or completed.stdout.strip())[-500:]
         raise GenerationError(
-            f"claude -p exited {completed.returncode}: {completed.stderr.strip()[-500:]}"
+            f"claude -p exited {completed.returncode}: {detail}"
         )
     return json.loads(completed.stdout)
 
@@ -859,7 +996,8 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
         raise ValueError(f"unknown task statement: {task_statement!r}")
     bank = load_bank()
     error = None
-    for _ in range(2):
+    attempts = 2
+    for attempt in range(attempts):
         prompt = build_prompt(
             task_statement,
             retry_feedback=error,
@@ -902,38 +1040,19 @@ def generate_question(task_statement, run=run_claude, avoid=None, scenario_type=
             # never gain them, leaving the realized rate below the plan by
             # however often generation declines to comply. A live run declined
             # once in two.
-            if (length_posture == "longest"
-                    and not longest_option_is_correct(candidate)):
-                lengths = {k: len(v) for k, v in candidate["options"].items()}
-                raise ValueError(
-                    f"option {candidate['correct']} is the correct answer and is "
-                    f"NOT the longest of the four ({lengths}). This question was "
-                    "planned to be one where the correct option is longest, so "
-                    "that the bank keeps the mild length tell the real exam has "
-                    "rather than teaching that the longest option is never "
-                    f"right. Extend the correct option past its rivals, by up to "
-                    f"{LENGTH_TELL_MAX_RATIO}x the longest of them. Do NOT trim "
-                    "or shorten the distractors to achieve it — short flat "
-                    "distractors beside a qualified correct answer are the "
-                    "defect this bank exists to remove."
-                )
-            # The margin gate above passes a correct option that is longest by
-            # a hair, which is how the batch rate climbed while every single
-            # question stayed legal. When this slot was planned not-longest,
-            # being longest at all is the failure.
-            if (length_posture == "not-longest"
-                    and longest_option_is_correct(candidate)):
-                lengths = {k: len(v) for k, v in candidate["options"].items()}
-                raise ValueError(
-                    f"option {candidate['correct']} is the correct answer and is "
-                    "the longest of the four "
-                    f"({lengths}) — this question was planned to have a correct "
-                    "option that is NOT the longest, so that the bank as a whole "
-                    "does not reward picking the longest option. Lengthen a "
-                    "distractor past it by adding matching specificity, rather "
-                    "than trimming the correct answer, and do not pad a "
-                    "distractor with the reason it is wrong."
-                )
+            # Reported, not raised. A posture miss costs one retry and is then
+            # accepted — posture is a batch-level target, not a defect in this
+            # question, and discarding a sound question over it costs far more
+            # than it saves. See posture_problem.
+            # Fatal after its retry, unlike a posture miss: falling back to a
+            # reviewed bank question is strictly better than presenting someone
+            # with "test question" and asking them to answer it.
+            stub = stub_problem(candidate)
+            if stub:
+                raise ValueError(stub)
+            missed = posture_problem(candidate, length_posture)
+            if missed and attempt < attempts - 1:
+                raise ValueError(missed)
             candidate["register"] = register
             if scenario_type is not None:
                 candidate["scenarioType"] = scenario_type

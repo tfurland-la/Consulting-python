@@ -39,11 +39,29 @@ def make_valid_question():
     question = {
         "taskStatement": "D1.2",
         "domain": "D1",
-        "scenario": "A production scenario.",
-        "question": "What should you do?",
-        "options": {"A": "First", "B": "Second", "C": "Third", "D": "Fourth"},
+        # Long enough to clear the substance floors in exam_lib.stub_problem.
+        # The fixture used to read "A production scenario." / "First" / "Wrong",
+        # which is indistinguishable from the placeholder responses that floor
+        # exists to reject — so a fixture that short would have made the check
+        # untestable against anything realistic.
+        "scenario": (
+            "A support agent built on the Agent SDK calls its tools out of order "
+            "in a measurable share of production conversations."
+        ),
+        "question": "What change would most effectively address this?",
+        "options": {
+            "A": "First option, written at the length a real option runs to.",
+            "B": "Second option, written at the length a real option runs to.",
+            "C": "Third option, written at the length a real option runs to.",
+            "D": "Fourth option, written at the length a real option runs to.",
+        },
         "correct": "B",
-        "explanations": {"A": "Wrong", "B": "Right", "C": "Wrong", "D": "Wrong"},
+        "explanations": {
+            "A": "Wrong, for a reason stated at realistic length.",
+            "B": "Right, for a reason stated at realistic length.",
+            "C": "Wrong, for a reason stated at realistic length.",
+            "D": "Wrong, for a reason stated at realistic length.",
+        },
         "provenance": {
             "source": "official-sample",
             "model": None,
