@@ -1,8 +1,11 @@
 # Python for AI Consultants
 
 A from-zero on-ramp to Python and the Anthropic Claude SDK, built as preparation
-for the **Claude Certified Architect (CCAR-F)** exam. Works as a responsive study
-companion alongside Anthropic's official Skilljar course.
+for the **Claude Certified Architect – Foundations (CCAR-F)** exam. Works as a
+responsive study companion alongside Anthropic's official Skilljar course.
+Anthropic has since introduced a Professional-level architect credential — this
+repo targets **Foundations** specifically, and nothing here is calibrated
+against the Professional exam.
 
 **The author sat the CCAR-F and passed.** The practice exam has since been
 rebuilt around what the real thing actually looks like — its scenario structure,

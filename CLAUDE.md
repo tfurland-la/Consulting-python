@@ -3,9 +3,11 @@
 ## What this repo is
 
 A learning repository for Python fundamentals and the Anthropic Claude SDK, built
-as preparation for the Claude Certified Architect (CCAR-F) exam. It is designed to
-work as a **responsive study companion alongside the official Anthropic Skilljar
-course** — a supplement, not a replacement.
+as preparation for the Claude Certified Architect – Foundations (CCAR-F) exam.
+Anthropic also offers a Professional-level architect credential; this repo
+targets Foundations. It is designed to work as a **responsive study companion
+alongside the official Anthropic Skilljar course** — a supplement, not a
+replacement.
 
 `python_course.html` is the canonical course content (Modules 1–4, testing with
 pytest, Git & secrets, common gotchas, Claude Code CLI). The `lessonN.py` files
