@@ -1,0 +1,22 @@
+# Direct dependencies for this repo. Install into a virtualenv:
+#
+#     python3 -m venv .venv && source .venv/bin/activate
+#     pip install -r requirements.txt
+#
+# Lower bounds rather than exact pins: this is a study repo for a moving SDK,
+# and freezing `anthropic` would work against keeping current with model names
+# and parameters. Transitive dependencies are deliberately not listed — pip
+# resolves them, including the platform-specific pyobjc bindings pywebview
+# needs for the native window on macOS.
+
+# Claude SDK — lessons, consulting_assistant.py, the exercises
+anthropic>=0.121.0
+
+# Loads ANTHROPIC_API_KEY from .env (gitignored; never commit a key)
+python-dotenv>=1.2.1
+
+# Test runner — `pytest -v`
+pytest>=8.4.2
+
+# Native window for the CCAR-F practice exam (practice-exam/exam_app.py)
+pywebview>=6.2.1

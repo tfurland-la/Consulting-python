@@ -51,7 +51,7 @@ repository root (the paths are relative to it):
 
 ```
 python3 -m venv .venv                        # first run only
-.venv/bin/pip install pywebview              # first run only
+.venv/bin/pip install -r requirements.txt    # first run only
 .venv/bin/python practice-exam/exam_app.py
 ```
 

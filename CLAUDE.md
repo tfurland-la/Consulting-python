@@ -54,6 +54,7 @@ https://docs.claude.com rather than relying on training data.
 
 - `python_course.html` — the full course (source of truth for content)
 - `README.md` — overview and how to start
+- `requirements.txt` — direct dependencies; the one place to add a new one
 - `lesson1.py … lesson5.py` — worked examples per module
 - `test_lesson1/3/4/5.py`, `test_consulting_assistant.py` — tests (`pytest -v`)
 - `consulting_assistant.py` — a worked assistant: system prompt + multi-turn loop + prompt caching
@@ -70,7 +71,7 @@ https://docs.claude.com rather than relying on training data.
 
 ```
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install anthropic python-dotenv pytest pywebview
+pip install -r requirements.txt
 pytest -v
 ```
 
