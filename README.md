@@ -50,10 +50,19 @@ generation goes through your own authenticated Claude Code CLI. Run these from t
 repository root (the paths are relative to it):
 
 ```
-python3 -m venv .venv                        # first run only
-.venv/bin/pip install -r requirements.txt    # first run only
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 .venv/bin/python practice-exam/exam_app.py
 ```
+
+The first two lines are one-time setup; after that only the third is needed.
+That note lives here rather than as a trailing `# first run only` comment on the
+commands, because zsh does not treat `#` as a comment unless
+`interactive_comments` is set — and it is off by default. Pasting
+`python3 -m venv .venv  # first run only` into zsh therefore passes `#`, `first`,
+`run` and `only` to `venv` as extra target directories, which it accepts without
+complaint, silently creating a venv in each. Keep copy-paste blocks free of
+inline comments.
 
 Use `.venv/bin/python`, not a bare `python3` — pywebview is installed into the
 project venv, and system Python will fail with `ModuleNotFoundError: No module
