@@ -47,6 +47,14 @@ for every session: test-driven workflow, surface broken tests rather than paper
 over them, and never touch secrets. See [Build Your Own Study Companion][build-your-own]
 for how to fork and personalize it.
 
+It also ships `.claude/hooks/protect-main.sh`, wired up in `.claude/settings.json`
+so it applies in any clone. It stops a Claude session force-pushing `main`,
+deleting it, hard-resetting it, or weakening its branch protection — ordinary
+pushes are untouched. GitHub's protection on `main` exempts admins, which means
+the one thing it cannot defend against is an agent running with the owner's
+credentials; this hook is that missing half. Personal settings belong in
+`.claude/settings.local.json`, which stays untracked.
+
 ## Adaptive Practice Exam
 
 An adaptive, scenario-based practice exam for the CCAR-F. It tracks performance at
