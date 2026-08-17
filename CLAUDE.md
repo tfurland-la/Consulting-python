@@ -58,7 +58,8 @@ https://docs.claude.com rather than relying on training data.
 - `README.md` — overview and how to start
 - `requirements.txt` — direct dependencies; the one place to add a new one
 - `lesson1.py … lesson5.py` — worked examples per module
-- `test_lesson1/3/4/5.py`, `test_consulting_assistant.py` — tests (`pytest -v`)
+- `test_lesson1/3/4/5.py`, `test_consulting_assistant.py` — tests
+  (`pytest -v --ignore=exercises`; the API-backed ones skip without a key)
 - `consulting_assistant.py` — a worked assistant: system prompt + multi-turn loop + prompt caching
 - `output.json` — sample JSON output
 - `practice-exam/` — CCAR-F adaptive practice exam: local desktop app (`exam_app.py`,
@@ -74,8 +75,22 @@ https://docs.claude.com rather than relying on training data.
 ```
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-pytest -v
+pytest -v --ignore=exercises
 ```
+
+`--ignore=exercises` is not tidying up: those tests are **meant** to be red.
+Each is a `pytest.fail("SCAFFOLD-TODO: …")` gate standing in for work the
+learner writes, and the friction is the point — see
+[`exercises/README.md`](exercises/README.md), which is also why this repo's own
+TDD stop-gate ignores that folder. Work through them one exercise at a time
+(`pytest exercises/exercise1 -v`) and track what is left with
+`grep -rc "SCAFFOLD-TODO" exercises/exercise1/`. Running the whole suite without
+this flag buries the tests that report real breakage under dozens of failures
+that are simply your next assignment.
+
+Tests that call the live API (`test_lesson5.py`, `test_consulting_assistant.py`,
+`test_consulting_notes_extractor.py`) skip themselves with a message when no
+`ANTHROPIC_API_KEY` is set, so a fresh clone runs clean before you add your key.
 
 ## Personalize this locally (keep your context out of the public repo)
 
