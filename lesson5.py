@@ -21,6 +21,12 @@ def chat(user_message):
     messages.append({"role": "assistant", "content": assistant_message})
     return assistant_message
 
-print(chat("What is a Python list?"))
-print(chat("How is it different from a tuple?"))
-print(chat("Which one would I use for a Claude API messages history?"))
+# Only run the demo when this file is executed directly — `python3 lesson5.py`.
+# Without this guard the three calls below fire on IMPORT, so merely importing
+# `chat` (as test_lesson5.py does) spends three real API calls before the test
+# has run a single line. consulting_assistant.py already guards its demo this
+# way; this file was the exception.
+if __name__ == "__main__":
+    print(chat("What is a Python list?"))
+    print(chat("How is it different from a tuple?"))
+    print(chat("Which one would I use for a Claude API messages history?"))
