@@ -12,8 +12,9 @@ load_dotenv()
 
 if not os.environ.get("ANTHROPIC_API_KEY"):
     pytest.skip(
-        "no ANTHROPIC_API_KEY — lesson5 calls the real API. Copy .env.example "
-        "to .env and add your key to run this one.",
+        "no ANTHROPIC_API_KEY — lesson5 calls the real API. Create a .env file "
+        "at the repo root containing ANTHROPIC_API_KEY=sk-... (it is "
+        "gitignored); see the README for where to get a key.",
         allow_module_level=True,
     )
 
