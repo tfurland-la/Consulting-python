@@ -1,0 +1,60 @@
+# Runs both suites on every push to main and every pull request. These are the
+# checks main requires before a merge, so the job names below are load-bearing:
+# branch protection references them as "pytest" and "node", and renaming a job
+# silently turns its gate off rather than failing loudly.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A new push to a PR makes the previous run's answer irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # pywebview is needed even though CI never opens a window: the 24 desktop
+      # bridge tests are guarded by `pytest.importorskip("webview")`, so without
+      # it they SKIP and the run still reports success. Measured: 199 passed /
+      # 24 skipped without it, 223 passed with it. A green check covering 24
+      # fewer tests than it appears to is worse than no check at all.
+      - run: pip install pytest pywebview
+      # Guard the guard. If importing webview ever breaks on the runner — it
+      # wants a GUI toolkit on Linux and that is the likely way this rots — the
+      # job must fail here, loudly, rather than sail through on a quietly
+      # smaller suite.
+      - name: Fail loudly if the bridge tests would be skipped
+        run: python -c "import webview"
+      # Kept identical to the command in .claude/tdd-enforce, minus its absolute
+      # venv path. The exclusions are not arbitrary: those three call the live
+      # Anthropic API, and `exercises` holds deliberately unfinished scaffolding.
+      - run: |
+          python -m pytest -q \
+            --ignore=test_lesson5.py \
+            --ignore=test_consulting_assistant.py \
+            --ignore=test_consulting_notes_extractor.py \
+            --ignore=exercises
+
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # adaptive.js is pure logic with no dependencies, so there is nothing to
+      # install — node's own test runner is the whole harness.
+      - run: node --test practice-exam/adaptive.test.js

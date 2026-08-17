@@ -1,8 +1,17 @@
 # Python for AI Consultants
 
 A from-zero on-ramp to Python and the Anthropic Claude SDK, built as preparation
-for the **Claude Certified Architect (CCAR-F)** exam. Works as a responsive study
-companion alongside Anthropic's official Skilljar course.
+for the **Claude Certified Architect – Foundations (CCAR-F)** exam. Works as a
+responsive study companion alongside Anthropic's official Skilljar course.
+Anthropic has since introduced a Professional-level architect credential — this
+repo targets **Foundations** specifically, and nothing here is calibrated
+against the Professional exam.
+
+**The author sat the CCAR-F and passed.** The practice exam has since been
+rebuilt around what the real thing actually looks like — its scenario structure,
+its screen layout, its item format, and the way it words a question — rather than
+around what the exam guide implies. Those changes are called out throughout and
+collected under [Fidelity to the real exam](#fidelity-to-the-real-exam).
 
 **[Open the live course][live-course]** · [Wiki][wiki]
 
@@ -37,6 +46,14 @@ This repo ships a `CLAUDE.md` at the root that configures Claude Code as a tutor
 for every session: test-driven workflow, surface broken tests rather than paper
 over them, and never touch secrets. See [Build Your Own Study Companion][build-your-own]
 for how to fork and personalize it.
+
+It also ships `.claude/hooks/protect-main.sh`, wired up in `.claude/settings.json`
+so it applies in any clone. It stops a Claude session force-pushing `main`,
+deleting it, hard-resetting it, or weakening its branch protection — ordinary
+pushes are untouched. GitHub's protection on `main` exempts admins, which means
+the one thing it cannot defend against is an agent running with the owner's
+credentials; this hook is that missing half. Personal settings belong in
+`.claude/settings.local.json`, which stays untracked.
 
 ## Adaptive Practice Exam
 
@@ -99,6 +116,25 @@ verbatim, attributed at each site, for study and commentary; that text is
 material written for this tool and is not exam content. This is not an official
 Anthropic product and is not affiliated with, sponsored by or endorsed by
 Anthropic.
+
+### Fidelity to the real exam
+
+The author sat the CCAR-F and passed. Several things the exam guide implies turned
+out not to match the exam itself, and the tool now follows the sitting rather than
+the guide. Each of these changed real behaviour, not just wording:
+
+| Observed at the sitting | What changed |
+|---|---|
+| **No multiple-response items appeared**, though the guide describes them | Single-answer is now treated as fidelity rather than a known gap. It had been documented as a limitation, with scores to be read as a floor; that caveat is gone. |
+| **The exam is divided by scenario** — four of the guide's six, 15 consecutive questions each | The timed exam builds true blocks instead of interleaving. The four scenarios are drawn from the guide's fixed six and shown verbatim; nothing about them is generated. |
+| **Scenario on the left, the branch and question on the right**, all visible without scrolling | The timed modes use that split, and the scenario panel holds still for a whole block instead of repainting per question. |
+| **Questions describe a mechanism by what it does** far more often than they name it | Roughly 45% of generated questions are written in a "functional" register — the mechanism described by behaviour, guarantee, and trigger, never named. Abstraction is capped so it can never become invention: every functional question must resolve to a real, guide-grounded mechanism. |
+| **The guide's own sample questions read easy-to-moderate** against the exam | They are used as models of structure and rigour, explicitly *not* as the difficulty target. Difficulty comes from the tier mix and the register instead. |
+
+One thing the sitting did **not** change: the scored result is still an estimate.
+The domain weighting, question count and clock match, and the scaled score is
+approximated against the 720 bar, but the real scoring model is not published.
+Remaining differences are tracked under [Known fidelity gaps][fidelity].
 
 Prefer a double-clickable app? Build one from the committed spec (binaries are
 not checked in). Again from the repository root, using the project venv:
